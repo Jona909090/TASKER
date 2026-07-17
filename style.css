@@ -108,12 +108,10 @@ body {
     background:white;
     border:2px solid #d7d7d7;
 }
-.brand-text{
-    margin-left:40px;
-}
+
 .brand-text h1{
     margin:0;
-    margin-left:90px;   /* povećaj ili smanji po želji */
+    margin-left:220px;   /* povećaj ili smanji po želji */
     font-size:32px;
     font-weight:800;
     letter-spacing:2px;
