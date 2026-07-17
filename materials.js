@@ -1,195 +1,25 @@
+export const categories = [
+  ['plywood', 'PLYWOOD', '▱', 'ploča'], ['cetris', 'CETRIS', '▤', 'ploča'], ['wall-panels', 'WALL PANELS', '▥', 'kom'], ['ceiling-panels', 'CEILING PANELS', '▥', 'kom'], ['external-panels', 'EXTERNAL PANELS', '▥', 'kom'], ['skirting-flashings', 'SKIRTING / FLASHINGS', '⌞', 'kom'], ['promat', 'PROMAT', '▦', 'ploča'], ['panel-top', 'FLASHINGS – PANEL TOP', '⌜', 'kom'], ['panel-bottom', 'FLASHINGS – PANEL BOTTOM', '⌟', 'kom'], ['fasteners', 'ŠRAFOVSKA ROBA', '⊙', 'kom'], ['rivets', 'ZAKOVICE', '•', 'kom'], ['other', 'OSTALI MATERIJAL', '◇', 'kom'],
+].map(([id, name, icon, unit]) => ({ id, name, icon, unit }))
+
 export const materials = [
-  {
-    id: 1,
-    name: "PLYWOOD",
-    category: "Wood",
-    standard: "DIN7500M TX M6X40 Zn",
-    supplier: "Hilti",
-    location: "A-01",
-    unit: "kom",
-    price: 0.38,
-    minStock: 500,
-    stock: 2500,
-    mv: 180,
-    mvs: 150,
-    rpp: 350,
-    image: "images/placeholder.png"
-  },
-  {
-    id: 2,
-    name: "CETRIS",
-    category: "Boards",
-    standard: "DIN7505A 5X40 Zn",
-    supplier: "Knauf",
-    location: "A-02",
-    unit: "kom",
-    price: 0.42,
-    minStock: 400,
-    stock: 1800,
-    mv: 180,
-    mvs: 150,
-    rpp: 350,
-    image: "images/placeholder.png"
-  },
-  {
-    id: 3,
-    name: "WALL PANELS",
-    category: "Panels",
-    standard: "JT3-D6H-5,5/6,3x127",
-    supplier: "Kingspan",
-    location: "B-01",
-    unit: "kom",
-    price: 5.60,
-    minStock: 300,
-    stock: 5100,
-    mv: 250,
-    mvs: 200,
-    rpp: 2000,
-    image: "images/placeholder.png"
-  },
-  {
-    id: 4,
-    name: "CEILING PANELS",
-    category: "Panels",
-    standard: "JT3-D6H-5,5/6,3x127",
-    supplier: "Kingspan",
-    location: "B-02",
-    unit: "kom",
-    price: 5.90,
-    minStock: 300,
-    stock: 3200,
-    mv: 250,
-    mvs: 200,
-    rpp: 400,
-    image: "images/placeholder.png"
-  },
-  {
-    id: 5,
-    name: "EXTERNAL PANELS",
-    category: "Panels",
-    standard: "JT3-12-5,5x40",
-    supplier: "Kingspan",
-    location: "B-03",
-    unit: "kom",
-    price: 6.10,
-    minStock: 300,
-    stock: 2600,
-    mv: 240,
-    mvs: 200,
-    rpp: 600,
-    image: "images/placeholder.png"
-  }
-];
+  ['plywood', 'Plywood 18 mm', '2440 × 1220 mm', 'Würth', 'B-01', 'ploča', 20, 152], ['plywood', 'Plywood 12 mm', '2440 × 1220 mm', 'Würth', 'B-02', 'ploča', 20, 44], ['cetris', 'Cetris 12 mm', '1250 × 3350 mm', 'Knauf', 'C-01', 'ploča', 15, 80], ['wall-panels', 'Wall panel 100 mm', 'KS1000 AWP', 'Kingspan', 'D-01', 'kom', 50, 510], ['ceiling-panels', 'Ceiling panel 80 mm', 'KS1000 RW', 'Kingspan', 'D-02', 'kom', 50, 320], ['external-panels', 'External panel 100 mm', 'KS1000 AWP', 'Kingspan', 'D-03', 'kom', 50, 260], ['skirting-flashings', 'Skirting flashing', 'RAL 9002', 'Limarija', 'E-01', 'kom', 30, 98], ['promat', 'Promat 12 mm', 'PROMATECT-H', 'Promat', 'F-01', 'ploča', 10, 24], ['panel-top', 'Flashing – panel top', 'RAL 9002', 'Limarija', 'E-02', 'kom', 20, 67], ['panel-bottom', 'Flashing – panel bottom', 'RAL 9002', 'Limarija', 'E-03', 'kom', 20, 42], ['fasteners', 'DIN7500M TX M6×40 Zn', 'DIN 7500 M', 'Würth', 'A-02-03', 'kom', 500, 2500], ['fasteners', 'DIN7504P 5.5×60 Zn', 'DIN 7504 P', 'Bossard', 'A-02-04', 'kom', 500, 720], ['rivets', 'Zakovicа 4.8×16', 'Al/Inox', 'Bossard', 'A-03-01', 'kom', 1000, 850], ['other', 'Zaptivna traka', '50 mm', 'Sika', 'G-01', 'rola', 10, 16],
+].map(([category, name, standard, supplier, location, unit, minStock, stock], index) => ({ id: index + 1, category, name, standard, supplier, location, unit, minStock, stock }))
 
-function getStatus(material) {
-  if (material.stock <= 0) {
-    return {
-      text: "Out of stock",
-      color: "#ef4444"
-    };
-  }
-
-  if (material.stock <= material.minStock) {
-    return {
-      text: "Low stock",
-      color: "#f59e0b"
-    };
-  }
-
-  return {
-    text: "In stock",
-    color: "#22c55e"
-  };
-}
+const quantity = (value) => new Intl.NumberFormat('sr-RS').format(value)
+export const getStatus = (item) => item.stock <= 0 ? ['Nema na stanju', 'empty'] : item.stock <= item.minStock ? ['Pri kraju', 'low'] : ['Na stanju', 'ok']
+export const summary = (id) => { const items = materials.filter((item) => item.category === id); return { items, stock: items.reduce((sum, item) => sum + item.stock, 0) } }
 
 export function renderMaterials() {
+  return `<section class="page-heading"><div><p class="eyebrow">Magacin</p><h1>Materijal</h1><p>Izaberite kategoriju za pregled artikala i stanja lagera.</p></div><button class="primary-btn">＋ Dodaj materijal</button></section><label class="search-field"><span>⌕</span><input id="category-search" type="search" placeholder="Pretraži kategoriju materijala…" /></label><section class="category-grid" id="category-grid">${categories.map((category) => { const data = summary(category.id); return `<button class="category-card" data-category="${category.id}"><span class="category-icon">${category.icon}</span><span class="category-content"><strong>${category.name}</strong><small>${data.items.length} artikla</small></span><span class="category-stock"><b>${quantity(data.stock)}</b><small>${category.unit}</small></span><span class="arrow">›</span></button>` }).join('')}</section>`
+}
 
-  return `
+export function renderCategory(categoryId) {
+  const category = categories.find((entry) => entry.id === categoryId); const data = summary(categoryId)
+  return `<section class="page-heading"><div><button class="back-btn" data-back>← Sve kategorije</button><p class="eyebrow">Materijal / ${category.name}</p><h1>${category.name}</h1><p>${data.items.length} artikla · ukupno ${quantity(data.stock)} ${category.unit}</p></div><button class="primary-btn">＋ Dodaj artikal</button></section><label class="search-field"><span>⌕</span><input id="material-search" type="search" placeholder="Pretraži po nazivu, standardu ili lokaciji…" /></label><section id="inventory-list" class="inventory-list">${renderItems(data.items)}</section>`
+}
 
-<div class="materials-page">
-
-<div class="materials-header">
-
-<h2>📦 Materials</h2>
-
-<div class="materials-actions">
-
-<button class="action-btn">➕ Add Material</button>
-
-<button class="action-btn">📥 Import</button>
-
-<button class="action-btn">📤 Export</button>
-
-</div>
-
-</div>
-
-<input
-class="material-search"
-placeholder="Search material..."
->
-
-<div class="materials-list">
-
-${materials.map(material=>{
-
-const status=getStatus(material);
-
-return `
-
-<div class="material-card">
-
-<div class="material-top">
-
-<div>
-
-<h3>${material.name}</h3>
-
-<p>${material.standard}</p>
-
-</div>
-
-<span
-class="status"
-style="background:${status.color};"
->
-
-${status.text}
-
-</span>
-
-</div>
-
-<div class="material-bottom">
-
-<span>Category <b>${material.category}</b></span>
-
-<span>Supplier <b>${material.supplier}</b></span>
-
-<span>Location <b>${material.location}</b></span>
-
-<span>Price <b>€${material.price}</b></span>
-
-<span>MV <b>${material.mv}</b></span>
-
-<span>MVS <b>${material.mvs}</b></span>
-
-<span>RPP <b>${material.rpp}</b></span>
-
-<span>Stock <b>${material.stock} ${material.unit}</b></span>
-
-</div>
-
-</div>
-
-`;
-
-}).join("")}
-
-</div>
-
-</div>
-
-`;
-
+export function renderItems(items) {
+  if (!items.length) return '<div class="empty-state"><b>Nema pronađenih artikala.</b><span>Pokušajte sa drugim pojmom za pretragu.</span></div>'
+  return items.map((item) => { const [label, tone] = getStatus(item); return `<article class="inventory-item"><div class="inventory-main"><span class="item-dot ${tone}"></span><div><h2>${item.name}</h2><p>${item.standard}</p></div></div><div class="item-meta"><span>Lokacija <b>${item.location}</b></span><span>Dobavljač <b>${item.supplier}</b></span></div><div class="item-stock"><small>Na stanju</small><strong>${quantity(item.stock)} <em>${item.unit}</em></strong><span class="status ${tone}">${label}</span></div><button class="details-btn">Detalji</button></article>` }).join('')
 }
