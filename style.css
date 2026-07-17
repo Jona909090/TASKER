@@ -59,10 +59,11 @@ body {
 
 .brand{
     display:flex;
-    align-items:center;
+    justify-content:center;
+    align-items:flex-start;
     gap:16px;
+    width:100%;
 }
-
 .logo-stack{
     display:flex;
     flex-direction:column;
@@ -105,7 +106,9 @@ body {
     background:white;
     border:2px solid #d7d7d7;
 }
-
+.brand-text{
+    margin-left:40px;
+}
 .brand-text h1{
     margin:0;
     margin-left:90px;   /* povećaj ili smanji po želji */
