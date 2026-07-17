@@ -34,7 +34,13 @@ app.innerHTML = `
    <p class="tagline">Stay organized. One task at a time.</p>
 <p class="author">Stefan Jonić</p>
   </header>
-
+<nav class="menu">
+    <button class="menu-btn active">🏠 Home</button>
+    <button class="menu-btn">📦 Materials</button>
+    <button class="menu-btn">🛒 Orders</button>
+    <button class="menu-btn">📊 Reports</button>
+    <button class="menu-btn">⚙ Settings</button>
+</nav>
   <form class="add-form" id="add-form" autocomplete="off">
     <input type="text" id="new-todo" placeholder="What needs to be done?" maxlength="200" />
     <button type="submit">Add</button>
