@@ -452,3 +452,26 @@ body {
 .content{
     flex:1;
 }
+.materials-table{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--surface);
+    border-radius:12px;
+    overflow:hidden;
+}
+
+.materials-table th{
+    background:#1da1f2;
+    color:white;
+    padding:14px;
+    text-align:left;
+}
+
+.materials-table td{
+    padding:12px;
+    border-bottom:1px solid var(--border);
+}
+
+.materials-table tr:hover{
+    background:var(--surface-2);
+}
