@@ -27,10 +27,23 @@ const app = document.querySelector('#app')
 
 app.innerHTML = `
   <header class="app-header">
-    <div class="brand">
-      <span class="brand-mark">T</span>
-      Tasker
+ <div class="brand">
+
+    <div class="logo-stack">
+        <div class="logo-red"></div>
+
+        <div class="logo-blue">
+            <span>T</span>
+        </div>
+
+        <div class="logo-white"></div>
     </div>
+
+    <div class="brand-text">
+        <h1>TASKER</h1>
+    </div>
+
+</div>
    <p class="tagline">Stay organized. One task at a time.</p>
 <p class="author">Stefan Jonić</p>
   </header>
