@@ -1,4 +1,4 @@
-import './style.css'
+
 
 const STORAGE_KEY = 'tasker.todos'
 const FILTER_KEY = 'tasker.filter'
