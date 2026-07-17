@@ -57,27 +57,61 @@ body {
   margin-bottom: 2rem;
 }
 
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.brand{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
 }
 
-.brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, var(--primary), #22d3ee);
-  display: grid;
-  place-items: center;
-  color: #04131f;
-  font-weight: 800;
-  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.4);
+.logo-stack{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    margin-bottom:16px;
 }
 
+.logo-red{
+    width:56px;
+    height:56px;
+    border-radius:16px;
+    background:#ef3737;
+    border:2px solid #c71d1d;
+}
+
+.logo-blue{
+    width:76px;
+    height:76px;
+    border-radius:20px;
+    background:#2f86db;
+    border:2px solid #1558b5;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.logo-blue span{
+    color:white;
+    font-size:48px;
+    font-weight:900;
+    font-family:Arial,sans-serif;
+}
+
+.logo-white{
+    width:56px;
+    height:56px;
+    border-radius:16px;
+    background:white;
+    border:2px solid #d7d7d7;
+}
+
+.brand-text h1{
+    margin:0;
+    font-size:32px;
+    font-weight:800;
+    letter-spacing:2px;
+}
 .tagline {
   color: var(--text-muted);
   margin: 0.5rem 0 0;
