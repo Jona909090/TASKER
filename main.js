@@ -232,3 +232,53 @@ input.focus()
 
 
 
+const materialBtn = document.querySelector(".side-btn:nth-child(2)");
+
+materialBtn.addEventListener("click", () => {
+
+    const content = document.querySelector(".content");
+
+    content.innerHTML = `
+        <h2>📦 Materials</h2>
+
+        <input
+            type="text"
+            id="material-search"
+            placeholder="Search material..."
+            style="
+                width:100%;
+                padding:12px;
+                margin:20px 0;
+                border-radius:10px;
+            "
+        >
+
+        <table class="materials-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Standard</th>
+                    <th>MV</th>
+                    <th>MVS</th>
+                    <th>RPP</th>
+                    <th>Stock</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${materials.map(m=>`
+                    <tr>
+                        <td>${m.name}</td>
+                        <td>${m.standard}</td>
+                        <td>${m.mv}</td>
+                        <td>${m.mvs}</td>
+                        <td>${m.rpp}</td>
+                        <td>${m.stock} ${m.unit}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+
+        </table>
+    `;
+
+});
