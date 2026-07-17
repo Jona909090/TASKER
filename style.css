@@ -71,7 +71,9 @@ body {
     gap:10px;
     margin-bottom:16px;
 }
-
+.brand-text{
+    margin-left:120px;
+}
 .logo-red{
     width:38px;
     height:38px;
