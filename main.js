@@ -9,7 +9,7 @@ const loadTodos = () => {
   } catch {
     return []
   }
-}
+} 
 
 const saveTodos = (todos) => localStorage.setItem(STORAGE_KEY, JSON.stringify(todos))
 
