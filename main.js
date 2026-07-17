@@ -31,7 +31,8 @@ app.innerHTML = `
       <span class="brand-mark">T</span>
       Tasker
     </div>
-    <p class="tagline">Stay organized. One task at a time.</p>
+   <p class="tagline">Stay organized. One task at a time.</p>
+<p class="author">Stefan Jonić</p>
   </header>
 
   <form class="add-form" id="add-form" autocomplete="off">
