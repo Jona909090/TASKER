@@ -78,7 +78,10 @@ app.innerHTML = `
   <ul class="todo-list" id="todo-list"></ul>
 
   <div class="stats" id="stats"></div>
-`
+</main>
+
+</div>
+`;
 
 const form = app.querySelector('#add-form')
 const input = app.querySelector('#new-todo')
