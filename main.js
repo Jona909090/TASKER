@@ -1,4 +1,4 @@
-import { materials } from "./materials.js";
+import { renderMaterials } from "./materials.js";
 const STORAGE_KEY = 'tasker.todos'
 const FILTER_KEY = 'tasker.filter'
 
@@ -229,76 +229,8 @@ clearBtn.addEventListener('click', () => {
 
 render()
 input.focus() 
-
-
-
 const materialBtn = document.querySelector(".side-btn:nth-child(2)");
 
 materialBtn.addEventListener("click", () => {
-
-    const content = document.querySelector(".content");
-
-    content.innerHTML = `
-      <div class="materials-header">
-
-    <h2>📦 Materials</h2>
-
-    <div class="materials-actions">
-
-        <button class="action-btn" id="add-material">
-            + Add Material
-        </button>
-
-        <button class="action-btn">
-            📥 Import
-        </button>
-
-        <button class="action-btn">
-            📤 Export
-        </button>
-
-    </div>
-
-</div>
-
-        <input
-            type="text"
-            id="material-search"
-            placeholder="Search material..."
-            style="
-                width:100%;
-                padding:12px;
-                margin:20px 0;
-                border-radius:10px;
-            "
-        >
-
-        <table class="materials-table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Standard</th>
-                    <th>MV</th>
-                    <th>MVS</th>
-                    <th>RPP</th>
-                    <th>Stock</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                ${materials.map(m=>`
-                    <tr>
-                        <td>${m.name}</td>
-                        <td>${m.standard}</td>
-                        <td>${m.mv}</td>
-                        <td>${m.mvs}</td>
-                        <td>${m.rpp}</td>
-                        <td>${m.stock} ${m.unit}</td>
-                    </tr>
-                `).join("")}
-            </tbody>
-
-        </table>
-    `;
-
+    document.querySelector(".content").innerHTML = renderMaterials();
 });
