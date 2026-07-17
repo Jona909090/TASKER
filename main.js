@@ -34,13 +34,33 @@ app.innerHTML = `
    <p class="tagline">Stay organized. One task at a time.</p>
 <p class="author">Stefan Jonić</p>
   </header>
-<nav class="menu">
-    <button class="menu-btn active">🏠 Home</button>
-    <button class="menu-btn">📦 Materials</button>
-    <button class="menu-btn">🛒 Orders</button>
-    <button class="menu-btn">📊 Reports</button>
-    <button class="menu-btn">⚙ Settings</button>
-</nav>
+<div class="layout">
+
+    <aside class="sidebar">
+
+        <button class="side-btn active">
+            🏠 Home
+        </button>
+
+        <button class="side-btn">
+            📦 Materials
+        </button>
+
+        <button class="side-btn">
+            🛒 Orders
+        </button>
+
+        <button class="side-btn">
+            📊 Reports
+        </button>
+
+        <button class="side-btn">
+            ⚙ Settings
+        </button>
+
+    </aside>
+
+    <main class="content">
   <form class="add-form" id="add-form" autocomplete="off">
     <input type="text" id="new-todo" placeholder="What needs to be done?" maxlength="200" />
     <button type="submit">Add</button>
@@ -192,3 +212,6 @@ clearBtn.addEventListener('click', () => {
 
 render()
 input.focus()
+</main>
+
+</div>
