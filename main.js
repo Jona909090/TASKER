@@ -214,7 +214,7 @@ clearBtn.addEventListener('click', () => {
 })
 
 render()
-input.focus()
+input.focus() 
 
 
 
