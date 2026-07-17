@@ -239,7 +239,27 @@ materialBtn.addEventListener("click", () => {
     const content = document.querySelector(".content");
 
     content.innerHTML = `
-        <h2>📦 Materials</h2>
+      <div class="materials-header">
+
+    <h2>📦 Materials</h2>
+
+    <div class="materials-actions">
+
+        <button class="action-btn" id="add-material">
+            + Add Material
+        </button>
+
+        <button class="action-btn">
+            📥 Import
+        </button>
+
+        <button class="action-btn">
+            📤 Export
+        </button>
+
+    </div>
+
+</div>
 
         <input
             type="text"
