@@ -74,8 +74,10 @@ body {
 
 .brand-text{
     position:absolute;
-    left:340px;
     top:20px;
+    left:140px;
+    width:calc(100% - 140px);
+    text-align:center;
 }
 .logo-red{
     width:38px;
@@ -114,7 +116,6 @@ body {
 
 .brand-text h1{
     margin:0;
-    margin-left:70px;   /* povećaj ili smanji po želji */
     font-size:32px;
     font-weight:800;
     letter-spacing:2px;
