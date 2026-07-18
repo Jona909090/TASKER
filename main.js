@@ -37,3 +37,34 @@ content.addEventListener('click', (event) => { if (event.target.closest('.add-ma
 function placeholder(title) { content.innerHTML = `<section class="empty-page"><p class="eyebrow">U pripremi</p><h1>${title}</h1><p>Ovaj deo sistema biće dodat u narednom koraku.</p></section>` }
 function navigate(page) { const labels = { dashboard: 'Početna', materials: 'Materijal', orders: 'Narudžbine', modules: 'Modul', 'daily-report': 'Dnevni izveštaj rada', reports: 'Izveštaji', settings: 'Podešavanja' }; document.querySelector('#breadcrumb').textContent = labels[page]; document.querySelectorAll('.nav-link[data-page]').forEach((button) => button.classList.toggle('active', button.dataset.page === page)); if (page === 'dashboard') dashboard(); else if (page === 'materials') materialsPage(); else if (page === 'orders') ordersPage(); else if (page === 'modules') modulesPage(); else if (page === 'reports') reportsPage(); else placeholder(labels[page]) }
 app.addEventListener('click', (event) => { const button = event.target.closest('[data-page]'); if (button) navigate(button.dataset.page) }); navigate('dashboard')
+
+/* Profilna slika - klik na Stefan Jonic */
+(() => {
+  const imagePath = './profil-tasker.jpg'
+
+  function openProfile() {
+    if (document.querySelector('#tasker-profile-modal')) return
+
+    const modal = document.createElement('div')
+    modal.id = 'tasker-profile-modal'
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:24px;background:rgba(4,12,26,.78);backdrop-filter:blur(8px);'
+    modal.innerHTML = `<section style="position:relative;width:min(760px,100%);max-height:90vh;overflow:auto;border:1px solid #4ac9ff;border-radius:22px;background:#142744;box-shadow:0 24px 80px rgba(0,0,0,.55);"><button type="button" data-close-profile style="position:absolute;top:14px;right:14px;width:42px;height:42px;border:0;border-radius:12px;cursor:pointer;color:#fff;background:#28476d;font-size:28px;line-height:1;">&times;</button><img src="${imagePath}" alt="Tasker profil" style="display:block;width:100%;height:auto;"><div style="padding:18px 22px 22px;color:#fff;"><div style="color:#61dcff;font-size:12px;font-weight:800;letter-spacing:1px;">TASKER</div><h2 style="margin:6px 0 0;font-size:26px;">Stefan Jonić</h2><p style="margin:6px 0 0;color:#a9bdd8;">Upravljanje materijalom i radom.</p></div></section>`
+
+    const closeProfile = () => {
+      document.body.style.overflow = ''
+      modal.remove()
+    }
+
+    modal.querySelector('[data-close-profile]').addEventListener('click', closeProfile)
+    modal.addEventListener('click', (event) => { if (event.target === modal) closeProfile() })
+    document.body.appendChild(modal)
+    document.body.style.overflow = 'hidden'
+  }
+
+  document.addEventListener('click', (event) => {
+    const profile = event.target.closest('.profile')
+    if (!profile) return
+    event.preventDefault()
+    openProfile()
+  })
+})()
