@@ -344,10 +344,22 @@ navigate('dashboard')
     document.body.style.overflow = 'hidden'
   }
 
-  document.addEventListener('click', (event) => {
-    const profile = event.target.closest('.profile')
-    if (!profile) return
-    event.preventDefault()
-    openProfile()
-  })
+  const profileButton = document.querySelector('.profile')
+
+  if (profileButton) {
+    profileButton.style.cursor = 'pointer'
+    profileButton.title = 'Otvori profil'
+    profileButton.setAttribute('role', 'button')
+    profileButton.setAttribute('tabindex', '0')
+
+    profileButton.addEventListener('click', (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      openProfile()
+    })
+
+    profileButton.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') openProfile()
+    })
+  }
 })()
