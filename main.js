@@ -12,7 +12,7 @@ const save = () => { localStorage.setItem(storage, JSON.stringify(state.todos));
 const saveOrder = () => localStorage.setItem(orderStorage, JSON.stringify(state.orderLines))
 const saveModuleProgress = () => localStorage.setItem(moduleStorage, JSON.stringify(state.moduleProgress))
 
-app.innerHTML = `<div class="shell"><aside class="sidebar"><a class="brand" href="#"><span class="brand-mark"><i></i><b>T</b><i></i></span><span><strong>TASKER</strong><small>Upravljanje materijalom</small></span></a><nav><button class="nav-link active" data-page="dashboard"><span>\u2302</span> Po\u010Detna</button><button class="nav-link" data-page="materials"><span>\u25A6</span> Materijal <b>${materials.length}</b></button><button class="nav-link" data-page="orders"><span>\u25A4</span> Narud\u017Ebine</button><button class="nav-link" data-page="reports"><span>\u25A5</span> Izve\u0161taji</button></nav><div class="sidebar-footer"><button class="nav-link" data-page="settings"><span>\u2699</span> Pode\u0161avanja</button><p>Tasker v2.0</p></div></aside><div class="workspace"><header class="topbar"><div><strong id="breadcrumb">Po\u010Detna</strong><small>Petak, 17. jul 2026.</small></div><button type="button" class="profile" aria-label="Otvori profil" style="border:0;background:transparent;color:inherit;cursor:pointer;"><span>SJ</span><b>Stefan Joni\u0107</b></button></header><main id="content" class="content"></main></div></div>`
+app.innerHTML = `<div class="shell"><aside class="sidebar"><a class="brand" href="#"><span class="brand-mark"><i></i><b>T</b><i></i></span><span><strong>TASKER</strong><small>Upravljanje materijalom</small></span></a><nav><button class="nav-link active" data-page="dashboard"><span>\u2302</span> Po\u010Detna</button><button class="nav-link" data-page="materials"><span>\u25A6</span> Materijal <b>${materials.length}</b></button><button class="nav-link" data-page="employees"><span>\u263B</span> Zaposleni</button><button class="nav-link" data-page="orders"><span>\u25A4</span> Narud\u017Ebine</button><button class="nav-link" data-page="reports"><span>\u25A5</span> Izve\u0161taji</button></nav><div class="sidebar-footer"><button class="nav-link" data-page="settings"><span>\u2699</span> Pode\u0161avanja</button><p>Tasker v2.0</p></div></aside><div class="workspace"><header class="topbar"><div><strong id="breadcrumb">Po\u010Detna</strong><small>Petak, 17. jul 2026.</small></div><button type="button" class="profile" aria-label="Otvori profil" style="border:0;background:transparent;color:inherit;cursor:pointer;"><span>SJ</span><b>Stefan Joni\u0107</b></button></header><main id="content" class="content"></main></div></div>`
 
 const moduleLink = document.createElement('button')
 moduleLink.className = 'nav-link'
@@ -125,6 +125,24 @@ function categoryPage(id) {
   document.querySelector('#material-search').addEventListener('input', (event) => {
     const term = event.target.value.toLocaleLowerCase('sr')
     document.querySelector('#inventory-list').innerHTML = renderItems(materials.filter((item) => item.category === state.currentCategory && `${item.name} ${item.standard} ${item.location}`.toLocaleLowerCase('sr').includes(term)))
+  })
+}
+
+function employeesPage() {
+  const employees = [
+    { name: 'Stefan Jonic', role: 'Vodja gradilista', phone: '---', email: '---', initials: 'SJ' },
+    { name: 'Marko Petrovic', role: 'Nadzor', phone: '---', email: '---', initials: 'MP' },
+    { name: 'Nikola Ilic', role: 'Radnik', phone: '---', email: '---', initials: 'NI' },
+    { name: 'Milan Jovanovic', role: 'Radnik', phone: '---', email: '---', initials: 'MJ' },
+    { name: 'Dejan Markovic', role: 'Radnik', phone: '---', email: '---', initials: 'DM' },
+    { name: 'Aleksandar Nikolic', role: 'Pomocni radnik', phone: '---', email: '---', initials: 'AN' }
+  ]
+
+  content.innerHTML = `<section class="page-heading employee-heading"><div><p class="eyebrow">Tim i organizacija</p><h1>Zaposleni</h1><p>Pregled radnika, uloga i kontakt podataka.</p></div><span class="employee-count">${employees.length} aktivnih zaposlenih</span></section><section class="employee-tools"><div class="employee-search"><span>\u2315</span><input id="employee-search" placeholder="Pretrazi zaposlenog..."></div><span>Aktivni zaposleni</span></section><section class="employee-grid">${employees.map((employee) => `<article class="employee-card" data-employee="${employee.name.toLocaleLowerCase('sr')}"><header><span class="employee-avatar">${employee.initials}</span><div><h2>${employee.name}</h2><p>${employee.role}</p></div><b>AKTIVAN</b></header><div class="employee-details"><p><span>\u25C9</span> Pozicija: <strong>${employee.role}</strong></p><p><span>\u260E</span> Telefon: <strong>${employee.phone}</strong></p><p><span>@</span> E-mail: <strong>${employee.email}</strong></p></div></article>`).join('')}</section>`
+
+  document.querySelector('#employee-search').addEventListener('input', (event) => {
+    const term = event.target.value.toLocaleLowerCase('sr')
+    document.querySelectorAll('[data-employee]').forEach((card) => { card.hidden = !card.textContent.toLocaleLowerCase('sr').includes(term) })
   })
 }
 
@@ -298,12 +316,13 @@ function placeholder(title) {
 }
 
 function navigate(page) {
-  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
+  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
   document.querySelector('#breadcrumb').textContent = labels[page]
   document.querySelectorAll('.nav-link[data-page]').forEach((button) => button.classList.toggle('active', button.dataset.page === page))
 
   if (page === 'dashboard') dashboard()
   else if (page === 'materials') materialsPage()
+  else if (page === 'employees') employeesPage()
   else if (page === 'orders') ordersPage()
   else if (page === 'modules') modulesPage()
   else if (page === 'reports') reportsPage()
