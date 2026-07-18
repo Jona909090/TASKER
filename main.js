@@ -1,6 +1,6 @@
 import { categories, materials, renderCategory, renderItems, renderMaterials } from './materials.js'
 
-const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const settingsStorage = 'tasker.settings'
+const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const workPlanStorage = 'tasker.work-plans'; const settingsStorage = 'tasker.settings'
 try { const savedCategories = JSON.parse(localStorage.getItem(categoryStorage) || 'null'); if (Array.isArray(savedCategories)) categories.splice(0, categories.length, ...savedCategories) } catch {}
 const saveCategories = () => localStorage.setItem(categoryStorage, JSON.stringify(categories))
 try { const savedInventory = JSON.parse(localStorage.getItem(inventoryStorage) || 'null'); if (Array.isArray(savedInventory)) materials.splice(0, materials.length, ...savedInventory) } catch {}
@@ -8,11 +8,12 @@ const saveInventory = () => localStorage.setItem(inventoryStorage, JSON.stringif
 const defaultSettings = { userName: 'Stefan Jonić', companyName: 'TASKER', defaultMinStock: 0, theme: 'dark' }
 let savedSettings = {}
 try { savedSettings = JSON.parse(localStorage.getItem(settingsStorage) || '{}') || {} } catch {}
-const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}'), attendance: JSON.parse(localStorage.getItem(attendanceStorage) || '{}'), settings: { ...defaultSettings, ...savedSettings } }
+const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}'), attendance: JSON.parse(localStorage.getItem(attendanceStorage) || '{}'), workPlans: JSON.parse(localStorage.getItem(workPlanStorage) || '{}'), settings: { ...defaultSettings, ...savedSettings } }
 const defaultEmployees = [{ id: 1, name: 'Stefan Jonic', role: 'Vodja gradilista', phone: '---', active: true }, { id: 2, name: 'Marko Petrovic', role: 'Nadzor', phone: '---', active: true }, { id: 3, name: 'Nikola Ilic', role: 'Radnik', phone: '---', active: true }, { id: 4, name: 'Milan Jovanovic', role: 'Radnik', phone: '---', active: true }, { id: 5, name: 'Dejan Markovic', role: 'Radnik', phone: '---', active: true }, { id: 6, name: 'Aleksandar Nikolic', role: 'Pomocni radnik', phone: '---', active: true }]
 try { const savedEmployees = JSON.parse(localStorage.getItem(employeeStorage) || 'null'); state.employees = Array.isArray(savedEmployees) ? savedEmployees : defaultEmployees } catch { state.employees = defaultEmployees }
 const saveEmployees = () => localStorage.setItem(employeeStorage, JSON.stringify(state.employees))
 const saveAttendance = () => localStorage.setItem(attendanceStorage, JSON.stringify(state.attendance))
+const saveWorkPlans = () => localStorage.setItem(workPlanStorage, JSON.stringify(state.workPlans))
 const saveSettings = () => localStorage.setItem(settingsStorage, JSON.stringify(state.settings))
 const applyTheme = () => document.documentElement.dataset.theme = state.settings.theme
 applyTheme()
@@ -35,6 +36,12 @@ dailyReportLink.className = 'nav-link'
 dailyReportLink.dataset.page = 'daily-report'
 dailyReportLink.innerHTML = '<span>\u25A4</span> Dnevni izve\u0161taj rada'
 document.querySelector('nav').insertBefore(dailyReportLink, document.querySelector('[data-page="reports"]'))
+
+const workPlanLink = document.createElement('button')
+workPlanLink.className = 'nav-link'
+workPlanLink.dataset.page = 'work-plan'
+workPlanLink.innerHTML = '<span>\u25C8</span> Plan rada'
+document.querySelector('nav').insertBefore(workPlanLink, document.querySelector('[data-page="reports"]'))
 
 const content = document.querySelector('#content')
 const breadcrumb = document.querySelector('#breadcrumb')
@@ -398,6 +405,42 @@ function dailyReportPage(dateKey = dateKeyFor()) {
   })
 }
 
+function workPlanPage(dateKey = dateKeyFor()) {
+  const plans = state.workPlans[dateKey] || []
+  const activeEmployees = state.employees.filter((employee) => employee.active !== false)
+  const date = new Date(`${dateKey}T12:00:00`)
+  const dateTitle = new Intl.DateTimeFormat('sr-Latn-RS', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date)
+  const completed = plans.filter((plan) => plan.done).length
+  const previous = new Date(date); previous.setDate(previous.getDate() - 1)
+  const next = new Date(date); next.setDate(next.getDate() + 1)
+
+  content.innerHTML = `<section class="page-heading plan-heading"><div><p class="eyebrow">Organizacija gradilista</p><h1>Plan rada</h1><p>Napravite dnevni plan i dodelite zadatke zaposlenima.</p></div><div class="plan-calendar"><button type="button" class="calendar-step" data-plan-date="${dateKeyFor(previous)}" aria-label="Prethodni dan">&larr;</button><label><span>Datum plana</span><input id="plan-date" type="date" value="${dateKey}"></label><button type="button" class="calendar-step" data-plan-date="${dateKeyFor(next)}" aria-label="Sledeci dan">&rarr;</button></div></section><section class="plan-summary"><article><span class="stat-icon blue">&#9672;</span><p>Datum</p><strong>${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}</strong><small>${date.getFullYear()}</small></article><article><span class="stat-icon green">&#10003;</span><p>Zavrseni zadaci</p><strong>${completed}</strong><small>od ${plans.length} planiranih</small></article><article><span class="stat-icon amber">!</span><p>Aktivni zaposleni</p><strong>${activeEmployees.length}</strong><small>dostupni za plan</small></article></section><section class="plan-layout"><article class="plan-panel"><header><div><h2>Dodaj zadatak</h2><p>${dateTitle.charAt(0).toLocaleUpperCase('sr')}${dateTitle.slice(1)}</p></div></header><form id="work-plan-form" class="work-plan-form"><label>Zaposleni<select name="employee" required>${activeEmployees.length ? activeEmployees.map((employee) => `<option value="${employee.id}">${esc(employee.name)} - ${esc(employee.role)}</option>`).join('') : '<option value="">Nema aktivnih zaposlenih</option>'}</select></label><label>Modul<select name="module"><option value="MV">MV</option><option value="MVS">MVS</option><option value="RPP">RPP</option><option value="Ostalo">Ostalo</option></select></label><label class="plan-task-field">Zadatak<input name="task" maxlength="160" required placeholder="npr. Postaviti plywood na MV-01"></label><label>Vreme<input name="time" type="time" value="07:00"></label><button class="primary-btn" ${activeEmployees.length ? '' : 'disabled'}>+ Dodaj u plan</button></form></article><article class="plan-panel plan-list-panel"><header><div><h2>Dnevni plan</h2><p>${plans.length ? `${plans.length} zadataka za danas` : 'Jos nema planiranih zadataka.'}</p></div><span>${completed}/${plans.length} zavrseno</span></header><div id="work-plan-list" class="work-plan-list">${plans.length ? plans.map((plan) => { const employee = state.employees.find((entry) => entry.id === Number(plan.employeeId)); return `<article class="planned-task ${plan.done ? 'done' : ''}" data-plan-id="${plan.id}"><button class="plan-check" data-plan-check="${plan.id}" title="Oznaci kao zavrseno">${plan.done ? '&#10003;' : ''}</button><div><b>${esc(plan.task)}</b><p>${esc(employee?.name || 'Obrisan zaposleni')} <span>${esc(plan.module)}</span> <em>${esc(plan.time || '--:--')}</em></p></div><button class="plan-delete" data-plan-delete="${plan.id}" title="Obrisi zadatak">&times;</button></article>` }).join('') : '<p class="plan-empty">Dodajte prvi zadatak za izabrani dan.</p>'}</div></article></section>`
+
+  document.querySelector('#plan-date').addEventListener('change', (event) => workPlanPage(event.target.value || dateKeyFor()))
+  document.querySelectorAll('[data-plan-date]').forEach((button) => button.addEventListener('click', () => workPlanPage(button.dataset.planDate)))
+  document.querySelector('#work-plan-form').addEventListener('submit', (event) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    if (!data.get('task').trim() || !data.get('employee')) return
+    if (!state.workPlans[dateKey]) state.workPlans[dateKey] = []
+    state.workPlans[dateKey].push({ id: String(Date.now()), employeeId: Number(data.get('employee')), module: data.get('module'), task: data.get('task').trim(), time: data.get('time'), done: false })
+    saveWorkPlans()
+    workPlanPage(dateKey)
+  })
+  document.querySelector('#work-plan-list').addEventListener('click', (event) => {
+    const toggle = event.target.closest('[data-plan-check]')
+    const remove = event.target.closest('[data-plan-delete]')
+    if (!toggle && !remove) return
+    const planId = (toggle || remove).dataset.planCheck || (toggle || remove).dataset.planDelete
+    const plan = (state.workPlans[dateKey] || []).find((entry) => entry.id === planId)
+    if (!plan) return
+    if (toggle) plan.done = !plan.done
+    if (remove) state.workPlans[dateKey] = state.workPlans[dateKey].filter((entry) => entry !== plan)
+    saveWorkPlans()
+    workPlanPage(dateKey)
+  })
+}
+
 function showMaterialDetails(id) {
   const item = materials.find((entry) => entry.id === Number(id))
   if (!item) return
@@ -486,7 +529,7 @@ function placeholder(title) {
 }
 
 function navigate(page) {
-  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
+  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', 'work-plan': 'Plan rada', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
   document.querySelector('#breadcrumb').textContent = labels[page]
   document.querySelectorAll('.nav-link[data-page]').forEach((button) => button.classList.toggle('active', button.dataset.page === page))
 
@@ -496,6 +539,7 @@ function navigate(page) {
   else if (page === 'orders') ordersPage()
   else if (page === 'modules') modulesPage()
   else if (page === 'daily-report') dailyReportPage()
+  else if (page === 'work-plan') workPlanPage()
   else if (page === 'reports') reportsPage()
   else if (page === 'settings') settingsPage()
   else placeholder(labels[page])
