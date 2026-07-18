@@ -326,7 +326,7 @@ function settingsPage() {
   })
 
   document.querySelector('#backup-data').addEventListener('click', () => {
-    const backup = { version: 'Tasker v2.0', createdAt: new Date().toISOString(), data: { todos: state.todos, filter: state.filter, inventory: materials, categories, orderLines: state.orderLines, moduleProgress: state.moduleProgress, employees: state.employees, attendance: state.attendance, settings: state.settings } }
+    const backup = { version: 'Tasker v2.0', createdAt: new Date().toISOString(), data: { todos: state.todos, filter: state.filter, inventory: materials, categories, orderLines: state.orderLines, moduleProgress: state.moduleProgress, moduleDetails: state.moduleDetails, employees: state.employees, attendance: state.attendance, workPlans: state.workPlans, settings: state.settings } }
     const link = document.createElement('a')
     link.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }))
     link.download = `tasker-rezervna-kopija-${dateKeyFor()}.json`
@@ -344,7 +344,7 @@ function settingsPage() {
         const data = backup.data
         if (!data || !Array.isArray(data.inventory) || !Array.isArray(data.categories) || !Array.isArray(data.employees)) throw new Error('Neispravan fajl')
         if (!confirm('Da li želite da vratite ovu rezervnu kopiju? Trenutni podaci biće zamenjeni.')) return
-        localStorage.setItem(storage, JSON.stringify(data.todos || [])); localStorage.setItem(filterStorage, data.filter || 'all'); localStorage.setItem(inventoryStorage, JSON.stringify(data.inventory)); localStorage.setItem(categoryStorage, JSON.stringify(data.categories)); localStorage.setItem(orderStorage, JSON.stringify(data.orderLines || [])); localStorage.setItem(moduleStorage, JSON.stringify(data.moduleProgress || { mv: 0, mvs: 0, rpp: 0 })); localStorage.setItem(employeeStorage, JSON.stringify(data.employees)); localStorage.setItem(attendanceStorage, JSON.stringify(data.attendance || {})); localStorage.setItem(settingsStorage, JSON.stringify({ ...defaultSettings, ...(data.settings || {}) }))
+        localStorage.setItem(storage, JSON.stringify(data.todos || [])); localStorage.setItem(filterStorage, data.filter || 'all'); localStorage.setItem(inventoryStorage, JSON.stringify(data.inventory)); localStorage.setItem(categoryStorage, JSON.stringify(data.categories)); localStorage.setItem(orderStorage, JSON.stringify(data.orderLines || [])); localStorage.setItem(moduleStorage, JSON.stringify(data.moduleProgress || { mv: 0, mvs: 0, rpp: 0 })); localStorage.setItem(moduleDetailStorage, JSON.stringify(data.moduleDetails || {})); localStorage.setItem(employeeStorage, JSON.stringify(data.employees)); localStorage.setItem(attendanceStorage, JSON.stringify(data.attendance || {})); localStorage.setItem(workPlanStorage, JSON.stringify(data.workPlans || {})); localStorage.setItem(settingsStorage, JSON.stringify({ ...defaultSettings, ...(data.settings || {}) }))
         location.reload()
       } catch { alert('Ovaj fajl nije ispravna Tasker rezervna kopija.') }
     }
@@ -360,7 +360,7 @@ function settingsPage() {
   })
   document.querySelector('#reset-app').addEventListener('click', () => {
     if (!confirm('Ovo briše sve unete materijale, zaposlene, narudžbine i evidenciju. Da li ste sigurni?')) return
-    ;[storage, filterStorage, inventoryStorage, categoryStorage, orderStorage, moduleStorage, employeeStorage, attendanceStorage, settingsStorage].forEach((key) => localStorage.removeItem(key))
+    ;[storage, filterStorage, inventoryStorage, categoryStorage, orderStorage, moduleStorage, moduleDetailStorage, employeeStorage, attendanceStorage, workPlanStorage, settingsStorage].forEach((key) => localStorage.removeItem(key))
     location.reload()
   })
 }
@@ -379,6 +379,7 @@ function moduleUnit(type, number) {
   const id = `${type.label}-${String(number).padStart(2, '0')}`
   if (!data.units[id]) data.units[id] = { id, progress: 0, work: '', note: '', photos: [] }
   if (!Array.isArray(data.units[id].photos)) data.units[id].photos = []
+  if (!Array.isArray(data.units[id].consumption)) data.units[id].consumption = []
   return data.units[id]
 }
 
@@ -410,8 +411,11 @@ function moduleUnitPage(typeId, unitId) {
   const type = moduleTypes.find((entry) => entry.id === typeId)
   const unit = Object.values(moduleData(type).units).find((entry) => entry.id === unitId)
   if (!type || !unit) return moduleDetailPage(typeId)
+  if (!Array.isArray(unit.consumption)) unit.consumption = []
   const today = new Intl.DateTimeFormat('sr-Latn-RS', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date())
   content.innerHTML = `<section class="page-heading module-detail-heading"><div><button class="back-link" id="back-module-type">&larr; Nazad na ${type.label}</button><p class="eyebrow">Detalji modula</p><h1>${unit.id}</h1><p>Vodite evidenciju radova i fotografija za ovaj modul.</p></div><div class="module-total"><span>Napredak</span><b>${unit.progress}%</b></div></section><section class="unit-detail-grid"><article class="plan-panel"><h2>Stanje radova</h2><form id="module-unit-form" class="unit-form"><label>Procenat zavrsenosti<input name="progress" type="number" min="0" max="100" value="${unit.progress}"></label><label>Sta je uradjeno<input name="work" maxlength="180" value="${esc(unit.work)}" placeholder="npr. Postavljen plywood i cetris"></label><label>Beleška<textarea name="note" maxlength="1000" placeholder="Upisite napomenu za ovaj modul...">${esc(unit.note)}</textarea></label><button class="primary-btn">Sacuvaj promene</button></form></article><article class="plan-panel gallery-panel"><header><div><h2>Fotografije modula</h2><p>${today} - najvise 3 manje fotografije.</p></div></header><label class="photo-upload"><span>+ Dodaj fotografiju</span><input id="module-photo-input" type="file" accept="image/*" multiple></label><p class="photo-help">Fotografije se trenutno cuvaju u ovom browseru. Za trajno cuvanje na svim uredjajima kasnije dodajemo Drive ili bazu.</p><div id="module-gallery" class="module-gallery">${unit.photos.length ? unit.photos.map((photo, index) => `<figure><img src="${photo.data}" alt="Fotografija ${index + 1}"><figcaption>${photo.date}<button data-delete-photo="${index}" title="Obrisi fotografiju">&times;</button></figcaption></figure>`).join('') : '<p class="plan-empty">Jos nema fotografija za ovaj modul.</p>'}</div></article></section>`
+  content.insertAdjacentHTML('beforeend', `<section class="plan-panel consumption-panel"><header><div><h2>Potrosnja materijala</h2><p>Materijal se automatski skida sa stanja magacina.</p></div><span>${unit.consumption.length} stavki</span></header><form id="consumption-form" class="consumption-form"><label>Materijal<select name="material" required>${materials.map((item) => `<option value="${item.id}">${esc(item.name)} - ${new Intl.NumberFormat('sr-RS').format(item.stock)} ${esc(item.unit)}</option>`).join('')}</select></label><label>Kolicina<input name="quantity" type="number" min="1" required value="1"></label><button class="primary-btn" ${materials.length ? '' : 'disabled'}>Skini sa stanja</button></form><div id="consumption-list" class="consumption-list">${unit.consumption.length ? unit.consumption.slice().reverse().map((entry) => `<article><div><b>${esc(entry.name)}</b><p>${entry.date} &middot; ${entry.quantity} ${esc(entry.unit)} skinuto sa stanja</p></div><strong>-${entry.quantity} ${esc(entry.unit)}</strong><button data-undo-consumption="${entry.id}" title="Vrati materijal na stanje">&crarr;</button></article>`).join('') : '<p class="plan-empty">Jos nije evidentirana potrosnja materijala za ovaj modul.</p>'}</div></section>`)
+  content.insertAdjacentHTML('beforeend', `<style>#content .consumption-panel{margin-top:18px!important;padding:21px!important;border:1px solid #2c4d6b!important;border-radius:16px!important;background:linear-gradient(145deg,#1d2c45,#152139)!important}#content .consumption-panel header{display:flex!important;justify-content:space-between!important;gap:12px!important;align-items:flex-start!important;margin-bottom:16px!important}#content .consumption-panel h2{margin:0!important;font-size:18px!important}#content .consumption-panel header p{margin:5px 0 0!important;color:#9cafc5!important;font-size:12px!important}#content .consumption-panel header>span{color:#82ddff!important;font-size:11px!important;font-weight:800!important}.consumption-form{display:grid!important;grid-template-columns:minmax(240px,1fr) 150px auto!important;gap:12px!important;align-items:end!important;padding-bottom:17px!important;border-bottom:1px solid #2d4b68!important}.consumption-form label{display:grid!important;gap:6px!important;color:#a4b8cf!important;font-size:11px!important;font-weight:800!important}.consumption-form select,.consumption-form input{height:43px!important;padding:0 11px!important;border:1px solid #365b7b!important;border-radius:9px!important;outline:0!important;background:#102039!important;color:#f0f8ff!important}.consumption-list article{display:grid!important;grid-template-columns:1fr auto 30px!important;gap:14px!important;align-items:center!important;padding:13px 4px!important;border-bottom:1px solid #294762!important}.consumption-list article b{font-size:13px!important}.consumption-list article p{margin:4px 0 0!important;color:#99aec6!important;font-size:11px!important}.consumption-list article strong{color:#ffadba!important;font-size:13px!important}.consumption-list article button{width:28px!important;height:28px!important;border:1px solid #3c6988!important;border-radius:8px!important;background:#1b4564!important;color:#8bdefc!important;font-size:17px!important;cursor:pointer!important}@media(max-width:620px){.consumption-form{grid-template-columns:1fr!important}.consumption-form .primary-btn{width:100%!important}.consumption-list article{grid-template-columns:1fr auto!important}.consumption-list article button{grid-column:2!important}}</style>`)
   document.querySelector('#back-module-type').addEventListener('click', () => moduleDetailPage(typeId))
   document.querySelector('#module-unit-form').addEventListener('submit', (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); unit.progress = Math.max(0, Math.min(100, Number(form.get('progress')) || 0)); unit.work = form.get('work').trim(); unit.note = form.get('note').trim(); saveModuleDetails(); moduleUnitPage(typeId, unitId) })
   document.querySelector('#module-gallery').addEventListener('click', (event) => { const button = event.target.closest('[data-delete-photo]'); if (!button) return; unit.photos.splice(Number(button.dataset.deletePhoto), 1); saveModuleDetails(); moduleUnitPage(typeId, unitId) })
@@ -420,6 +424,31 @@ function moduleUnitPage(typeId, unitId) {
     if (!files.length) return
     if (files.some((file) => file.size > 900000)) { alert('Jedna ili vise slika je prevelika. Izaberite fotografiju manju od 900 KB.'); event.target.value = ''; return }
     Promise.all(files.map((file) => new Promise((resolve) => { const reader = new FileReader(); reader.onload = () => resolve({ data: reader.result, date: today }); reader.readAsDataURL(file) }))).then((photos) => { unit.photos.push(...photos); saveModuleDetails(); moduleUnitPage(typeId, unitId) }).catch(() => alert('Fotografija nije mogla biti dodata.'))
+  })
+  document.querySelector('#consumption-form').addEventListener('submit', (event) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const item = materials.find((entry) => entry.id === Number(data.get('material')))
+    const quantity = Number(data.get('quantity'))
+    if (!item || !Number.isInteger(quantity) || quantity < 1) return
+    if (item.stock < quantity) { alert(`Nema dovoljno materijala. Na stanju je ${item.stock} ${item.unit}.`); return }
+    const before = item.stock
+    item.stock -= quantity
+    unit.consumption.push({ id: String(Date.now()), materialId: item.id, name: item.name, unit: item.unit, quantity, date: today, before, after: item.stock })
+    saveInventory()
+    saveModuleDetails()
+    moduleUnitPage(typeId, unitId)
+  })
+  document.querySelector('#consumption-list').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-undo-consumption]')
+    if (!button) return
+    const entry = unit.consumption.find((item) => item.id === button.dataset.undoConsumption)
+    if (!entry || !confirm(`Vratiti ${entry.quantity} ${entry.unit} na stanje magacina?`)) return
+    const item = materials.find((material) => material.id === Number(entry.materialId))
+    if (item) { item.stock += Number(entry.quantity); saveInventory() }
+    unit.consumption = unit.consumption.filter((item) => item !== entry)
+    saveModuleDetails()
+    moduleUnitPage(typeId, unitId)
   })
 }
 
