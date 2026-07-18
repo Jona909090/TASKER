@@ -1,6 +1,6 @@
 import { categories, materials, renderCategory, renderItems, renderMaterials } from './materials.js'
 
-const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const workPlanStorage = 'tasker.work-plans'; const settingsStorage = 'tasker.settings'
+const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const moduleDetailStorage = 'tasker.module-details'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const workPlanStorage = 'tasker.work-plans'; const settingsStorage = 'tasker.settings'
 try { const savedCategories = JSON.parse(localStorage.getItem(categoryStorage) || 'null'); if (Array.isArray(savedCategories)) categories.splice(0, categories.length, ...savedCategories) } catch {}
 const saveCategories = () => localStorage.setItem(categoryStorage, JSON.stringify(categories))
 try { const savedInventory = JSON.parse(localStorage.getItem(inventoryStorage) || 'null'); if (Array.isArray(savedInventory)) materials.splice(0, materials.length, ...savedInventory) } catch {}
@@ -8,7 +8,7 @@ const saveInventory = () => localStorage.setItem(inventoryStorage, JSON.stringif
 const defaultSettings = { userName: 'Stefan Jonić', companyName: 'TASKER', defaultMinStock: 0, theme: 'dark' }
 let savedSettings = {}
 try { savedSettings = JSON.parse(localStorage.getItem(settingsStorage) || '{}') || {} } catch {}
-const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}'), attendance: JSON.parse(localStorage.getItem(attendanceStorage) || '{}'), workPlans: JSON.parse(localStorage.getItem(workPlanStorage) || '{}'), settings: { ...defaultSettings, ...savedSettings } }
+const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}'), moduleDetails: JSON.parse(localStorage.getItem(moduleDetailStorage) || '{}'), attendance: JSON.parse(localStorage.getItem(attendanceStorage) || '{}'), workPlans: JSON.parse(localStorage.getItem(workPlanStorage) || '{}'), settings: { ...defaultSettings, ...savedSettings } }
 const defaultEmployees = [{ id: 1, name: 'Stefan Jonic', role: 'Vodja gradilista', phone: '---', active: true }, { id: 2, name: 'Marko Petrovic', role: 'Nadzor', phone: '---', active: true }, { id: 3, name: 'Nikola Ilic', role: 'Radnik', phone: '---', active: true }, { id: 4, name: 'Milan Jovanovic', role: 'Radnik', phone: '---', active: true }, { id: 5, name: 'Dejan Markovic', role: 'Radnik', phone: '---', active: true }, { id: 6, name: 'Aleksandar Nikolic', role: 'Pomocni radnik', phone: '---', active: true }]
 try { const savedEmployees = JSON.parse(localStorage.getItem(employeeStorage) || 'null'); state.employees = Array.isArray(savedEmployees) ? savedEmployees : defaultEmployees } catch { state.employees = defaultEmployees }
 const saveEmployees = () => localStorage.setItem(employeeStorage, JSON.stringify(state.employees))
@@ -22,6 +22,7 @@ const esc = (text) => text.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '
 const save = () => { localStorage.setItem(storage, JSON.stringify(state.todos)); localStorage.setItem(filterStorage, state.filter) }
 const saveOrder = () => localStorage.setItem(orderStorage, JSON.stringify(state.orderLines))
 const saveModuleProgress = () => localStorage.setItem(moduleStorage, JSON.stringify(state.moduleProgress))
+const saveModuleDetails = () => localStorage.setItem(moduleDetailStorage, JSON.stringify(state.moduleDetails))
 
 app.innerHTML = `<div class="shell"><aside class="sidebar"><a class="brand" href="#"><span class="brand-mark"><i></i><b>T</b><i></i></span><span><strong id="brand-company">${esc(state.settings.companyName)}</strong><small>Upravljanje materijalom</small></span></a><nav><button class="nav-link active" data-page="dashboard"><span>\u2302</span> Po\u010Detna</button><button class="nav-link" data-page="materials"><span>\u25A6</span> Materijal <b>${materials.length}</b></button><button class="nav-link" data-page="employees"><span>\u263B</span> Zaposleni</button><button class="nav-link" data-page="orders"><span>\u25A4</span> Narud\u017Ebine</button><button class="nav-link" data-page="reports"><span>\u25A5</span> Izve\u0161taji</button></nav><div class="sidebar-footer"><button class="nav-link" data-page="settings"><span>\u2699</span> Pode\u0161avanja</button><p>Tasker v2.0</p></div></aside><div class="workspace"><header class="topbar"><div><strong id="breadcrumb">Po\u010Detna</strong><small>Petak, 17. jul 2026.</small></div><button type="button" class="profile" aria-label="Otvori profil" style="border:0;background:transparent;color:inherit;cursor:pointer;"><span id="profile-initials">SJ</span><b id="profile-name">${esc(state.settings.userName)}</b></button></header><main id="content" class="content"></main></div></div>`
 
@@ -358,18 +359,62 @@ function settingsPage() {
   })
 }
 
-function modulesPage() {
-  const modules = [{ id: 'mv', label: 'MV', name: 'MV moduli', color: '#43c5f6' }, { id: 'mvs', label: 'MVS', name: 'MVS moduli', color: '#a78bfa' }, { id: 'rpp', label: 'RPP', name: 'RPP moduli', color: '#5de18e' }]
-  content.innerHTML = `<section class="page-heading"><div><p class="eyebrow">Planiranje proizvodnje</p><h1>Modul</h1><p>Pratite napredak zavr\u0161enog posla po tipu modula.</p></div></section><section class="module-grid">${modules.map((module) => {
-    const progress = Math.max(0, Math.min(100, Number(state.moduleProgress[module.id]) || 0))
-    return `<article class="module-card"><div><p class="eyebrow">Modul</p><h2>${module.label}</h2><p>${module.name}</p></div><div class="progress-ring" style="--progress:${progress};--ring:${module.color}"><div><strong>${progress}%</strong><small>zavr\u0161eno</small></div></div><label>Zavr\u0161en posao (%)<input class="module-progress-input" data-module="${module.id}" type="number" min="0" max="100" value="${progress}"></label></article>`
-  }).join('')}</section>`
+const moduleTypes = [{ id: 'mv', label: 'MV', name: 'MV moduli', color: '#43c5f6', defaultCount: 16 }, { id: 'mvs', label: 'MVS', name: 'MVS moduli', color: '#a78bfa', defaultCount: 0 }, { id: 'rpp', label: 'RPP', name: 'RPP moduli', color: '#5de18e', defaultCount: 0 }]
 
-  document.querySelectorAll('.module-progress-input').forEach((input) => input.addEventListener('change', () => {
-    state.moduleProgress[input.dataset.module] = Math.max(0, Math.min(100, Number(input.value) || 0))
-    saveModuleProgress()
-    modulesPage()
-  }))
+function moduleData(type) {
+  if (!state.moduleDetails[type.id]) state.moduleDetails[type.id] = { count: type.defaultCount, units: {} }
+  const data = state.moduleDetails[type.id]
+  if (!data.units) data.units = {}
+  return data
+}
+
+function moduleUnit(type, number) {
+  const data = moduleData(type)
+  const id = `${type.label}-${String(number).padStart(2, '0')}`
+  if (!data.units[id]) data.units[id] = { id, progress: 0, work: '', note: '', photos: [] }
+  if (!Array.isArray(data.units[id].photos)) data.units[id].photos = []
+  return data.units[id]
+}
+
+function typeProgress(type) {
+  const data = moduleData(type)
+  const count = Number(data.count) || 0
+  if (!count) return 0
+  return Math.round(Array.from({ length: count }, (_, index) => moduleUnit(type, index + 1).progress).reduce((sum, value) => sum + Number(value || 0), 0) / count)
+}
+
+function modulesPage() {
+  content.innerHTML = `<section class="page-heading"><div><p class="eyebrow">Planiranje proizvodnje</p><h1>Modul</h1><p>Otvorite tip modula i pratite zavrsetak svakog pojedinacno.</p></div></section><section class="module-grid">${moduleTypes.map((type) => { const data = moduleData(type); const progress = typeProgress(type); return `<button class="module-card module-open" data-open-module="${type.id}"><div><p class="eyebrow">Modul</p><h2>${type.label}</h2><p>${data.count ? `${data.count} modula` : 'Nema dodatih modula'}</p><span>Otvori pregled &rarr;</span></div><div class="progress-ring" style="--progress:${progress};--ring:${type.color}"><div><strong>${progress}%</strong><small>zavrseno</small></div></div></button>` }).join('')}</section>`
+  document.querySelectorAll('[data-open-module]').forEach((button) => button.addEventListener('click', () => moduleDetailPage(button.dataset.openModule)))
+}
+
+function moduleDetailPage(typeId) {
+  const type = moduleTypes.find((entry) => entry.id === typeId)
+  if (!type) return modulesPage()
+  const data = moduleData(type)
+  const count = Math.max(0, Math.min(100, Number(data.count) || 0))
+  const progress = typeProgress(type)
+  content.innerHTML = `<section class="page-heading module-detail-heading"><div><button class="back-link" id="back-modules">&larr; Svi moduli</button><p class="eyebrow">${type.label} moduli</p><h1>${type.label}</h1><p>Pregled pojedinacnih modula i njihovog napretka.</p></div><div class="module-total"><span>Ukupno zavrseno</span><b>${progress}%</b></div></section><section class="module-controls"><label>Broj ${type.label} modula<input id="module-count" type="number" min="0" max="100" value="${count}"></label><button class="primary-btn" id="save-module-count">Sacuvaj broj modula</button></section><section class="individual-module-grid">${count ? Array.from({ length: count }, (_, index) => { const unit = moduleUnit(type, index + 1); return `<button class="individual-module" data-open-unit="${unit.id}"><div><p>MODUL</p><h2>${unit.id}</h2></div><div class="mini-progress" style="--progress:${unit.progress};--ring:${type.color}"><b>${unit.progress}%</b></div><label><span>${unit.work ? esc(unit.work) : 'Dodajte sta je uradjeno'}</span></label></button>` }).join('') : '<p class="plan-empty">Unesite broj modula da bi se pojavile pojedinacne kartice.</p>'}</section>`
+  document.querySelector('#back-modules').addEventListener('click', modulesPage)
+  document.querySelector('#save-module-count').addEventListener('click', () => { data.count = Math.max(0, Math.min(100, Number(document.querySelector('#module-count').value) || 0)); saveModuleDetails(); moduleDetailPage(typeId) })
+  document.querySelectorAll('[data-open-unit]').forEach((button) => button.addEventListener('click', () => moduleUnitPage(typeId, button.dataset.openUnit)))
+}
+
+function moduleUnitPage(typeId, unitId) {
+  const type = moduleTypes.find((entry) => entry.id === typeId)
+  const unit = Object.values(moduleData(type).units).find((entry) => entry.id === unitId)
+  if (!type || !unit) return moduleDetailPage(typeId)
+  const today = new Intl.DateTimeFormat('sr-Latn-RS', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date())
+  content.innerHTML = `<section class="page-heading module-detail-heading"><div><button class="back-link" id="back-module-type">&larr; Nazad na ${type.label}</button><p class="eyebrow">Detalji modula</p><h1>${unit.id}</h1><p>Vodite evidenciju radova i fotografija za ovaj modul.</p></div><div class="module-total"><span>Napredak</span><b>${unit.progress}%</b></div></section><section class="unit-detail-grid"><article class="plan-panel"><h2>Stanje radova</h2><form id="module-unit-form" class="unit-form"><label>Procenat zavrsenosti<input name="progress" type="number" min="0" max="100" value="${unit.progress}"></label><label>Sta je uradjeno<input name="work" maxlength="180" value="${esc(unit.work)}" placeholder="npr. Postavljen plywood i cetris"></label><label>Beleška<textarea name="note" maxlength="1000" placeholder="Upisite napomenu za ovaj modul...">${esc(unit.note)}</textarea></label><button class="primary-btn">Sacuvaj promene</button></form></article><article class="plan-panel gallery-panel"><header><div><h2>Fotografije modula</h2><p>${today} - najvise 3 manje fotografije.</p></div></header><label class="photo-upload"><span>+ Dodaj fotografiju</span><input id="module-photo-input" type="file" accept="image/*" multiple></label><p class="photo-help">Fotografije se trenutno cuvaju u ovom browseru. Za trajno cuvanje na svim uredjajima kasnije dodajemo Drive ili bazu.</p><div id="module-gallery" class="module-gallery">${unit.photos.length ? unit.photos.map((photo, index) => `<figure><img src="${photo.data}" alt="Fotografija ${index + 1}"><figcaption>${photo.date}<button data-delete-photo="${index}" title="Obrisi fotografiju">&times;</button></figcaption></figure>`).join('') : '<p class="plan-empty">Jos nema fotografija za ovaj modul.</p>'}</div></article></section>`
+  document.querySelector('#back-module-type').addEventListener('click', () => moduleDetailPage(typeId))
+  document.querySelector('#module-unit-form').addEventListener('submit', (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); unit.progress = Math.max(0, Math.min(100, Number(form.get('progress')) || 0)); unit.work = form.get('work').trim(); unit.note = form.get('note').trim(); saveModuleDetails(); moduleUnitPage(typeId, unitId) })
+  document.querySelector('#module-gallery').addEventListener('click', (event) => { const button = event.target.closest('[data-delete-photo]'); if (!button) return; unit.photos.splice(Number(button.dataset.deletePhoto), 1); saveModuleDetails(); moduleUnitPage(typeId, unitId) })
+  document.querySelector('#module-photo-input').addEventListener('change', (event) => {
+    const files = [...event.target.files].slice(0, Math.max(0, 3 - unit.photos.length))
+    if (!files.length) return
+    if (files.some((file) => file.size > 900000)) { alert('Jedna ili vise slika je prevelika. Izaberite fotografiju manju od 900 KB.'); event.target.value = ''; return }
+    Promise.all(files.map((file) => new Promise((resolve) => { const reader = new FileReader(); reader.onload = () => resolve({ data: reader.result, date: today }); reader.readAsDataURL(file) }))).then((photos) => { unit.photos.push(...photos); saveModuleDetails(); moduleUnitPage(typeId, unitId) }).catch(() => alert('Fotografija nije mogla biti dodata.'))
+  })
 }
 
 const dateKeyFor = (date = new Date()) => {
