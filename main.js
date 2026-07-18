@@ -1,6 +1,6 @@
 import { categories, materials, renderCategory, renderItems, renderMaterials } from './materials.js'
 
-const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const moduleDetailStorage = 'tasker.module-details'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const workPlanStorage = 'tasker.work-plans'; const settingsStorage = 'tasker.settings'
+const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const moduleDetailStorage = 'tasker.module-details'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const workHoursStorage = 'tasker.work-hours'; const workPlanStorage = 'tasker.work-plans'; const settingsStorage = 'tasker.settings'
 try { const savedCategories = JSON.parse(localStorage.getItem(categoryStorage) || 'null'); if (Array.isArray(savedCategories)) categories.splice(0, categories.length, ...savedCategories) } catch {}
 const saveCategories = () => localStorage.setItem(categoryStorage, JSON.stringify(categories))
 try { const savedInventory = JSON.parse(localStorage.getItem(inventoryStorage) || 'null'); if (Array.isArray(savedInventory)) materials.splice(0, materials.length, ...savedInventory) } catch {}
@@ -8,11 +8,12 @@ const saveInventory = () => localStorage.setItem(inventoryStorage, JSON.stringif
 const defaultSettings = { userName: 'Stefan Jonić', companyName: 'TASKER', defaultMinStock: 0, theme: 'dark' }
 let savedSettings = {}
 try { savedSettings = JSON.parse(localStorage.getItem(settingsStorage) || '{}') || {} } catch {}
-const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}'), moduleDetails: JSON.parse(localStorage.getItem(moduleDetailStorage) || '{}'), attendance: JSON.parse(localStorage.getItem(attendanceStorage) || '{}'), workPlans: JSON.parse(localStorage.getItem(workPlanStorage) || '{}'), settings: { ...defaultSettings, ...savedSettings } }
+const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}'), moduleDetails: JSON.parse(localStorage.getItem(moduleDetailStorage) || '{}'), attendance: JSON.parse(localStorage.getItem(attendanceStorage) || '{}'), workHours: JSON.parse(localStorage.getItem(workHoursStorage) || '{}'), workPlans: JSON.parse(localStorage.getItem(workPlanStorage) || '{}'), settings: { ...defaultSettings, ...savedSettings } }
 const defaultEmployees = [{ id: 1, name: 'Stefan Jonic', role: 'Vodja gradilista', phone: '---', active: true }, { id: 2, name: 'Marko Petrovic', role: 'Nadzor', phone: '---', active: true }, { id: 3, name: 'Nikola Ilic', role: 'Radnik', phone: '---', active: true }, { id: 4, name: 'Milan Jovanovic', role: 'Radnik', phone: '---', active: true }, { id: 5, name: 'Dejan Markovic', role: 'Radnik', phone: '---', active: true }, { id: 6, name: 'Aleksandar Nikolic', role: 'Pomocni radnik', phone: '---', active: true }]
 try { const savedEmployees = JSON.parse(localStorage.getItem(employeeStorage) || 'null'); state.employees = Array.isArray(savedEmployees) ? savedEmployees : defaultEmployees } catch { state.employees = defaultEmployees }
 const saveEmployees = () => localStorage.setItem(employeeStorage, JSON.stringify(state.employees))
 const saveAttendance = () => localStorage.setItem(attendanceStorage, JSON.stringify(state.attendance))
+const saveWorkHours = () => localStorage.setItem(workHoursStorage, JSON.stringify(state.workHours))
 const saveWorkPlans = () => localStorage.setItem(workPlanStorage, JSON.stringify(state.workPlans))
 const saveSettings = () => localStorage.setItem(settingsStorage, JSON.stringify(state.settings))
 const applyTheme = () => document.documentElement.dataset.theme = state.settings.theme
@@ -37,6 +38,12 @@ dailyReportLink.className = 'nav-link'
 dailyReportLink.dataset.page = 'daily-report'
 dailyReportLink.innerHTML = '<span>\u25A4</span> Dnevni izve\u0161taj rada'
 document.querySelector('nav').insertBefore(dailyReportLink, document.querySelector('[data-page="reports"]'))
+
+const workHoursLink = document.createElement('button')
+workHoursLink.className = 'nav-link'
+workHoursLink.dataset.page = 'work-hours'
+workHoursLink.innerHTML = '<span>\u25F7</span> Radni sati'
+document.querySelector('nav').insertBefore(workHoursLink, document.querySelector('[data-page="reports"]'))
 
 const workPlanLink = document.createElement('button')
 workPlanLink.className = 'nav-link'
@@ -326,7 +333,7 @@ function settingsPage() {
   })
 
   document.querySelector('#backup-data').addEventListener('click', () => {
-    const backup = { version: 'Tasker v2.0', createdAt: new Date().toISOString(), data: { todos: state.todos, filter: state.filter, inventory: materials, categories, orderLines: state.orderLines, moduleProgress: state.moduleProgress, moduleDetails: state.moduleDetails, employees: state.employees, attendance: state.attendance, workPlans: state.workPlans, settings: state.settings } }
+    const backup = { version: 'Tasker v2.0', createdAt: new Date().toISOString(), data: { todos: state.todos, filter: state.filter, inventory: materials, categories, orderLines: state.orderLines, moduleProgress: state.moduleProgress, moduleDetails: state.moduleDetails, employees: state.employees, attendance: state.attendance, workHours: state.workHours, workPlans: state.workPlans, settings: state.settings } }
     const link = document.createElement('a')
     link.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }))
     link.download = `tasker-rezervna-kopija-${dateKeyFor()}.json`
@@ -344,7 +351,7 @@ function settingsPage() {
         const data = backup.data
         if (!data || !Array.isArray(data.inventory) || !Array.isArray(data.categories) || !Array.isArray(data.employees)) throw new Error('Neispravan fajl')
         if (!confirm('Da li želite da vratite ovu rezervnu kopiju? Trenutni podaci biće zamenjeni.')) return
-        localStorage.setItem(storage, JSON.stringify(data.todos || [])); localStorage.setItem(filterStorage, data.filter || 'all'); localStorage.setItem(inventoryStorage, JSON.stringify(data.inventory)); localStorage.setItem(categoryStorage, JSON.stringify(data.categories)); localStorage.setItem(orderStorage, JSON.stringify(data.orderLines || [])); localStorage.setItem(moduleStorage, JSON.stringify(data.moduleProgress || { mv: 0, mvs: 0, rpp: 0 })); localStorage.setItem(moduleDetailStorage, JSON.stringify(data.moduleDetails || {})); localStorage.setItem(employeeStorage, JSON.stringify(data.employees)); localStorage.setItem(attendanceStorage, JSON.stringify(data.attendance || {})); localStorage.setItem(workPlanStorage, JSON.stringify(data.workPlans || {})); localStorage.setItem(settingsStorage, JSON.stringify({ ...defaultSettings, ...(data.settings || {}) }))
+        localStorage.setItem(storage, JSON.stringify(data.todos || [])); localStorage.setItem(filterStorage, data.filter || 'all'); localStorage.setItem(inventoryStorage, JSON.stringify(data.inventory)); localStorage.setItem(categoryStorage, JSON.stringify(data.categories)); localStorage.setItem(orderStorage, JSON.stringify(data.orderLines || [])); localStorage.setItem(moduleStorage, JSON.stringify(data.moduleProgress || { mv: 0, mvs: 0, rpp: 0 })); localStorage.setItem(moduleDetailStorage, JSON.stringify(data.moduleDetails || {})); localStorage.setItem(employeeStorage, JSON.stringify(data.employees)); localStorage.setItem(attendanceStorage, JSON.stringify(data.attendance || {})); localStorage.setItem(workHoursStorage, JSON.stringify(data.workHours || {})); localStorage.setItem(workPlanStorage, JSON.stringify(data.workPlans || {})); localStorage.setItem(settingsStorage, JSON.stringify({ ...defaultSettings, ...(data.settings || {}) }))
         location.reload()
       } catch { alert('Ovaj fajl nije ispravna Tasker rezervna kopija.') }
     }
@@ -360,7 +367,7 @@ function settingsPage() {
   })
   document.querySelector('#reset-app').addEventListener('click', () => {
     if (!confirm('Ovo briše sve unete materijale, zaposlene, narudžbine i evidenciju. Da li ste sigurni?')) return
-    ;[storage, filterStorage, inventoryStorage, categoryStorage, orderStorage, moduleStorage, moduleDetailStorage, employeeStorage, attendanceStorage, workPlanStorage, settingsStorage].forEach((key) => localStorage.removeItem(key))
+    ;[storage, filterStorage, inventoryStorage, categoryStorage, orderStorage, moduleStorage, moduleDetailStorage, employeeStorage, attendanceStorage, workHoursStorage, workPlanStorage, settingsStorage].forEach((key) => localStorage.removeItem(key))
     location.reload()
   })
 }
@@ -482,6 +489,33 @@ function dailyReportPage(dateKey = dateKeyFor()) {
     attendance[Number(button.dataset.employeeId)] = button.dataset.attendance === 'active'
     saveAttendance()
     dailyReportPage(dateKey)
+  })
+}
+
+function workHoursFor(dateKey) {
+  if (!state.workHours[dateKey]) state.workHours[dateKey] = {}
+  state.employees.forEach((employee) => {
+    if (state.workHours[dateKey][employee.id] === undefined) state.workHours[dateKey][employee.id] = employee.active === false ? 0 : 9
+  })
+  return state.workHours[dateKey]
+}
+
+function workHoursPage(dateKey = dateKeyFor()) {
+  const hours = workHoursFor(dateKey)
+  const total = state.employees.reduce((sum, employee) => sum + (Number(hours[employee.id]) || 0), 0)
+  const average = state.employees.length ? (total / state.employees.length).toFixed(1).replace('.', ',') : '0'
+  const date = new Date(`${dateKey}T12:00:00`)
+  const dateTitle = new Intl.DateTimeFormat('sr-Latn-RS', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date)
+  content.innerHTML = `<section class="page-heading hours-heading"><div><p class="eyebrow">Evidencija rada</p><h1>Radni sati</h1><p>Unesite i sacuvajte broj radnih sati za svaki dan.</p></div><label class="attendance-date"><span>Datum</span><input id="hours-date" type="date" value="${dateKey}"></label></section><section class="hours-summary"><article><span class="stat-icon blue">&#9201;</span><p>Ukupno sati danas</p><strong>${total.toLocaleString('sr-RS')}</strong><small>zbir cele ekipe</small></article><article><span class="stat-icon green">&#9787;</span><p>Zaposlenih</p><strong>${state.employees.length}</strong><small>u dnevnoj evidenciji</small></article><article><span class="stat-icon amber">&#8776;</span><p>Prosek po radniku</p><strong>${average}</strong><small>sati za izabrani dan</small></article></section><section class="hours-panel"><header><div><h2>Dnevna evidencija sati</h2><p>${dateTitle.charAt(0).toLocaleUpperCase('sr')}${dateTitle.slice(1)}.</p></div><span>Podrazumevano: 9 sati</span></header><form id="hours-form"><div class="hours-list">${state.employees.length ? state.employees.map((employee) => { const initials = employee.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase(); const value = hours[employee.id]; return `<article class="hours-row"><span class="employee-avatar">${initials}</span><div><b>${esc(employee.name)}</b><p>${esc(employee.role)} ${employee.active === false ? '<em>Neaktivan</em>' : ''}</p></div><label>Sati<input name="hours-${employee.id}" type="number" min="0" max="24" step="0.5" value="${value}"></label></article>` }).join('') : '<p class="plan-empty">Nema zaposlenih u evidenciji.</p>'}</div><div class="hours-actions"><span>Promenite sate po potrebi, pa sacuvajte dnevni zbir.</span><button class="primary-btn">Sacuvaj sate za ovaj dan</button></div></form></section>`
+  content.insertAdjacentHTML('afterbegin', `<style>#content .hours-heading{align-items:flex-end!important}#content .hours-summary{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:16px!important;margin-bottom:20px!important}#content .hours-summary article{padding:20px!important;border:1px solid #2d4c6b!important;border-radius:16px!important;background:linear-gradient(145deg,#1d2c45,#152139)!important}#content .hours-summary p{margin:14px 0 4px!important;color:#9cb1c8!important;font-size:13px!important}#content .hours-summary strong{display:block!important;font-size:29px!important}#content .hours-summary small{color:#7890aa!important;font-size:11px!important}#content .hours-panel{padding:22px!important;border:1px solid #2c4c6b!important;border-radius:16px!important;background:linear-gradient(145deg,#1d2c45,#152139)!important}#content .hours-panel header{display:flex!important;justify-content:space-between!important;gap:14px!important;align-items:flex-start!important;margin-bottom:16px!important}#content .hours-panel h2{margin:0!important;font-size:18px!important}#content .hours-panel header p{margin:5px 0 0!important;color:#a0b4ca!important;font-size:12px!important}#content .hours-panel header>span{color:#83ddff!important;font-size:11px!important;font-weight:800!important}.hours-list{border-top:1px solid #2b4966!important}.hours-row{display:grid!important;grid-template-columns:auto 1fr 120px!important;gap:13px!important;align-items:center!important;padding:13px 4px!important;border-bottom:1px solid #2b4966!important}.hours-row>div b{display:block!important;font-size:13px!important}.hours-row>div p{margin:4px 0 0!important;color:#9bafc5!important;font-size:11px!important}.hours-row>div em{margin-left:7px;color:#ff9db0!important;font-style:normal!important;font-weight:800!important}.hours-row label{display:grid!important;grid-template-columns:1fr auto!important;align-items:center!important;gap:8px!important;color:#9db2c8!important;font-size:11px!important;font-weight:800!important}.hours-row input{width:58px!important;height:39px!important;padding:0 8px!important;border:1px solid #3d6686!important;border-radius:9px!important;outline:0!important;background:#102039!important;color:#f1f8ff!important;font-weight:800!important;text-align:center!important}.hours-row input:focus{border-color:#59cdf5!important;box-shadow:0 0 0 3px rgba(67,197,246,.13)!important}.hours-actions{display:flex!important;justify-content:space-between!important;gap:12px!important;align-items:center!important;padding-top:18px!important;color:#9aafc5!important;font-size:12px!important}@media(max-width:700px){#content .hours-heading{align-items:flex-start!important}#content .hours-summary{grid-template-columns:1fr!important}.hours-row{grid-template-columns:auto 1fr!important}.hours-row label{grid-column:1/-1!important;justify-self:stretch!important}.hours-row input{width:76px!important}.hours-actions{align-items:stretch!important;flex-direction:column!important}.hours-actions .primary-btn{width:100%!important}}</style>`)
+  document.querySelector('#hours-date').addEventListener('change', (event) => workHoursPage(event.target.value || dateKeyFor()))
+  document.querySelector('#hours-form').addEventListener('submit', (event) => {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    state.employees.forEach((employee) => { hours[employee.id] = Math.max(0, Math.min(24, Number(form.get(`hours-${employee.id}`)) || 0)) })
+    saveWorkHours()
+    workHoursPage(dateKey)
+    alert(`Radni sati za ${dateKey} su sacuvani. Ukupno: ${state.employees.reduce((sum, employee) => sum + (Number(hours[employee.id]) || 0), 0).toLocaleString('sr-RS')} sati.`)
   })
 }
 
@@ -624,7 +658,7 @@ function placeholder(title) {
 }
 
 function navigate(page) {
-  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', 'work-plan': 'Plan rada', documents: 'Dokumentacija', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
+  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', 'work-hours': 'Radni sati', 'work-plan': 'Plan rada', documents: 'Dokumentacija', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
   document.querySelector('#breadcrumb').textContent = labels[page]
   document.querySelectorAll('.nav-link[data-page]').forEach((button) => button.classList.toggle('active', button.dataset.page === page))
 
@@ -634,6 +668,7 @@ function navigate(page) {
   else if (page === 'orders') ordersPage()
   else if (page === 'modules') modulesPage()
   else if (page === 'daily-report') dailyReportPage()
+  else if (page === 'work-hours') workHoursPage()
   else if (page === 'work-plan') workPlanPage()
   else if (page === 'documents') documentsPage()
   else if (page === 'reports') reportsPage()
