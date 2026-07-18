@@ -1,22 +1,28 @@
 import { categories, materials, renderCategory, renderItems, renderMaterials } from './materials.js'
 
-const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'
+const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const settingsStorage = 'tasker.settings'
 try { const savedCategories = JSON.parse(localStorage.getItem(categoryStorage) || 'null'); if (Array.isArray(savedCategories)) categories.splice(0, categories.length, ...savedCategories) } catch {}
 const saveCategories = () => localStorage.setItem(categoryStorage, JSON.stringify(categories))
 try { const savedInventory = JSON.parse(localStorage.getItem(inventoryStorage) || 'null'); if (Array.isArray(savedInventory)) materials.splice(0, materials.length, ...savedInventory) } catch {}
 const saveInventory = () => localStorage.setItem(inventoryStorage, JSON.stringify(materials))
-const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}'), attendance: JSON.parse(localStorage.getItem(attendanceStorage) || '{}') }
+const defaultSettings = { userName: 'Stefan Jonić', companyName: 'TASKER', defaultMinStock: 0, theme: 'dark' }
+let savedSettings = {}
+try { savedSettings = JSON.parse(localStorage.getItem(settingsStorage) || '{}') || {} } catch {}
+const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}'), attendance: JSON.parse(localStorage.getItem(attendanceStorage) || '{}'), settings: { ...defaultSettings, ...savedSettings } }
 const defaultEmployees = [{ id: 1, name: 'Stefan Jonic', role: 'Vodja gradilista', phone: '---', active: true }, { id: 2, name: 'Marko Petrovic', role: 'Nadzor', phone: '---', active: true }, { id: 3, name: 'Nikola Ilic', role: 'Radnik', phone: '---', active: true }, { id: 4, name: 'Milan Jovanovic', role: 'Radnik', phone: '---', active: true }, { id: 5, name: 'Dejan Markovic', role: 'Radnik', phone: '---', active: true }, { id: 6, name: 'Aleksandar Nikolic', role: 'Pomocni radnik', phone: '---', active: true }]
 try { const savedEmployees = JSON.parse(localStorage.getItem(employeeStorage) || 'null'); state.employees = Array.isArray(savedEmployees) ? savedEmployees : defaultEmployees } catch { state.employees = defaultEmployees }
 const saveEmployees = () => localStorage.setItem(employeeStorage, JSON.stringify(state.employees))
 const saveAttendance = () => localStorage.setItem(attendanceStorage, JSON.stringify(state.attendance))
+const saveSettings = () => localStorage.setItem(settingsStorage, JSON.stringify(state.settings))
+const applyTheme = () => document.documentElement.dataset.theme = state.settings.theme
+applyTheme()
 const app = document.querySelector('#app'); const low = materials.filter((item) => item.stock > 0 && item.stock <= item.minStock).length; const noStock = materials.filter((item) => item.stock <= 0).length
 const esc = (text) => text.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
 const save = () => { localStorage.setItem(storage, JSON.stringify(state.todos)); localStorage.setItem(filterStorage, state.filter) }
 const saveOrder = () => localStorage.setItem(orderStorage, JSON.stringify(state.orderLines))
 const saveModuleProgress = () => localStorage.setItem(moduleStorage, JSON.stringify(state.moduleProgress))
 
-app.innerHTML = `<div class="shell"><aside class="sidebar"><a class="brand" href="#"><span class="brand-mark"><i></i><b>T</b><i></i></span><span><strong>TASKER</strong><small>Upravljanje materijalom</small></span></a><nav><button class="nav-link active" data-page="dashboard"><span>\u2302</span> Po\u010Detna</button><button class="nav-link" data-page="materials"><span>\u25A6</span> Materijal <b>${materials.length}</b></button><button class="nav-link" data-page="employees"><span>\u263B</span> Zaposleni</button><button class="nav-link" data-page="orders"><span>\u25A4</span> Narud\u017Ebine</button><button class="nav-link" data-page="reports"><span>\u25A5</span> Izve\u0161taji</button></nav><div class="sidebar-footer"><button class="nav-link" data-page="settings"><span>\u2699</span> Pode\u0161avanja</button><p>Tasker v2.0</p></div></aside><div class="workspace"><header class="topbar"><div><strong id="breadcrumb">Po\u010Detna</strong><small>Petak, 17. jul 2026.</small></div><button type="button" class="profile" aria-label="Otvori profil" style="border:0;background:transparent;color:inherit;cursor:pointer;"><span>SJ</span><b>Stefan Joni\u0107</b></button></header><main id="content" class="content"></main></div></div>`
+app.innerHTML = `<div class="shell"><aside class="sidebar"><a class="brand" href="#"><span class="brand-mark"><i></i><b>T</b><i></i></span><span><strong id="brand-company">${esc(state.settings.companyName)}</strong><small>Upravljanje materijalom</small></span></a><nav><button class="nav-link active" data-page="dashboard"><span>\u2302</span> Po\u010Detna</button><button class="nav-link" data-page="materials"><span>\u25A6</span> Materijal <b>${materials.length}</b></button><button class="nav-link" data-page="employees"><span>\u263B</span> Zaposleni</button><button class="nav-link" data-page="orders"><span>\u25A4</span> Narud\u017Ebine</button><button class="nav-link" data-page="reports"><span>\u25A5</span> Izve\u0161taji</button></nav><div class="sidebar-footer"><button class="nav-link" data-page="settings"><span>\u2699</span> Pode\u0161avanja</button><p>Tasker v2.0</p></div></aside><div class="workspace"><header class="topbar"><div><strong id="breadcrumb">Po\u010Detna</strong><small>Petak, 17. jul 2026.</small></div><button type="button" class="profile" aria-label="Otvori profil" style="border:0;background:transparent;color:inherit;cursor:pointer;"><span id="profile-initials">SJ</span><b id="profile-name">${esc(state.settings.userName)}</b></button></header><main id="content" class="content"></main></div></div>`
 
 const moduleLink = document.createElement('button')
 moduleLink.className = 'nav-link'
@@ -34,6 +40,8 @@ const content = document.querySelector('#content')
 const breadcrumb = document.querySelector('#breadcrumb')
 const topbarMeta = document.querySelector('.topbar > div:first-child')
 const greetingFor = (date) => date.getHours() < 12 ? 'Dobro jutro' : date.getHours() < 18 ? 'Dobar dan' : 'Dobro ve\u010De'
+const firstName = () => state.settings.userName.trim().split(/\s+/)[0] || 'Korisniče'
+const initialsFor = (name) => name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || 'T'
 
 const updateClock = () => {
   const now = new Date()
@@ -41,7 +49,7 @@ const updateClock = () => {
   const time = new Intl.DateTimeFormat('sr-Latn-RS', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(now)
   topbarMeta.innerHTML = `<strong id="breadcrumb">Po\u010Detna</strong><small><span>${date.charAt(0).toLocaleUpperCase('sr')}${date.slice(1)}.</span><b>${time}</b></small>`
   const greeting = document.querySelector('#greeting')
-  if (greeting) greeting.textContent = `${greetingFor(now)}, Stefane.`
+  if (greeting) greeting.textContent = `${greetingFor(now)}, ${firstName()}.`
 }
 
 updateClock()
@@ -51,7 +59,7 @@ function dashboard() {
   const done = state.todos.filter((todo) => todo.done).length
   const activeEmployees = state.employees.filter((employee) => employee.active !== false).length
   const inactiveEmployees = state.employees.length - activeEmployees
-  content.innerHTML = `<section class="welcome"><div><p class="eyebrow">Kontrolna tabla</p><h1 id="greeting">${greetingFor(new Date())}, Stefane.</h1><p>Ovo je pregled stanja magacina i dana\u0161njih obaveza.</p></div><button class="primary-btn" data-page="materials">Pregledaj materijal \u2192</button></section><section class="stat-grid"><article><span class="stat-icon blue">\u25A6</span><p>Ukupno artikala</p><strong>${materials.length}</strong><small>u 12 kategorija</small></article><article><span class="stat-icon amber">!</span><p>Materijal pri kraju</p><strong>${low}</strong><small>zahteva proveru</small></article><article><span class="stat-icon red">\u00D7</span><p>Nema na stanju</p><strong>${noStock}</strong><small>potrebna narud\u017Ebina</small></article><article><span class="stat-icon green">\u25A4</span><p>Aktivne narud\u017Ebine</p><strong>0</strong><small>nema otvorenih</small></article><button class="employee-overview" data-page="employees" title="Otvori zaposlene"><span class="stat-icon employee-icon">\u263B</span><p>Zaposleni danas</p><strong>${activeEmployees}</strong><small><b>${activeEmployees} aktivnih</b><i>${inactiveEmployees} neaktivnih</i></small><em>Otvori pregled \u2192</em></button></section><section class="dashboard-grid"><article class="panel"><header class="panel-heading"><div><h2>Dnevne obaveze</h2><p>Organizujte zadatke za danas.</p></div><span>${done}/${state.todos.length} zavr\u0161eno</span></header><form id="add-form" class="add-form"><input id="new-todo" maxlength="200" placeholder="Dodajte novu obavezu\u2026"><button>+</button></form><div class="filters" id="filters"><button data-filter="all">Sve</button><button data-filter="active">Aktivne</button><button data-filter="done">Zavr\u0161ene</button></div><ul class="todo-list" id="todo-list"></ul><button id="clear-done" class="clear-btn">Obri\u0161i zavr\u0161ene</button></article><article class="panel"><header class="panel-heading"><div><h2>Brzi pregled</h2><p>Najva\u017Enije informacije iz magacina.</p></div></header><div class="activity"><span class="blue">\u25A6</span><div><b>\u0160rafovska roba</b><p>3.220 komada na stanju</p></div></div><div class="activity"><span class="amber">!</span><div><b>Zakovice pri kraju</b><p>850 kom \u00B7 minimum 1.000</p></div></div><div class="activity"><span class="green">\u2713</span><div><b>Plywood 18 mm</b><p>152 plo\u010De na stanju</p></div></div></article></section>`
+  content.innerHTML = `<section class="welcome"><div><p class="eyebrow">Kontrolna tabla</p><h1 id="greeting">${greetingFor(new Date())}, ${esc(firstName())}.</h1><p>Ovo je pregled stanja magacina i dana\u0161njih obaveza.</p></div><button class="primary-btn" data-page="materials">Pregledaj materijal \u2192</button></section><section class="stat-grid"><article><span class="stat-icon blue">\u25A6</span><p>Ukupno artikala</p><strong>${materials.length}</strong><small>u 12 kategorija</small></article><article><span class="stat-icon amber">!</span><p>Materijal pri kraju</p><strong>${low}</strong><small>zahteva proveru</small></article><article><span class="stat-icon red">\u00D7</span><p>Nema na stanju</p><strong>${noStock}</strong><small>potrebna narud\u017Ebina</small></article><article><span class="stat-icon green">\u25A4</span><p>Aktivne narud\u017Ebine</p><strong>0</strong><small>nema otvorenih</small></article><button class="employee-overview" data-page="employees" title="Otvori zaposlene"><span class="stat-icon employee-icon">\u263B</span><p>Zaposleni danas</p><strong>${activeEmployees}</strong><small><b>${activeEmployees} aktivnih</b><i>${inactiveEmployees} neaktivnih</i></small><em>Otvori pregled \u2192</em></button></section><section class="dashboard-grid"><article class="panel"><header class="panel-heading"><div><h2>Dnevne obaveze</h2><p>Organizujte zadatke za danas.</p></div><span>${done}/${state.todos.length} zavr\u0161eno</span></header><form id="add-form" class="add-form"><input id="new-todo" maxlength="200" placeholder="Dodajte novu obavezu\u2026"><button>+</button></form><div class="filters" id="filters"><button data-filter="all">Sve</button><button data-filter="active">Aktivne</button><button data-filter="done">Zavr\u0161ene</button></div><ul class="todo-list" id="todo-list"></ul><button id="clear-done" class="clear-btn">Obri\u0161i zavr\u0161ene</button></article><article class="panel"><header class="panel-heading"><div><h2>Brzi pregled</h2><p>Najva\u017Enije informacije iz magacina.</p></div></header><div class="activity"><span class="blue">\u25A6</span><div><b>\u0160rafovska roba</b><p>3.220 komada na stanju</p></div></div><div class="activity"><span class="amber">!</span><div><b>Zakovice pri kraju</b><p>850 kom \u00B7 minimum 1.000</p></div></div><div class="activity"><span class="green">\u2713</span><div><b>Plywood 18 mm</b><p>152 plo\u010De na stanju</p></div></div></article></section>`
   bindTodos()
 }
 
@@ -257,6 +265,76 @@ function exportCsv() {
   URL.revokeObjectURL(link.href)
 }
 
+function settingsPage() {
+  const now = new Intl.DateTimeFormat('sr-Latn-RS', { dateStyle: 'full', timeStyle: 'medium' }).format(new Date())
+  content.innerHTML = `<section class="page-heading"><div><p class="eyebrow">Administracija sistema</p><h1>Podešavanja</h1><p>Upravljajte profilom, podacima i izgledom aplikacije.</p></div></section><section class="settings-grid"><article class="settings-card"><header><span class="stat-icon blue">◉</span><div><h2>Korisnik i firma</h2><p>Podaci koji se prikazuju u aplikaciji.</p></div></header><form id="profile-settings" class="settings-form"><label>Ime korisnika<input name="userName" required value="${esc(state.settings.userName)}"></label><label>Naziv firme / aplikacije<input name="companyName" required value="${esc(state.settings.companyName)}"></label><button class="primary-btn">Sačuvaj podatke</button></form></article><article class="settings-card"><header><span class="stat-icon amber">◐</span><div><h2>Izgled aplikacije</h2><p>Izaberite temu koja vam odgovara.</p></div></header><div class="theme-options"><button class="theme-option ${state.settings.theme === 'dark' ? 'selected' : ''}" data-theme="dark"><b>● Tamna tema</b><small>Prijatna za rad uveče.</small></button><button class="theme-option ${state.settings.theme === 'light' ? 'selected' : ''}" data-theme="light"><b>○ Svetla tema</b><small>Preglednija pri dnevnom svetlu.</small></button></div></article><article class="settings-card"><header><span class="stat-icon green">⌚</span><div><h2>Datum i vreme</h2><p>Aplikacija koristi vreme vašeg uređaja.</p></div></header><div class="settings-info"><b>${now}</b><small>Za promenu vremena podesite datum i sat na računaru ili telefonu.</small></div></article><article class="settings-card"><header><span class="stat-icon blue">▣</span><div><h2>Magacin</h2><p>Podrazumevana minimalna količina za nove artikle.</p></div></header><form id="warehouse-settings" class="settings-form inline-form"><label>Minimalna količina<input name="defaultMinStock" type="number" min="0" value="${Number(state.settings.defaultMinStock) || 0}"></label><button class="secondary-btn">Sačuvaj</button></form></article><article class="settings-card settings-card-wide"><header><span class="stat-icon green">⇩</span><div><h2>Rezervna kopija podataka</h2><p>Sačuvajte kompletno stanje aplikacije na računaru ili vratite ranije sačuvanu kopiju.</p></div></header><div class="settings-actions"><button class="primary-btn" id="backup-data">Preuzmi rezervnu kopiju</button><label class="secondary-btn restore-label">Učitaj rezervnu kopiju<input id="restore-data" type="file" accept="application/json,.json"></label><button class="secondary-btn" id="settings-export-csv">Izvezi materijal u CSV</button></div></article><article class="settings-card danger-card settings-card-wide"><header><span class="stat-icon red">!</span><div><h2>Brisanje podataka</h2><p>Ove radnje se ne mogu vratiti bez prethodno preuzete rezervne kopije.</p></div></header><div class="settings-actions"><button class="danger-btn" id="clear-attendance">Obriši dnevnu evidenciju</button><button class="danger-btn" id="reset-app">Obriši sve probne podatke</button></div></article><article class="settings-card settings-card-wide about-card"><header><span class="stat-icon blue">i</span><div><h2>O aplikaciji</h2><p><b>Tasker v2.0</b> · Sistem za materijal, zaposlene, narudžbine i evidenciju rada.</p></div></header></article></section>`
+
+  document.querySelector('#profile-settings').addEventListener('submit', (event) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    state.settings.userName = data.get('userName').trim()
+    state.settings.companyName = data.get('companyName').trim().toLocaleUpperCase('sr')
+    saveSettings()
+    document.querySelector('#brand-company').textContent = state.settings.companyName
+    document.querySelector('#profile-name').textContent = state.settings.userName
+    document.querySelector('#profile-initials').textContent = initialsFor(state.settings.userName)
+    alert('Podaci su sačuvani.')
+  })
+
+  document.querySelectorAll('[data-theme]').forEach((button) => button.addEventListener('click', () => {
+    state.settings.theme = button.dataset.theme
+    saveSettings()
+    applyTheme()
+    settingsPage()
+  }))
+
+  document.querySelector('#warehouse-settings').addEventListener('submit', (event) => {
+    event.preventDefault()
+    state.settings.defaultMinStock = Math.max(0, Number(new FormData(event.currentTarget).get('defaultMinStock')) || 0)
+    saveSettings()
+    alert('Podrazumevana minimalna količina je sačuvana.')
+  })
+
+  document.querySelector('#backup-data').addEventListener('click', () => {
+    const backup = { version: 'Tasker v2.0', createdAt: new Date().toISOString(), data: { todos: state.todos, filter: state.filter, inventory: materials, categories, orderLines: state.orderLines, moduleProgress: state.moduleProgress, employees: state.employees, attendance: state.attendance, settings: state.settings } }
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }))
+    link.download = `tasker-rezervna-kopija-${dateKeyFor()}.json`
+    link.click()
+    URL.revokeObjectURL(link.href)
+  })
+
+  document.querySelector('#restore-data').addEventListener('change', (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const backup = JSON.parse(reader.result)
+        const data = backup.data
+        if (!data || !Array.isArray(data.inventory) || !Array.isArray(data.categories) || !Array.isArray(data.employees)) throw new Error('Neispravan fajl')
+        if (!confirm('Da li želite da vratite ovu rezervnu kopiju? Trenutni podaci biće zamenjeni.')) return
+        localStorage.setItem(storage, JSON.stringify(data.todos || [])); localStorage.setItem(filterStorage, data.filter || 'all'); localStorage.setItem(inventoryStorage, JSON.stringify(data.inventory)); localStorage.setItem(categoryStorage, JSON.stringify(data.categories)); localStorage.setItem(orderStorage, JSON.stringify(data.orderLines || [])); localStorage.setItem(moduleStorage, JSON.stringify(data.moduleProgress || { mv: 0, mvs: 0, rpp: 0 })); localStorage.setItem(employeeStorage, JSON.stringify(data.employees)); localStorage.setItem(attendanceStorage, JSON.stringify(data.attendance || {})); localStorage.setItem(settingsStorage, JSON.stringify({ ...defaultSettings, ...(data.settings || {}) }))
+        location.reload()
+      } catch { alert('Ovaj fajl nije ispravna Tasker rezervna kopija.') }
+    }
+    reader.readAsText(file)
+  })
+
+  document.querySelector('#settings-export-csv').addEventListener('click', exportCsv)
+  document.querySelector('#clear-attendance').addEventListener('click', () => {
+    if (!confirm('Da li želite da obrišete svu dnevnu evidenciju rada?')) return
+    state.attendance = {}
+    saveAttendance()
+    alert('Dnevna evidencija je obrisana.')
+  })
+  document.querySelector('#reset-app').addEventListener('click', () => {
+    if (!confirm('Ovo briše sve unete materijale, zaposlene, narudžbine i evidenciju. Da li ste sigurni?')) return
+    ;[storage, filterStorage, inventoryStorage, categoryStorage, orderStorage, moduleStorage, employeeStorage, attendanceStorage, settingsStorage].forEach((key) => localStorage.removeItem(key))
+    location.reload()
+  })
+}
+
 function modulesPage() {
   const modules = [{ id: 'mv', label: 'MV', name: 'MV moduli', color: '#43c5f6' }, { id: 'mvs', label: 'MVS', name: 'MVS moduli', color: '#a78bfa' }, { id: 'rpp', label: 'RPP', name: 'RPP moduli', color: '#5de18e' }]
   content.innerHTML = `<section class="page-heading"><div><p class="eyebrow">Planiranje proizvodnje</p><h1>Modul</h1><p>Pratite napredak zavr\u0161enog posla po tipu modula.</p></div></section><section class="module-grid">${modules.map((module) => {
@@ -335,7 +413,7 @@ function showMaterialDetails(id) {
 function showAddMaterial() {
   const selected = state.currentCategory || categories[0].id
   document.querySelector('.material-modal')?.remove()
-  document.body.insertAdjacentHTML('beforeend', `<div class="material-modal" role="dialog" aria-modal="true"><form class="material-dialog material-form" id="material-form"><button type="button" class="modal-close" aria-label="Zatvori">\u00D7</button><p class="eyebrow">Novi artikal</p><h2>Dodaj materijal</h2><p class="material-standard">Unesite osnovne podatke za novi artikal u magacinu.</p><div class="form-grid"><label>Naziv artikla<input name="name" required placeholder="npr. DIN7500M TX M6\u00D740 Zn"></label><label>Kategorija<select name="category">${categories.map((category) => `<option value="${category.id}" ${category.id === selected ? 'selected' : ''}>${category.name}</option>`).join('')}</select></label><label class="new-category">Nova kategorija <small>(po \u017Eelji)</small><input name="newCategory" placeholder="npr. ALATI"></label><label>Standard / opis<input name="standard" required placeholder="npr. DIN 7500 M"></label><label>Jedinica<input name="unit" required value="kom"></label><label>Koli\u010Dina na stanju<input name="stock" required type="number" min="0" value="0"></label><label>Minimalna koli\u010Dina<input name="minStock" required type="number" min="0" value="0"></label><label>Lokacija<input name="location" required placeholder="npr. A-01-02"></label><label>Dobavlja\u010D<input name="supplier" required placeholder="npr. W\u00FCrth"></label></div><div class="detail-actions"><button type="button" class="secondary-btn modal-close">Otka\u017Ei</button><button class="primary-btn">Sa\u010Duvaj materijal</button></div></form></div>`)
+  document.body.insertAdjacentHTML('beforeend', `<div class="material-modal" role="dialog" aria-modal="true"><form class="material-dialog material-form" id="material-form"><button type="button" class="modal-close" aria-label="Zatvori">\u00D7</button><p class="eyebrow">Novi artikal</p><h2>Dodaj materijal</h2><p class="material-standard">Unesite osnovne podatke za novi artikal u magacinu.</p><div class="form-grid"><label>Naziv artikla<input name="name" required placeholder="npr. DIN7500M TX M6\u00D740 Zn"></label><label>Kategorija<select name="category">${categories.map((category) => `<option value="${category.id}" ${category.id === selected ? 'selected' : ''}>${category.name}</option>`).join('')}</select></label><label class="new-category">Nova kategorija <small>(po \u017Eelji)</small><input name="newCategory" placeholder="npr. ALATI"></label><label>Standard / opis<input name="standard" required placeholder="npr. DIN 7500 M"></label><label>Jedinica<input name="unit" required value="kom"></label><label>Koli\u010Dina na stanju<input name="stock" required type="number" min="0" value="0"></label><label>Minimalna koli\u010Dina<input name="minStock" required type="number" min="0" value="${Number(state.settings.defaultMinStock) || 0}"></label><label>Lokacija<input name="location" required placeholder="npr. A-01-02"></label><label>Dobavlja\u010D<input name="supplier" required placeholder="npr. W\u00FCrth"></label></div><div class="detail-actions"><button type="button" class="secondary-btn modal-close">Otka\u017Ei</button><button class="primary-btn">Sa\u010Duvaj materijal</button></div></form></div>`)
 
   document.querySelectorAll('.modal-close').forEach((button) => button.addEventListener('click', () => document.querySelector('.material-modal').remove()))
 
@@ -403,6 +481,7 @@ function navigate(page) {
   else if (page === 'modules') modulesPage()
   else if (page === 'daily-report') dailyReportPage()
   else if (page === 'reports') reportsPage()
+  else if (page === 'settings') settingsPage()
   else placeholder(labels[page])
 }
 
