@@ -1,11 +1,14 @@
 import { categories, materials, renderCategory, renderItems, renderMaterials } from './materials.js'
 
-const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'
+const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const employeeStorage = 'tasker.employees'
 try { const savedCategories = JSON.parse(localStorage.getItem(categoryStorage) || 'null'); if (Array.isArray(savedCategories)) categories.splice(0, categories.length, ...savedCategories) } catch {}
 const saveCategories = () => localStorage.setItem(categoryStorage, JSON.stringify(categories))
 try { const savedInventory = JSON.parse(localStorage.getItem(inventoryStorage) || 'null'); if (Array.isArray(savedInventory)) materials.splice(0, materials.length, ...savedInventory) } catch {}
 const saveInventory = () => localStorage.setItem(inventoryStorage, JSON.stringify(materials))
 const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}') }
+const defaultEmployees = [{ id: 1, name: 'Stefan Jonic', role: 'Vodja gradilista', phone: '---' }, { id: 2, name: 'Marko Petrovic', role: 'Nadzor', phone: '---' }, { id: 3, name: 'Nikola Ilic', role: 'Radnik', phone: '---' }, { id: 4, name: 'Milan Jovanovic', role: 'Radnik', phone: '---' }, { id: 5, name: 'Dejan Markovic', role: 'Radnik', phone: '---' }, { id: 6, name: 'Aleksandar Nikolic', role: 'Pomocni radnik', phone: '---' }]
+try { const savedEmployees = JSON.parse(localStorage.getItem(employeeStorage) || 'null'); state.employees = Array.isArray(savedEmployees) ? savedEmployees : defaultEmployees } catch { state.employees = defaultEmployees }
+const saveEmployees = () => localStorage.setItem(employeeStorage, JSON.stringify(state.employees))
 const app = document.querySelector('#app'); const low = materials.filter((item) => item.stock > 0 && item.stock <= item.minStock).length; const noStock = materials.filter((item) => item.stock <= 0).length
 const esc = (text) => text.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
 const save = () => { localStorage.setItem(storage, JSON.stringify(state.todos)); localStorage.setItem(filterStorage, state.filter) }
@@ -129,20 +132,36 @@ function categoryPage(id) {
 }
 
 function employeesPage() {
-  const employees = [
-    { name: 'Stefan Jonic', role: 'Vodja gradilista', phone: '---', email: '---', initials: 'SJ' },
-    { name: 'Marko Petrovic', role: 'Nadzor', phone: '---', email: '---', initials: 'MP' },
-    { name: 'Nikola Ilic', role: 'Radnik', phone: '---', email: '---', initials: 'NI' },
-    { name: 'Milan Jovanovic', role: 'Radnik', phone: '---', email: '---', initials: 'MJ' },
-    { name: 'Dejan Markovic', role: 'Radnik', phone: '---', email: '---', initials: 'DM' },
-    { name: 'Aleksandar Nikolic', role: 'Pomocni radnik', phone: '---', email: '---', initials: 'AN' }
-  ]
-
-  content.innerHTML = `<section class="page-heading employee-heading"><div><p class="eyebrow">Tim i organizacija</p><h1>Zaposleni</h1><p>Pregled radnika, uloga i kontakt podataka.</p></div><span class="employee-count">${employees.length} aktivnih zaposlenih</span></section><section class="employee-tools"><div class="employee-search"><span>\u2315</span><input id="employee-search" placeholder="Pretrazi zaposlenog..."></div><span>Aktivni zaposleni</span></section><section class="employee-grid">${employees.map((employee) => `<article class="employee-card" data-employee="${employee.name.toLocaleLowerCase('sr')}"><header><span class="employee-avatar">${employee.initials}</span><div><h2>${employee.name}</h2><p>${employee.role}</p></div><b>AKTIVAN</b></header><div class="employee-details"><p><span>\u25C9</span> Pozicija: <strong>${employee.role}</strong></p><p><span>\u260E</span> Telefon: <strong>${employee.phone}</strong></p><p><span>@</span> E-mail: <strong>${employee.email}</strong></p></div></article>`).join('')}</section>`
+  content.innerHTML = `<section class="page-heading employee-heading"><div><p class="eyebrow">Tim i organizacija</p><h1>Zaposleni</h1><p>Pregled radnika, pozicija i telefona.</p></div><div class="employee-heading-actions"><span class="employee-count">${state.employees.length} zaposlenih</span><button class="primary-btn" id="add-employee">+ Dodaj zaposlenog</button></div></section><section class="employee-tools"><div class="employee-search"><span>\u2315</span><input id="employee-search" placeholder="Pretrazi zaposlenog..."></div><span>Aktivni zaposleni</span></section><section class="employee-grid">${state.employees.map((employee) => { const initials = employee.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase(); return `<article class="employee-card" data-employee="${employee.name.toLocaleLowerCase('sr')}"><header><span class="employee-avatar">${initials}</span><div><h2>${esc(employee.name)}</h2><p>${esc(employee.role)}</p></div><b>AKTIVAN</b></header><div class="employee-details"><p><span>\u25C9</span> Pozicija: <strong>${esc(employee.role)}</strong></p><p><span>\u260E</span> Telefon: <strong>${esc(employee.phone)}</strong></p></div><button class="employee-delete" data-delete-employee="${employee.id}" title="Obrisi zaposlenog">\u00D7</button></article>` }).join('')}</section>`
 
   document.querySelector('#employee-search').addEventListener('input', (event) => {
     const term = event.target.value.toLocaleLowerCase('sr')
     document.querySelectorAll('[data-employee]').forEach((card) => { card.hidden = !card.textContent.toLocaleLowerCase('sr').includes(term) })
+  })
+
+  document.querySelector('#add-employee').addEventListener('click', showAddEmployee)
+  document.querySelector('.employee-grid').addEventListener('click', (event) => {
+    const remove = event.target.closest('[data-delete-employee]')
+    if (!remove) return
+    const employee = state.employees.find((entry) => entry.id === Number(remove.dataset.deleteEmployee))
+    if (!employee || !confirm(`Da li zelite da obrisete zaposlenog ${employee.name}?`)) return
+    state.employees = state.employees.filter((entry) => entry !== employee)
+    saveEmployees()
+    employeesPage()
+  })
+}
+
+function showAddEmployee() {
+  document.querySelector('.material-modal')?.remove()
+  document.body.insertAdjacentHTML('beforeend', `<div class="material-modal" role="dialog" aria-modal="true"><form class="material-dialog material-form" id="employee-form"><button type="button" class="modal-close" aria-label="Zatvori">\u00D7</button><p class="eyebrow">Novi clan tima</p><h2>Dodaj zaposlenog</h2><p class="material-standard">Unesite osnovne podatke o zaposlenom.</p><div class="form-grid"><label>Ime i prezime<input name="name" required placeholder="npr. Marko Markovic"></label><label>Pozicija<input name="role" required placeholder="npr. Radnik"></label><label>Telefon<input name="phone" required placeholder="npr. 099 123 4567"></label></div><div class="detail-actions"><button type="button" class="secondary-btn modal-close">Otkazi</button><button class="primary-btn">Sacuvaj zaposlenog</button></div></form></div>`)
+  document.querySelectorAll('.modal-close').forEach((button) => button.addEventListener('click', () => document.querySelector('.material-modal')?.remove()))
+  document.querySelector('#employee-form').addEventListener('submit', (event) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    state.employees.push({ id: Date.now(), name: data.get('name').trim(), role: data.get('role').trim(), phone: data.get('phone').trim() || '---' })
+    saveEmployees()
+    document.querySelector('.material-modal')?.remove()
+    employeesPage()
   })
 }
 
