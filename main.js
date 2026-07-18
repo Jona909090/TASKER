@@ -44,6 +44,12 @@ workPlanLink.dataset.page = 'work-plan'
 workPlanLink.innerHTML = '<span>\u25C8</span> Plan rada'
 document.querySelector('nav').insertBefore(workPlanLink, document.querySelector('[data-page="reports"]'))
 
+const documentsLink = document.createElement('button')
+documentsLink.className = 'nav-link'
+documentsLink.dataset.page = 'documents'
+documentsLink.innerHTML = '<span>\u25A3</span> Dokumentacija'
+document.querySelector('nav').insertBefore(documentsLink, document.querySelector('[data-page="reports"]'))
+
 const content = document.querySelector('#content')
 const breadcrumb = document.querySelector('#breadcrumb')
 const topbarMeta = document.querySelector('.topbar > div:first-child')
@@ -486,6 +492,20 @@ function workPlanPage(dateKey = dateKeyFor()) {
   })
 }
 
+const driveFolderUrl = 'https://drive.google.com/drive/folders/1LrYfOwBzadfWK3stckNvUOfhfc1aossX'
+
+function documentsPage() {
+  const folders = [
+    { icon: '\u25A7', name: 'Crtezi', text: 'DWG, PDF i tehnicki crtezi', tone: 'blue' },
+    { icon: '\u25A4', name: 'Tehnicka dokumentacija', text: 'Specifikacije i uputstva', tone: 'violet' },
+    { icon: '\u25A5', name: 'Dnevni izvestaji', text: 'Izvestaji po danima', tone: 'green' },
+    { icon: '\u25A3', name: 'Fotografije radova', text: 'Dokumentovanje napretka', tone: 'amber' },
+    { icon: '\u25C7', name: 'Narudzbine i ponude', text: 'Ponude, racuni i narudzbine', tone: 'red' },
+    { icon: '\u25C8', name: 'Ostalo', text: 'Svi dodatni dokumenti', tone: 'blue' }
+  ]
+  content.innerHTML = `<section class="page-heading documents-heading"><div><p class="eyebrow">Centralna arhiva</p><h1>Dokumentacija</h1><p>Crtezi i dokumenti su bezbedno sacuvani na Google Drive-u.</p></div><a class="primary-btn drive-open" href="${driveFolderUrl}" target="_blank" rel="noopener">Otvori Google Drive &nearr;</a></section><section class="drive-banner"><span class="drive-logo"><i></i><i></i><i></i></span><div><b>Tasker dokumentacija</b><p>Otvori folder, pregledaj crteze ili dodaj novi dokument direktno sa tableta.</p></div><a href="${driveFolderUrl}" target="_blank" rel="noopener">Otvori folder &rarr;</a></section><section class="document-grid">${folders.map((folder) => `<a class="document-folder ${folder.tone}" href="${driveFolderUrl}" target="_blank" rel="noopener"><span class="folder-icon">${folder.icon}</span><div><h2>${folder.name}</h2><p>${folder.text}</p></div><b>Otvori &rarr;</b></a>`).join('')}</section><section class="document-note"><span>i</span><p>Dokumenti se ne cuvaju u browseru vec u vasem Google Drive folderu. Zato su dostupni na tabletu, telefonu i racunaru.</p></section>`
+}
+
 function showMaterialDetails(id) {
   const item = materials.find((entry) => entry.id === Number(id))
   if (!item) return
@@ -574,7 +594,7 @@ function placeholder(title) {
 }
 
 function navigate(page) {
-  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', 'work-plan': 'Plan rada', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
+  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', 'work-plan': 'Plan rada', documents: 'Dokumentacija', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
   document.querySelector('#breadcrumb').textContent = labels[page]
   document.querySelectorAll('.nav-link[data-page]').forEach((button) => button.classList.toggle('active', button.dataset.page === page))
 
@@ -585,6 +605,7 @@ function navigate(page) {
   else if (page === 'modules') modulesPage()
   else if (page === 'daily-report') dailyReportPage()
   else if (page === 'work-plan') workPlanPage()
+  else if (page === 'documents') documentsPage()
   else if (page === 'reports') reportsPage()
   else if (page === 'settings') settingsPage()
   else placeholder(labels[page])
