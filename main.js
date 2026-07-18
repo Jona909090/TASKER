@@ -45,6 +45,12 @@ workHoursLink.dataset.page = 'work-hours'
 workHoursLink.innerHTML = '<span>\u25F7</span> Radni sati'
 document.querySelector('nav').insertBefore(workHoursLink, document.querySelector('[data-page="reports"]'))
 
+const monthlyHoursLink = document.createElement('button')
+monthlyHoursLink.className = 'nav-link'
+monthlyHoursLink.dataset.page = 'monthly-hours'
+monthlyHoursLink.innerHTML = '<span>\u25A6</span> Mesecni sati'
+document.querySelector('nav').insertBefore(monthlyHoursLink, document.querySelector('[data-page="reports"]'))
+
 const workPlanLink = document.createElement('button')
 workPlanLink.className = 'nav-link'
 workPlanLink.dataset.page = 'work-plan'
@@ -520,6 +526,21 @@ function workHoursPage(dateKey = dateKeyFor()) {
   })
 }
 
+function monthlyHoursPage(monthKey = dateKeyFor().slice(0, 7)) {
+  const [year, month] = monthKey.split('-').map(Number)
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const monthTitle = new Intl.DateTimeFormat('sr-Latn-RS', { month: 'long', year: 'numeric' }).format(new Date(year, month - 1, 1))
+  const totals = state.employees.map((employee) => {
+    const values = Object.entries(state.workHours).filter(([date]) => date.startsWith(`${monthKey}-`)).map(([, daily]) => Number(daily[employee.id]) || 0)
+    const workDays = values.filter((value) => value > 0).length
+    return { employee, total: values.reduce((sum, value) => sum + value, 0), workDays, nonWorkDays: daysInMonth - workDays }
+  })
+  const allHours = totals.reduce((sum, entry) => sum + entry.total, 0)
+  content.innerHTML = `<section class="page-heading monthly-heading"><div><p class="eyebrow">Evidencija rada</p><h1>Mesecni pregled sati</h1><p>Pregled sacuvanih radnih sati po zaposlenom.</p></div><label class="attendance-date"><span>Mesec</span><input id="monthly-hours-date" type="month" value="${monthKey}"></label></section><section class="monthly-stats"><article><span>Ukupno sati</span><strong>${allHours.toLocaleString('sr-RS')}</strong><small>za ceo tim</small></article><article><span>Broj zaposlenih</span><strong>${state.employees.length}</strong><small>u evidenciji</small></article><article><span>Mesec</span><strong>${daysInMonth}</strong><small>kalendarskih dana</small></article></section><section class="monthly-panel"><header><div><h2>${monthTitle.charAt(0).toLocaleUpperCase('sr')}${monthTitle.slice(1)}</h2><p>Radni dani se racunaju samo kada zaposleni ima vise od 0 upisanih sati.</p></div></header><div class="monthly-table"><div class="monthly-head"><span>Zaposleni</span><span>Ukupno sati</span><span>Radnih dana</span><span>Neradnih dana</span></div>${totals.length ? totals.map(({ employee, total, workDays, nonWorkDays }) => `<div class="monthly-row"><span><b>${esc(employee.name)}</b><small>${esc(employee.role)}</small></span><strong>${total.toLocaleString('sr-RS')} h</strong><em class="work-days">${workDays}</em><em class="non-work-days">${nonWorkDays}</em></div>`).join('') : '<p class="plan-empty">Nema zaposlenih u evidenciji.</p>'}</div></section>`
+  content.insertAdjacentHTML('afterbegin', `<style>#content .monthly-heading{align-items:flex-end!important}#content .monthly-stats{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:16px!important;margin-bottom:20px!important}#content .monthly-stats article,#content .monthly-panel{padding:20px!important;border:1px solid #2d4c6b!important;border-radius:16px!important;background:linear-gradient(145deg,#1d2c45,#152139)!important}#content .monthly-stats span,#content .monthly-stats small{display:block!important;color:#9db2c9!important;font-size:12px!important}#content .monthly-stats strong{display:block!important;margin:10px 0 3px!important;font-size:29px!important}.monthly-panel header{margin-bottom:16px!important}.monthly-panel h2{margin:0!important;font-size:19px!important}.monthly-panel header p{margin:6px 0 0!important;color:#9db2c9!important;font-size:12px!important}.monthly-table{border-top:1px solid #2b4966!important}.monthly-head,.monthly-row{display:grid!important;grid-template-columns:2fr 1fr 1fr 1fr!important;gap:14px!important;align-items:center!important}.monthly-head{padding:11px 4px!important;color:#7991ab!important;font-size:10px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.06em!important}.monthly-row{padding:14px 4px!important;border-top:1px solid #2b4966!important}.monthly-row b,.monthly-row small{display:block!important}.monthly-row b{font-size:13px!important}.monthly-row small{margin-top:4px!important;color:#9db2c9!important;font-size:11px!important}.monthly-row strong{font-size:15px!important}.monthly-row em{width:max-content!important;padding:5px 9px!important;border-radius:999px!important;font-style:normal!important;font-size:12px!important;font-weight:800!important}.work-days{color:#84f2bf!important;background:#123f36!important}.non-work-days{color:#ffc3cb!important;background:#482535!important}@media(max-width:700px){#content .monthly-heading{align-items:flex-start!important}#content .monthly-stats{grid-template-columns:1fr!important}.monthly-head{display:none!important}.monthly-row{grid-template-columns:1fr 1fr!important}.monthly-row>span{grid-column:1/-1!important}.monthly-row strong:before{content:'Ukupno: '!important;color:#9db2c9!important;font-size:11px!important}.work-days:before{content:'Radni: '!important}.non-work-days:before{content:'Neradni: '!important}}</style>`)
+  document.querySelector('#monthly-hours-date').addEventListener('change', (event) => monthlyHoursPage(event.target.value || dateKeyFor().slice(0, 7)))
+}
+
 function workPlanPage(dateKey = dateKeyFor()) {
   const plans = state.workPlans[dateKey] || []
   const activeEmployees = state.employees.filter((employee) => employee.active !== false)
@@ -659,7 +680,7 @@ function placeholder(title) {
 }
 
 function navigate(page) {
-  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', 'work-hours': 'Radni sati', 'work-plan': 'Plan rada', documents: 'Dokumentacija', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
+  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', 'work-hours': 'Radni sati', 'monthly-hours': 'Mesecni sati', 'work-plan': 'Plan rada', documents: 'Dokumentacija', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
   document.querySelector('#breadcrumb').textContent = labels[page]
   document.querySelectorAll('.nav-link[data-page]').forEach((button) => button.classList.toggle('active', button.dataset.page === page))
 
@@ -670,6 +691,7 @@ function navigate(page) {
   else if (page === 'modules') modulesPage()
   else if (page === 'daily-report') dailyReportPage()
   else if (page === 'work-hours') workHoursPage()
+  else if (page === 'monthly-hours') monthlyHoursPage()
   else if (page === 'work-plan') workPlanPage()
   else if (page === 'documents') documentsPage()
   else if (page === 'reports') reportsPage()
