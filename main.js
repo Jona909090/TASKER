@@ -132,7 +132,7 @@ function categoryPage(id) {
 }
 
 function employeesPage() {
-  content.innerHTML = `<section class="page-heading employee-heading"><div><p class="eyebrow">Tim i organizacija</p><h1>Zaposleni</h1><p>Pregled radnika, pozicija i telefona.</p></div><div class="employee-heading-actions"><span class="employee-count">${state.employees.length} zaposlenih</span><button class="primary-btn" id="add-employee">+ Dodaj zaposlenog</button></div></section><section class="employee-tools"><div class="employee-search"><span>\u2315</span><input id="employee-search" placeholder="Pretrazi zaposlenog..."></div><span>Aktivni zaposleni</span></section><section class="employee-grid">${state.employees.map((employee) => { const initials = employee.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase(); return `<article class="employee-card" data-employee="${employee.name.toLocaleLowerCase('sr')}"><header><span class="employee-avatar">${initials}</span><div><h2>${esc(employee.name)}</h2><p>${esc(employee.role)}</p></div><b>AKTIVAN</b></header><div class="employee-details"><p><span>\u25C9</span> Pozicija: <strong>${esc(employee.role)}</strong></p><p><span>\u260E</span> Telefon: <strong>${esc(employee.phone)}</strong></p></div><button class="employee-delete" data-delete-employee="${employee.id}" title="Obrisi zaposlenog">\u00D7</button></article>` }).join('')}</section>`
+  content.innerHTML = `<section class="page-heading employee-heading"><div><p class="eyebrow">Tim i organizacija</p><h1>Zaposleni</h1><p>Pregled radnika, pozicija i telefona.</p></div><div class="employee-heading-actions"><span class="employee-count">${state.employees.length} zaposlenih</span><button class="primary-btn" id="add-employee">+ Dodaj zaposlenog</button></div></section><section class="employee-tools"><div class="employee-search"><span>\u2315</span><input id="employee-search" placeholder="Pretrazi zaposlenog..."></div><span>Aktivni zaposleni</span></section><section class="employee-grid">${state.employees.map((employee) => { const initials = employee.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase(); return `<article class="employee-card" data-employee="${employee.name.toLocaleLowerCase('sr')}"><header><span class="employee-avatar">${initials}</span><div><h2>${esc(employee.name)}</h2><p>${esc(employee.role)}</p></div><b>AKTIVAN</b></header><div class="employee-details"><p><span>\u25C9</span> Pozicija: <strong>${esc(employee.role)}</strong></p><p><span>\u260E</span> Telefon: <strong>${esc(employee.phone)}</strong></p></div><div class="employee-card-actions"><button class="employee-edit" data-edit-employee="${employee.id}">Izmeni</button><button class="employee-delete" data-delete-employee="${employee.id}" title="Obrisi zaposlenog">\u00D7</button></div></article>` }).join('')}</section>`
 
   document.querySelector('#employee-search').addEventListener('input', (event) => {
     const term = event.target.value.toLocaleLowerCase('sr')
@@ -141,12 +141,32 @@ function employeesPage() {
 
   document.querySelector('#add-employee').addEventListener('click', showAddEmployee)
   document.querySelector('.employee-grid').addEventListener('click', (event) => {
+    const edit = event.target.closest('[data-edit-employee]')
+    if (edit) { showEditEmployee(Number(edit.dataset.editEmployee)); return }
     const remove = event.target.closest('[data-delete-employee]')
     if (!remove) return
     const employee = state.employees.find((entry) => entry.id === Number(remove.dataset.deleteEmployee))
     if (!employee || !confirm(`Da li zelite da obrisete zaposlenog ${employee.name}?`)) return
     state.employees = state.employees.filter((entry) => entry !== employee)
     saveEmployees()
+    employeesPage()
+  })
+}
+
+function showEditEmployee(id) {
+  const employee = state.employees.find((entry) => entry.id === id)
+  if (!employee) return
+  document.querySelector('.material-modal')?.remove()
+  document.body.insertAdjacentHTML('beforeend', `<div class="material-modal" role="dialog" aria-modal="true"><form class="material-dialog material-form" id="employee-edit-form"><button type="button" class="modal-close" aria-label="Zatvori">\u00D7</button><p class="eyebrow">Podaci zaposlenog</p><h2>Izmeni zaposlenog</h2><p class="material-standard">Promenite podatke i sacuvajte izmene.</p><div class="form-grid"><label>Ime i prezime<input name="name" required value="${esc(employee.name)}"></label><label>Pozicija<input name="role" required value="${esc(employee.role)}"></label><label>Telefon<input name="phone" required value="${esc(employee.phone)}"></label></div><div class="detail-actions"><button type="button" class="secondary-btn modal-close">Otkazi</button><button class="primary-btn">Sacuvaj izmene</button></div></form></div>`)
+  document.querySelectorAll('.modal-close').forEach((button) => button.addEventListener('click', () => document.querySelector('.material-modal')?.remove()))
+  document.querySelector('#employee-edit-form').addEventListener('submit', (event) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    employee.name = data.get('name').trim()
+    employee.role = data.get('role').trim()
+    employee.phone = data.get('phone').trim() || '---'
+    saveEmployees()
+    document.querySelector('.material-modal')?.remove()
     employeesPage()
   })
 }
