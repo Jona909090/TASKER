@@ -419,6 +419,7 @@ function settingsPage() {
 }
 
 const moduleTypes = [{ id: 'mv', label: 'MV', name: 'MV moduli', color: '#43c5f6', defaultCount: 16 }, { id: 'mvs', label: 'MVS', name: 'MVS moduli', color: '#a78bfa', defaultCount: 0 }, { id: 'rpp', label: 'RPP', name: 'RPP moduli', color: '#5de18e', defaultCount: 0 }]
+moduleTypes.forEach((type) => { const savedLabel = state.settings.moduleLabels?.[type.id]; if (typeof savedLabel === 'string' && savedLabel.trim()) { type.label = savedLabel.trim(); type.name = `${type.label} moduli` } })
 const defaultModuleStages = ['Postavljanje folije', 'Postavljanje podnog lima (odozdo)', 'Postavljanje mineralne vune', 'Postavljanje plywooda', 'Postavljanje cetris ploca', 'Postavljanje mineralne vune u strop', 'Postavljanje folije u strop', 'Postavljanje okapne lajsne za panele', 'Postavljanje zidnih panela', 'Postavljanje stropnih panela', 'Silikoniranje vanjskog ruba panela i celika', 'Postavljanje kutne lajsne', 'Probijanje otvora', 'Postavljanje okapnih lajsni na modulu']
 const newModuleStages = () => defaultModuleStages.map((title, index) => ({ id: `osnovno-${index + 1}`, title, status: 'nije-zavrseno', percent: 0, custom: false }))
 const moduleStageStatus = { 'nije-zavrseno': { label: 'Nije zavrseno', icon: '&times;', className: 'stage-red' }, 'u-toku': { label: 'U toku', icon: '&#8226;', className: 'stage-yellow' }, zavrseno: { label: 'Zavrseno', icon: '&#10003;', className: 'stage-green' } }
@@ -486,9 +487,43 @@ function moduleDetailPage(typeId) {
   const count = Math.max(0, Math.min(100, Number(data.count) || 0))
   const progress = typeProgress(type)
   content.innerHTML = `<section class="page-heading module-detail-heading"><div><button class="back-link" id="back-modules">&larr; Svi moduli</button><p class="eyebrow">${type.label} moduli</p><h1>${type.label}</h1><p>Pregled pojedinacnih modula i njihovog napretka.</p></div><div class="module-total"><span>Ukupno zavrseno</span><b>${progress}%</b></div></section><section class="module-controls"><label>Broj ${type.label} modula<input id="module-count" type="number" min="0" max="100" value="${count}"></label><button class="primary-btn" id="save-module-count">Sacuvaj broj modula</button></section><section class="individual-module-grid">${count ? Array.from({ length: count }, (_, index) => { const unit = moduleUnit(type, index + 1); return `<button class="individual-module" data-open-unit="${unit.id}"><div><p>MODUL</p><h2>${unit.id}</h2></div><div class="mini-progress" style="--progress:${unit.progress};--ring:${type.color}"><b>${unit.progress}%</b></div><label><span>${unit.work ? esc(unit.work) : 'Dodajte sta je uradjeno'}</span></label></button>` }).join('') : '<p class="plan-empty">Unesite broj modula da bi se pojavile pojedinacne kartice.</p>'}</section>`
+  document.querySelector('.module-controls').insertAdjacentHTML('beforeend', `<button class="secondary-btn" id="rename-module-type">Promeni naziv ${esc(type.label)}</button>`)
   document.querySelector('#back-modules').addEventListener('click', modulesPage)
   document.querySelector('#save-module-count').addEventListener('click', () => { data.count = Math.max(0, Math.min(100, Number(document.querySelector('#module-count').value) || 0)); saveModuleDetails(); moduleDetailPage(typeId) })
+  document.querySelector('#rename-module-type').addEventListener('click', () => renameModuleType(typeId))
   document.querySelectorAll('[data-open-unit]').forEach((button) => button.addEventListener('click', () => moduleUnitPage(typeId, button.dataset.openUnit)))
+}
+
+function renameModuleType(typeId) {
+  const type = moduleTypes.find((entry) => entry.id === typeId)
+  if (!type) return
+  document.body.insertAdjacentHTML('beforeend', `<div class="material-modal" role="dialog" aria-modal="true"><form class="material-dialog material-form" id="rename-module-form"><button type="button" class="modal-close" aria-label="Zatvori">&times;</button><p class="eyebrow">Naziv modula</p><h2>Promeni naziv</h2><p class="material-standard">Novi naziv ce se prikazivati na svim karticama i u pregledima.</p><div class="form-grid"><label>Naziv tipa modula<input name="label" maxlength="24" required value="${esc(type.label)}" placeholder="npr. MV, ECO DC, Server sala"></label></div><div class="detail-actions"><button type="button" class="secondary-btn modal-close">Otkazi</button><button class="primary-btn">Sacuvaj naziv</button></div></form></div>`)
+  const modal = document.querySelector('.material-modal:last-child')
+  const close = () => modal.remove()
+  modal.querySelectorAll('.modal-close').forEach((button) => button.addEventListener('click', close))
+  modal.addEventListener('click', (event) => { if (event.target === modal) close() })
+  modal.querySelector('#rename-module-form').addEventListener('submit', (event) => {
+    event.preventDefault()
+    const newLabel = new FormData(event.currentTarget).get('label').trim()
+    if (!newLabel) return
+    if (moduleTypes.some((entry) => entry.id !== type.id && entry.label.toLocaleLowerCase('sr') === newLabel.toLocaleLowerCase('sr'))) return alert('Vec postoji modul sa tim nazivom.')
+    const oldLabel = type.label
+    const data = moduleData(type)
+    Object.keys(data.units).forEach((oldId) => {
+      if (!oldId.startsWith(`${oldLabel}-`)) return
+      const newId = `${newLabel}${oldId.slice(oldLabel.length)}`
+      data.units[newId] = { ...data.units[oldId], id: newId }
+      delete data.units[oldId]
+    })
+    type.label = newLabel
+    type.name = `${newLabel} moduli`
+    state.settings.moduleLabels = state.settings.moduleLabels || {}
+    state.settings.moduleLabels[type.id] = newLabel
+    saveModuleDetails()
+    saveSettings()
+    close()
+    moduleDetailPage(typeId)
+  })
 }
 
 function moduleUnitPage(typeId, unitId) {
