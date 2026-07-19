@@ -58,7 +58,7 @@
 .module-controls #rename-module-type{border-color:rgba(246,201,82,.56);background:rgba(114,78,15,.22);color:#ffe19a}.module-controls #rename-module-type:hover{background:rgba(166,112,20,.34);border-color:#ffe18a}
 .individual-module{position:relative;overflow:hidden;cursor:pointer;border-color:#3c506b;background:radial-gradient(180px 100px at 92% 0,rgba(255,203,80,.09),transparent 72%),linear-gradient(145deg,#223552,#17253c);box-shadow:0 10px 24px rgba(0,0,0,.15);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
 .individual-module:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,transparent,rgba(255,217,123,.9),transparent);opacity:.72}.individual-module:hover{transform:translateY(-4px);border-color:#e6bd55;box-shadow:0 17px 32px rgba(0,0,0,.28),0 0 22px rgba(220,166,38,.1)}
-.individual-module:hover h2{color:#ffe29a}.individual-module:hover .mini-progress{box-shadow:0 0 0 4px rgba(247,202,76,.1),0 0 18px rgba(247,202,76,.17)}
+.individual-module h2{background:linear-gradient(90deg,#55d9ff 0%,#8d7bff 25%,#fa77bd 48%,#ffd36a 70%,#61e3a2 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}.individual-module:hover h2{filter:brightness(1.18) drop-shadow(0 0 7px rgba(125,217,255,.23))}.individual-module:hover .mini-progress{box-shadow:0 0 0 4px rgba(247,202,76,.1),0 0 18px rgba(247,202,76,.17)}
 .individual-module p{color:#7ce1ff}.individual-module h2{transition:color .18s ease}.mini-progress{transition:box-shadow .18s ease}.mini-progress b{background:#17263c;color:#ffe8af}
 
 /* Aktivnosti danas na početnoj tabli */
