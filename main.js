@@ -77,7 +77,7 @@ const updateClock = () => {
   const hourAngle = ((now.getHours() % 12) * 30) + (now.getMinutes() * .5)
   const minuteAngle = now.getMinutes() * 6
   const secondAngle = now.getSeconds() * 6
-  topbarMeta.innerHTML = `<span id="breadcrumb" hidden>Po\u010Detna</span><div class="topbar-clock"><span class="analog-clock" aria-hidden="true"><i class="clock-hour" style="transform:rotate(${hourAngle}deg)"></i><i class="clock-minute" style="transform:rotate(${minuteAngle}deg)"></i><i class="clock-second" style="transform:rotate(${secondAngle}deg)"></i><b></b></span><div class="clock-copy"><span>${date.charAt(0).toLocaleUpperCase('sr')}${date.slice(1)}.</span><strong>${time}</strong></div></div>`
+  topbarMeta.innerHTML = `<span id="breadcrumb" hidden>Po\u010Detna</span><div class="topbar-clock"><span class="calendar-icon" aria-hidden="true">&#128197;</span><span class="clock-date">${date.charAt(0).toLocaleUpperCase('sr')}${date.slice(1)}.</span><span class="clock-divider" aria-hidden="true"></span><span class="analog-clock" aria-hidden="true"><i class="clock-hour" style="transform:rotate(${hourAngle}deg)"></i><i class="clock-minute" style="transform:rotate(${minuteAngle}deg)"></i><i class="clock-second" style="transform:rotate(${secondAngle}deg)"></i><b></b></span><strong class="digital-clock">${time}</strong></div>`
   const greeting = document.querySelector('#greeting')
   if (greeting) greeting.textContent = `${greetingFor(now)}, ${firstName()}.`
 }
