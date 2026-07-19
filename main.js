@@ -95,6 +95,17 @@ function dashboard() {
   bindTodos()
   document.querySelector('#open-dashboard-modules')?.addEventListener('click', moduleDashboardPage)
   document.querySelectorAll('.module-today-row').forEach((button) => button.addEventListener('click', () => moduleTypePage(button.dataset.moduleType)))
+  const dashboardActions = [() => navigate('materials'), () => materialStatusPage('low'), () => materialStatusPage('empty'), () => navigate('orders')]
+  document.querySelectorAll('.stat-grid > article').forEach((card, index) => {
+    const action = dashboardActions[index]
+    if (!action) return
+    card.tabIndex = 0
+    card.setAttribute('role', 'button')
+    card.title = 'Otvori pregled'
+    card.style.cursor = 'pointer'
+    card.addEventListener('click', action)
+    card.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); action() } })
+  })
 }
 
 function showTodos() {
@@ -173,6 +184,20 @@ function categoryPage(id) {
   document.querySelector('#material-search').addEventListener('input', (event) => {
     const term = event.target.value.toLocaleLowerCase('sr')
     document.querySelector('#inventory-list').innerHTML = renderItems(materials.filter((item) => item.category === state.currentCategory && `${item.name} ${item.standard} ${item.location}`.toLocaleLowerCase('sr').includes(term)))
+  })
+}
+
+function materialStatusPage(status) {
+  const config = status === 'empty'
+    ? { title: 'Nema na stanju', text: 'Artikli koji trenutno nisu dostupni u magacinu.', matches: (item) => item.stock <= 0 }
+    : { title: 'Materijal pri kraju', text: 'Artikli koje treba proveriti ili dopuniti.', matches: (item) => item.stock > 0 && item.stock <= item.minStock }
+  const listedItems = materials.filter(config.matches)
+  content.innerHTML = `<section class="page-heading"><div><button class="back-btn" id="back-to-materials">&larr; Materijal</button><p class="eyebrow">Magacin / pregled</p><h1>${config.title}</h1><p>${config.text}</p></div><button class="primary-btn add-material">+ Dodaj materijal</button></section><label class="search-field"><span>&#8981;</span><input id="status-material-search" type="search" placeholder="Pretrazi materijal..."></label><section id="status-inventory-list" class="inventory-list">${renderItems(listedItems)}</section>`
+  document.querySelector('#back-to-materials').addEventListener('click', materialsPage)
+  document.querySelector('#status-material-search').addEventListener('input', (event) => {
+    const term = event.target.value.toLocaleLowerCase('sr')
+    const filtered = materials.filter(config.matches).filter((item) => `${item.name} ${item.standard} ${item.location}`.toLocaleLowerCase('sr').includes(term))
+    document.querySelector('#status-inventory-list').innerHTML = renderItems(filtered)
   })
 }
 
