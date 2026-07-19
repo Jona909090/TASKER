@@ -18,14 +18,14 @@ const saveWorkPlans = () => localStorage.setItem(workPlanStorage, JSON.stringify
 const saveSettings = () => localStorage.setItem(settingsStorage, JSON.stringify(state.settings))
 const applyTheme = () => document.documentElement.dataset.theme = state.settings.theme
 applyTheme()
-const app = document.querySelector('#app'); const low = materials.filter((item) => item.stock > 0 && item.stock <= item.minStock).length; const noStock = materials.filter((item) => item.stock <= 0).length
+const app = document.querySelector('#app'); let projectOpen = false; const low = materials.filter((item) => item.stock > 0 && item.stock <= item.minStock).length; const noStock = materials.filter((item) => item.stock <= 0).length
 const esc = (text) => text.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
 const save = () => { localStorage.setItem(storage, JSON.stringify(state.todos)); localStorage.setItem(filterStorage, state.filter) }
 const saveOrder = () => localStorage.setItem(orderStorage, JSON.stringify(state.orderLines))
 const saveModuleProgress = () => localStorage.setItem(moduleStorage, JSON.stringify(state.moduleProgress))
 const saveModuleDetails = () => localStorage.setItem(moduleDetailStorage, JSON.stringify(state.moduleDetails))
 
-app.innerHTML = `<div class="shell"><aside class="sidebar"><a class="brand" href="#"><span class="brand-mark"><i></i><b>T</b><i></i></span><span><strong id="brand-company">${esc(state.settings.companyName)}</strong><small>Upravljanje materijalom</small></span></a><nav><button class="nav-link active" data-page="dashboard"><span>\u2302</span> Po\u010Detna</button><button class="nav-link" data-page="materials"><span>\u25A6</span> Materijal <b>${materials.length}</b></button><button class="nav-link" data-page="employees"><span>\u263B</span> Zaposleni</button><button class="nav-link" data-page="orders"><span>\u25A4</span> Narud\u017Ebine</button><button class="nav-link" data-page="reports"><span>\u25A5</span> Izve\u0161taji</button></nav><div class="sidebar-footer"><button class="nav-link" data-page="settings"><span>\u2699</span> Pode\u0161avanja</button><p>Tasker v2.0</p></div></aside><div class="workspace"><header class="topbar"><div class="topbar-time-area"><span id="breadcrumb" hidden>Po\u010Detna</span></div><button type="button" class="profile" aria-label="Otvori profil" style="border:0;background:transparent;color:inherit;cursor:pointer;"><span id="profile-initials">SJ</span><b id="profile-name">${esc(state.settings.userName)}</b></button></header><main id="content" class="content"></main></div></div>`
+app.innerHTML = `<div class="shell project-home"><aside class="sidebar"><a class="brand" href="#"><span class="brand-mark"><i></i><b>T</b><i></i></span><span><strong id="brand-company">${esc(state.settings.companyName)}</strong><small>Upravljanje materijalom</small></span></a><button class="back-to-projects" id="back-to-projects" type="button">\u2190 Projekti</button><nav><button class="nav-link active" data-page="dashboard"><span>\u2302</span> Po\u010Detna</button><button class="nav-link" data-page="materials"><span>\u25A6</span> Materijal <b>${materials.length}</b></button><button class="nav-link" data-page="employees"><span>\u263B</span> Zaposleni</button><button class="nav-link" data-page="orders"><span>\u25A4</span> Narud\u017Ebine</button><button class="nav-link" data-page="reports"><span>\u25A5</span> Izve\u0161taji</button></nav><div class="sidebar-footer"><button class="nav-link" data-page="settings"><span>\u2699</span> Pode\u0161avanja</button><p>Tasker v2.0</p></div></aside><div class="workspace"><header class="topbar"><div class="topbar-time-area"><span id="breadcrumb" hidden>Po\u010Detna</span></div><button type="button" class="profile" aria-label="Otvori profil" style="border:0;background:transparent;color:inherit;cursor:pointer;"><span id="profile-initials">SJ</span><b id="profile-name">${esc(state.settings.userName)}</b></button></header><main id="content" class="content"></main></div></div>`
 
 const moduleLink = document.createElement('button')
 moduleLink.className = 'nav-link'
@@ -84,6 +84,19 @@ const updateClock = () => {
 
 updateClock()
 setInterval(updateClock, 1000)
+
+function projectsHome() {
+  projectOpen = false
+  document.querySelector('.shell').classList.add('project-home')
+  content.innerHTML = `<section class="project-welcome"><div><p class="eyebrow">TASKER \u2022 PORTAL PROJEKATA</p><h1 id="greeting">${greetingFor(new Date())}, ${esc(firstName())}.</h1><p>Izaberite projekat za pregled materijala, modula, zaposlenih i evidencije rada.</p></div><div class="project-welcome-count"><span>Aktivni projekti</span><b>1</b></div></section><section class="project-grid"><button type="button" class="project-card project-vertiv" id="open-vertiv-project"><span class="project-card-glow" aria-hidden="true"></span><div class="project-card-top"><span class="project-symbol">V</span><span class="project-status"><i></i> Aktivan projekat</span></div><p class="project-label">PROJEKAT</p><h2>VERTIV</h2><p class="project-description">Upravljanje materijalom, modulima, zaposlenima i kompletnom evidencijom rada na gradilištu.</p><div class="project-card-footer"><span>MV \u00B7 MVS \u00B7 RPP</span><strong>Otvori projekat \u2192</strong></div></button></section>`
+  document.querySelector('#open-vertiv-project').addEventListener('click', enterVertivProject)
+}
+
+function enterVertivProject() {
+  projectOpen = true
+  document.querySelector('.shell').classList.remove('project-home')
+  navigate('dashboard')
+}
 
 function dashboard() {
   const done = state.todos.filter((todo) => todo.done).length
@@ -876,14 +889,17 @@ function navigate(page) {
 app.addEventListener('click', (event) => {
   if (event.target.closest('.brand')) {
     event.preventDefault()
-    navigate('dashboard')
+    if (projectOpen) navigate('dashboard')
+    else projectsHome()
     return
   }
   const button = event.target.closest('[data-page]')
-  if (button) navigate(button.dataset.page)
+  if (button && projectOpen) navigate(button.dataset.page)
 })
 
-navigate('dashboard')
+document.querySelector('#back-to-projects').addEventListener('click', projectsHome)
+
+projectsHome()
 
 /* Profilna slika - klik na Stefan Jonic */
 (() => {
