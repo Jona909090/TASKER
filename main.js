@@ -959,3 +959,57 @@ projectsHome()
     if (event.key === 'Escape') closeMenu()
   })
 })()
+
+/* Pouzdan profil meni: radi i kada se zaglavlje ponovo iscrta. */
+(() => {
+  let menu
+  let openButton
+  const initials = () => (state.settings.userName || 'SJ').split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join('').toUpperCase()
+  const close = () => {
+    if (menu) menu.hidden = true
+    if (openButton) openButton.setAttribute('aria-expanded', 'false')
+    openButton = null
+  }
+  const getMenu = () => {
+    if (menu) return menu
+    menu = document.createElement('section')
+    menu.id = 'tasker-profile-menu'
+    menu.className = 'profile-menu'
+    menu.hidden = true
+    menu.setAttribute('aria-label', 'Profil korisnika')
+    menu.innerHTML = `<div class="profile-menu-head"><span class="profile-menu-avatar" id="profile-menu-initials">SJ</span><div><strong id="profile-menu-name"></strong><small>Administrator</small></div></div><div class="profile-menu-actions"><button type="button" data-profile-action="settings"><span aria-hidden="true">&#9881;</span>Pode&scaron;avanja</button><button type="button" data-profile-action="projects"><span aria-hidden="true">&#8962;</span>Promeni projekat</button><button type="button" class="profile-menu-logout" data-profile-action="logout"><span aria-hidden="true">&#8618;</span>Odjavi se</button></div><p class="profile-menu-note">Tasker portal projekata</p>`
+    document.body.appendChild(menu)
+    return menu
+  }
+  const open = (button) => {
+    const box = button.getBoundingClientRect()
+    const panel = getMenu()
+    panel.querySelector('#profile-menu-name').textContent = state.settings.userName || 'Korisnik'
+    panel.querySelector('#profile-menu-initials').textContent = initials()
+    panel.hidden = false
+    panel.style.top = `${box.bottom + 10}px`
+    panel.style.left = `${Math.max(16, Math.min(box.right - 278, window.innerWidth - 294))}px`
+    button.setAttribute('aria-expanded', 'true')
+    openButton = button
+  }
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('.profile')
+    if (!button) return
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    if (menu && !menu.hidden) close()
+    else open(button)
+  }, true)
+  document.addEventListener('click', (event) => {
+    const action = event.target.closest('#tasker-profile-menu [data-profile-action]')?.dataset.profileAction
+    if (action) {
+      close()
+      if (action === 'settings') projectOpen ? navigate('settings') : projectsHome()
+      if (action === 'projects') projectsHome()
+      if (action === 'logout' && confirm('Zelite da se odjavite?')) projectsHome()
+      return
+    }
+    if (!event.target.closest('#tasker-profile-menu') && !event.target.closest('.profile')) close()
+  })
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close() })
+})()
