@@ -278,3 +278,35 @@
   letter-spacing:.05em;
 }
 @media(max-width:760px){.system-status{display:none}}
+
+/* Profil meni: diskretan dok se ne otvori, ali sa jasnim akcijama. */
+.topbar{position:relative}
+.profile{transition:transform .18s ease,filter .18s ease}
+.profile:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.profile:focus-visible{outline:2px solid #58d4ff;outline-offset:4px;border-radius:12px}
+.profile-menu{
+  position:absolute;
+  z-index:90;
+  top:calc(100% - 8px);
+  right:clamp(22px,4vw,58px);
+  width:278px;
+  padding:12px;
+  border:1px solid rgba(86,196,247,.36);
+  border-radius:16px;
+  background:linear-gradient(145deg,rgba(30,57,91,.98),rgba(8,22,41,.98));
+  box-shadow:0 24px 56px rgba(0,0,0,.45),inset 0 1px 0 rgba(162,226,255,.11);
+}
+.profile-menu[hidden]{display:none}
+.profile-menu-head{display:flex;align-items:center;gap:11px;padding:5px 5px 14px;border-bottom:1px solid rgba(132,180,223,.17)}
+.profile-menu-avatar{display:grid;place-items:center;flex:0 0 43px;width:43px;height:43px;border-radius:50%;background:linear-gradient(145deg,#2cbcec,#21659d);box-shadow:0 7px 17px rgba(0,0,0,.23);color:#eaffff;font-size:.86rem;font-weight:900}
+.profile-menu-head strong{display:block;color:#f3f8ff;font-size:.94rem}
+.profile-menu-head small{display:block;margin-top:3px;color:#86a4c6;font-size:.75rem}
+.profile-menu-actions{display:grid;gap:4px;margin-top:10px}
+.profile-menu-actions button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 9px;border:0;border-radius:10px;background:transparent;color:#dbeafa;font:inherit;font-size:.82rem;font-weight:750;text-align:left;cursor:pointer;transition:background .16s ease,color .16s ease}
+.profile-menu-actions button span{display:grid;place-items:center;width:23px;color:#59d3ff;font-size:1rem}
+.profile-menu-actions button:hover{background:rgba(75,181,235,.13);color:#fff}
+.profile-menu-actions .profile-menu-logout{color:#ffc3cc}
+.profile-menu-actions .profile-menu-logout span{color:#ff899d}
+.profile-menu-actions .profile-menu-logout:hover{background:rgba(215,78,102,.12);color:#fff}
+.profile-menu-note{margin:11px 4px 1px;padding-top:10px;border-top:1px solid rgba(132,180,223,.13);color:#6582a5;font-size:.68rem;font-weight:700;letter-spacing:.03em}
+@media(max-width:720px){.profile-menu{right:16px;width:min(278px,calc(100vw - 32px))}}
