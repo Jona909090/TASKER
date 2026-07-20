@@ -128,6 +128,23 @@
 .shell.project-home .brand:after{content:"PORTAL PROJEKATA";position:absolute;left:10px;bottom:20px;color:#7192b2;font-size:9px;font-weight:900;letter-spacing:1.45px}
 .project-welcome{min-height:260px;align-items:center;margin-bottom:23px;padding:36px 50px;background:radial-gradient(350px 220px at 72% 48%,rgba(60,178,255,.16),transparent 70%),radial-gradient(370px 260px at 100% 0,rgba(242,189,48,.15),transparent 67%),linear-gradient(118deg,#213e5f 0%,#102442 61%,#0c1a31 100%)}
 .project-welcome-copy{position:relative;z-index:2;max-width:495px}
+.project-portal-slogan{
+  margin:17px 0 0 !important;
+  color:#f4c95d !important;
+  font-size:13px !important;
+  line-height:1.3 !important;
+  font-weight:800;
+  letter-spacing:.04em;
+}
+.project-portal-slogan::before{
+  content:"";
+  display:inline-block;
+  width:25px;
+  height:2px;
+  margin:0 9px 4px 0;
+  border-radius:4px;
+  background:linear-gradient(90deg,#39c8ff,#f4c95d);
+}
 .project-welcome h1{font-size:clamp(34px,4vw,52px)}
 .project-welcome p:not(.eyebrow){max-width:470px;line-height:1.55}
 .project-welcome-count{z-index:3;min-width:132px;background:rgba(6,19,37,.74)}
