@@ -908,49 +908,54 @@ document.querySelector('#back-to-projects').addEventListener('click', projectsHo
 
 projectsHome()
 
-/* Profilna slika - klik na Stefan Jonic */
+/* Profil meni u gornjem desnom uglu. */
 (() => {
-  const imagePath = './profil-tasker.jpg'
-
-  function openProfile() {
-    if (document.querySelector('#tasker-profile-modal')) return
-
-    const modal = document.createElement('div')
-    modal.id = 'tasker-profile-modal'
-    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:24px;background:rgba(4,12,26,.78);backdrop-filter:blur(8px);'
-
-    modal.innerHTML = `<section style="position:relative;width:min(760px,100%);max-height:90vh;overflow:auto;border:1px solid #4ac9ff;border-radius:22px;background:#142744;box-shadow:0 24px 80px rgba(0,0,0,.55);"><button type="button" data-close-profile style="position:absolute;top:14px;right:14px;width:42px;height:42px;border:0;border-radius:12px;cursor:pointer;color:#fff;background:#28476d;font-size:28px;line-height:1;">&times;</button><img src="${imagePath}" alt="Tasker profil" style="display:block;width:100%;height:auto;"><div style="padding:18px 22px 22px;color:#fff;"><div style="color:#61dcff;font-size:12px;font-weight:800;letter-spacing:1px;">TASKER</div><h2 style="margin:6px 0 0;font-size:26px;">Stefan Joni\u0107</h2><p style="margin:6px 0 0;color:#a9bdd8;">Upravljanje materijalom i radom.</p></div></section>`
-
-    const closeProfile = () => {
-      document.body.style.overflow = ''
-      modal.remove()
-    }
-
-    modal.querySelector('[data-close-profile]').addEventListener('click', closeProfile)
-    modal.addEventListener('click', (event) => {
-      if (event.target === modal) closeProfile()
-    })
-
-    document.body.appendChild(modal)
-    document.body.style.overflow = 'hidden'
-  }
-
   const profileButton = document.querySelector('.profile')
+  if (!profileButton) return
 
-  if (profileButton) {
-    profileButton.style.cursor = 'pointer'
-    profileButton.title = 'Otvori profil'
-    profileButton.setAttribute('role', 'button')
-    profileButton.setAttribute('tabindex', '0')
+  const profileMenu = document.createElement('section')
+  profileMenu.className = 'profile-menu'
+  profileMenu.hidden = true
+  profileMenu.setAttribute('aria-label', 'Profil korisnika')
+  profileMenu.innerHTML = `<div class="profile-menu-head"><span class="profile-menu-avatar" id="profile-menu-initials">SJ</span><div><strong id="profile-menu-name">${esc(state.settings.userName)}</strong><small>Administrator</small></div></div><div class="profile-menu-actions"><button type="button" data-profile-action="settings"><span aria-hidden="true">&#9881;</span>Podešavanja</button><button type="button" data-profile-action="projects"><span aria-hidden="true">&#8962;</span>Promeni projekat</button><button type="button" class="profile-menu-logout" data-profile-action="logout"><span aria-hidden="true">&#8618;</span>Odjavi se</button></div><p class="profile-menu-note">Tasker portal projekata</p>`
+  profileButton.insertAdjacentElement('afterend', profileMenu)
+  profileButton.setAttribute('aria-expanded', 'false')
 
-    profileButton.addEventListener('click', (event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      openProfile()
-    })
-
-    profileButton.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') openProfile()
-    })
+  const getInitials = () => (state.settings.userName || 'SJ').split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join('').toUpperCase()
+  const closeMenu = () => {
+    profileMenu.hidden = true
+    profileButton.setAttribute('aria-expanded', 'false')
   }
+  const openMenu = () => {
+    profileMenu.querySelector('#profile-menu-name').textContent = state.settings.userName || 'Korisnik'
+    profileMenu.querySelector('#profile-menu-initials').textContent = getInitials()
+    profileMenu.hidden = false
+    profileButton.setAttribute('aria-expanded', 'true')
+  }
+
+  profileButton.addEventListener('click', (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (profileMenu.hidden) openMenu()
+    else closeMenu()
+  })
+
+  profileMenu.addEventListener('click', (event) => {
+    const action = event.target.closest('[data-profile-action]')?.dataset.profileAction
+    if (!action) return
+    closeMenu()
+    if (action === 'settings') {
+      if (projectOpen) navigate('settings')
+      else projectsHome()
+    }
+    if (action === 'projects') projectsHome()
+    if (action === 'logout' && confirm('Želite da se odjavite?')) projectsHome()
+  })
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.profile') && !event.target.closest('.profile-menu')) closeMenu()
+  })
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeMenu()
+  })
 })()
