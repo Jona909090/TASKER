@@ -232,3 +232,49 @@
 /* Cista pozadina portala: uklanja veliki kran i spoljne crteze. */
 .shell.project-home .workspace:before,
 .shell.project-home .workspace:after{display:none}
+
+/* Mali panel statusa u donjem levom uglu portala. */
+.system-status{
+  margin-top:auto;
+  padding:15px 14px 12px;
+  border:1px solid rgba(61,150,211,.32);
+  border-radius:14px;
+  background:linear-gradient(145deg,rgba(16,44,76,.9),rgba(8,24,43,.88));
+  box-shadow:inset 0 1px 0 rgba(126,218,255,.08),0 12px 25px rgba(0,0,0,.2);
+}
+.system-status-title{
+  margin:0 0 11px;
+  color:#8da6c3;
+  font-size:.68rem;
+  font-weight:850;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.system-status-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:5px 0;
+  color:#d9e8f7;
+  font-size:.76rem;
+}
+.system-status-row span{display:flex;align-items:center;gap:8px}
+.system-status-row i{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#4ce79a;
+  box-shadow:0 0 9px rgba(76,231,154,.8);
+}
+.system-status-row b{color:#59e59c;font-size:.7rem;font-weight:850}
+.system-status-version{
+  margin:12px 0 0;
+  padding-top:10px;
+  border-top:1px solid rgba(128,179,220,.16);
+  color:#718eae;
+  font-size:.66rem;
+  font-weight:750;
+  letter-spacing:.05em;
+}
+@media(max-width:760px){.system-status{display:none}}
