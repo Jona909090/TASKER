@@ -27,6 +27,12 @@ const saveModuleDetails = () => localStorage.setItem(moduleDetailStorage, JSON.s
 
 app.innerHTML = `<div class="shell project-home"><aside class="sidebar"><a class="brand" href="#"><span class="brand-mark"><i></i><b>T</b><i></i></span><span><strong id="brand-company">${esc(state.settings.companyName)}</strong></span></a><button class="back-to-projects" id="back-to-projects" type="button">\u2190 Projekti</button><nav><button class="nav-link active" data-page="dashboard"><span>\u2302</span> Po\u010Detna</button><button class="nav-link" data-page="materials"><span>\u25A6</span> Materijal <b>${materials.length}</b></button><button class="nav-link" data-page="employees"><span>\u263B</span> Zaposleni</button><button class="nav-link" data-page="orders"><span>\u25A4</span> Narud\u017Ebine</button><button class="nav-link" data-page="reports"><span>\u25A5</span> Izve\u0161taji</button></nav><div class="sidebar-footer"><button class="nav-link" data-page="settings"><span>\u2699</span> Pode\u0161avanja</button><p>Tasker v2.0</p></div></aside><div class="workspace"><header class="topbar"><div class="topbar-time-area"><span id="breadcrumb" hidden>Po\u010Detna</span></div><button type="button" class="profile" aria-label="Otvori profil" style="border:0;background:transparent;color:inherit;cursor:pointer;"><span id="profile-initials">SJ</span><b id="profile-name">${esc(state.settings.userName)}</b></button></header><main id="content" class="content"></main></div></div>`
 
+const systemStatus = document.createElement('section')
+systemStatus.className = 'system-status'
+systemStatus.setAttribute('aria-label', 'Sistem status')
+systemStatus.innerHTML = `<p class="system-status-title">Sistem status</p><div class="system-status-row"><span><i></i>Aplikacija</span><b>Online</b></div><div class="system-status-row"><span><i></i>Lokalni podaci</span><b>Aktivno</b></div><div class="system-status-row"><span><i></i>Skladiste</span><b>Aktivno</b></div><div class="system-status-row"><span><i></i>Sinhronizacija</span><b>Lokalna</b></div><p class="system-status-version">TASKER v2.0</p>`
+document.querySelector('.sidebar-footer').insertAdjacentElement('beforebegin', systemStatus)
+
 const moduleLink = document.createElement('button')
 moduleLink.className = 'nav-link'
 moduleLink.dataset.page = 'modules'
