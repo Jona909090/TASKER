@@ -180,3 +180,32 @@
 .shell.project-home .workspace:before{content:"";position:fixed;z-index:0;top:72px;right:0;bottom:0;left:210px;pointer-events:none;opacity:.23;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 1000'%3E%3Cg fill='none' stroke='%2337bff7' stroke-width='1.25' stroke-linejoin='round' opacity='.48'%3E%3Cpath d='M74 945V190L116 108L158 190V945M74 220H158M74 280H158M74 340H158M74 400H158M74 460H158M74 520H158M74 580H158M74 640H158M74 700H158M74 760H158M74 820H158M74 880H158'/%3E%3Cpath d='M116 108L635 216L116 236L430 168L635 216M158 190L420 278L158 306M116 108L52 168M52 168H22M635 216L704 244M430 168L462 112'/%3E%3Cpath d='M506 190V376M488 376H524M495 390L517 376L529 390M506 390V472M476 472H536M488 472L476 492M524 472L536 492M476 492H536'/%3E%3Cpath d='M1125 930V586H1540V930M1125 740H1540M1125 658H1540M1190 586V930M1255 586V930M1320 586V930M1385 586V930M1450 586V930M1515 586V930'/%3E%3Cpath d='M1088 930L1152 874L1216 930M1216 930L1280 874L1344 930M1344 930L1408 874L1472 930M1472 930L1536 874L1595 930'/%3E%3Cpath d='M1030 960H1580M1060 978H1550' opacity='.55'/%3E%3C/g%3E%3Cg fill='none' stroke='%23f2c34c' stroke-width='1.1' stroke-linejoin='round' opacity='.4'%3E%3Cpath d='M70 945L116 108L160 945M116 108L635 216M116 236L430 168M1125 586L1540 586M1125 930L1540 930'/%3E%3C/g%3E%3C/svg%3E");background-repeat:no-repeat;background-size:cover;background-position:center}
 .shell.project-home .workspace:after{display:none}
 @media(max-width:760px){.shell.project-home .workspace:before{left:0;top:60px;opacity:.12;background-size:auto 100%;background-position:center}}
+
+/* Pravi arhitektonski nacrt: diskretna pozadina portala projekata. */
+.shell.project-home .workspace:before{
+  top:72px;
+  left:210px;
+  background-image:url("tasker-blueprint-background.png");
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:cover;
+  opacity:.46;
+}
+
+/* Sadrzaj portala ostaje iznad nacrta i potpuno citljiv. */
+.shell.project-home .topbar,
+.shell.project-home .content{position:relative;z-index:1}
+
+@media(max-width:760px){
+  .shell.project-home .workspace:before{
+    top:60px;
+    left:0;
+    background-size:auto 100%;
+    background-position:center;
+    opacity:.24;
+  }
+}
+
+/* Cista pozadina portala: uklanja veliki kran i spoljne crteze. */
+.shell.project-home .workspace:before,
+.shell.project-home .workspace:after{display:none}
