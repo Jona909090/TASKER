@@ -310,3 +310,14 @@
 .profile-menu-actions .profile-menu-logout:hover{background:rgba(215,78,102,.12);color:#fff}
 .profile-menu-note{margin:11px 4px 1px;padding-top:10px;border-top:1px solid rgba(132,180,223,.13);color:#6582a5;font-size:.68rem;font-weight:700;letter-spacing:.03em}
 @media(max-width:720px){.profile-menu{right:16px;width:min(278px,calc(100vw - 32px))}}
+
+/* Profil meni mora biti iznad cele aplikacije. */
+#tasker-profile-menu.profile-menu{
+  position:fixed;
+  z-index:9999;
+  top:auto;
+  right:auto;
+  width:278px;
+  max-width:calc(100vw - 32px);
+}
+#tasker-profile-menu.profile-menu[hidden]{display:none}
