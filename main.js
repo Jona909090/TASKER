@@ -1,6 +1,6 @@
 import { categories, materials, renderCategory, renderItems, renderMaterials } from './materials.js'
 
-const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const moduleDetailStorage = 'tasker.module-details'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const workHoursStorage = 'tasker.work-hours'; const workPlanStorage = 'tasker.work-plans'; const settingsStorage = 'tasker.settings'
+const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const moduleDetailStorage = 'tasker.module-details'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const workHoursStorage = 'tasker.work-hours'; const workPlanStorage = 'tasker.work-plans'; const settingsStorage = 'tasker.settings'; const projectStorage = 'tasker.projects'
 try { const savedCategories = JSON.parse(localStorage.getItem(categoryStorage) || 'null'); if (Array.isArray(savedCategories)) categories.splice(0, categories.length, ...savedCategories) } catch {}
 const saveCategories = () => localStorage.setItem(categoryStorage, JSON.stringify(categories))
 try { const savedInventory = JSON.parse(localStorage.getItem(inventoryStorage) || 'null'); if (Array.isArray(savedInventory)) materials.splice(0, materials.length, ...savedInventory) } catch {}
@@ -8,6 +8,10 @@ const saveInventory = () => localStorage.setItem(inventoryStorage, JSON.stringif
 const defaultSettings = { userName: 'Stefan Jonić', companyName: 'TASKER', defaultMinStock: 0, theme: 'dark' }
 let savedSettings = {}
 try { savedSettings = JSON.parse(localStorage.getItem(settingsStorage) || '{}') || {} } catch {}
+let savedProjects = []
+try { const storedProjects = JSON.parse(localStorage.getItem(projectStorage) || '[]'); savedProjects = Array.isArray(storedProjects) ? storedProjects : [] } catch {}
+const saveProjects = () => localStorage.setItem(projectStorage, JSON.stringify(savedProjects))
+const projectForSlot = (slot) => savedProjects.find((project) => Number(project.slot) === Number(slot))
 const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}'), moduleDetails: JSON.parse(localStorage.getItem(moduleDetailStorage) || '{}'), attendance: JSON.parse(localStorage.getItem(attendanceStorage) || '{}'), workHours: JSON.parse(localStorage.getItem(workHoursStorage) || '{}'), workPlans: JSON.parse(localStorage.getItem(workPlanStorage) || '{}'), settings: { ...defaultSettings, ...savedSettings } }
 const defaultEmployees = [{ id: 1, name: 'Stefan Jonic', role: 'Vodja gradilista', phone: '---', active: true }, { id: 2, name: 'Marko Petrovic', role: 'Nadzor', phone: '---', active: true }, { id: 3, name: 'Nikola Ilic', role: 'Radnik', phone: '---', active: true }, { id: 4, name: 'Milan Jovanovic', role: 'Radnik', phone: '---', active: true }, { id: 5, name: 'Dejan Markovic', role: 'Radnik', phone: '---', active: true }, { id: 6, name: 'Aleksandar Nikolic', role: 'Pomocni radnik', phone: '---', active: true }]
 try { const savedEmployees = JSON.parse(localStorage.getItem(employeeStorage) || 'null'); state.employees = Array.isArray(savedEmployees) ? savedEmployees : defaultEmployees } catch { state.employees = defaultEmployees }
@@ -19,7 +23,7 @@ const saveSettings = () => localStorage.setItem(settingsStorage, JSON.stringify(
 const applyTheme = () => document.documentElement.dataset.theme = state.settings.theme
 applyTheme()
 const app = document.querySelector('#app'); let projectOpen = false; let newProjectSlot = null; const low = materials.filter((item) => item.stock > 0 && item.stock <= item.minStock).length; const noStock = materials.filter((item) => item.stock <= 0).length
-const esc = (text) => text.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
+const esc = (text) => String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
 const save = () => { localStorage.setItem(storage, JSON.stringify(state.todos)); localStorage.setItem(filterStorage, state.filter) }
 const saveOrder = () => localStorage.setItem(orderStorage, JSON.stringify(state.orderLines))
 const saveModuleProgress = () => localStorage.setItem(moduleStorage, JSON.stringify(state.moduleProgress))
@@ -91,22 +95,74 @@ const updateClock = () => {
 updateClock()
 setInterval(updateClock, 1000)
 
+const projectDateLabel = (value) => {
+  if (!value) return 'Datum nije unesen'
+  const date = new Date(`${value}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return 'Datum nije unesen'
+  return new Intl.DateTimeFormat('hr-HR', { day: '2-digit', month: 'long', year: 'numeric' }).format(date)
+}
+
+const todayInputValue = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+const projectCard = (slot) => {
+  const project = projectForSlot(slot)
+  const slotLabel = String(slot).padStart(2, '0')
+  if (!project) return `<button type="button" class="project-card project-card-empty" data-new-project-slot="${slot}" aria-label="Otvori mjesto ${slotLabel} za novi projekt"><span class="empty-project-number">${slotLabel}</span><span class="empty-project-plus">+</span><p>Novi projekt</p><small>Slobodno mjesto</small></button>`
+  const name = esc(project.name || 'Novi projekt')
+  const location = esc(project.location || 'Lokacija nije unesena')
+  const mark = esc((project.name || 'P').trim().charAt(0).toUpperCase() || 'P')
+  return `<button type="button" class="project-card project-card-custom" data-open-project-slot="${slot}" aria-label="Otvori projekt ${name}"><span class="empty-project-number">${slotLabel}</span><div class="project-card-top"><span class="project-symbol">${mark}</span><span class="project-status"><i></i> Projekt spremljen</span></div><p class="project-label">PROJEKT</p><h2>${name}</h2><p class="project-description">${location}</p><div class="project-card-footer"><span>${projectDateLabel(project.startDate)}</span><strong>Otvori projekt \u2192</strong></div></button>`
+}
+
 function projectsHome() {
   projectOpen = false
   newProjectSlot = null
   document.querySelector('.shell').classList.add('project-home')
- const waitingProjectCards = Array.from({ length: 5 }, (_, index) => `<button type="button" class="project-card project-card-empty" data-new-project-slot="${index + 2}" aria-label="Otvori mesto ${index + 2} za novi projekat"><span class="empty-project-number">0${index + 2}</span><span class="empty-project-plus">+</span><p>Novi projekat</p><small>Slobodno mesto</small></button>`).join('')
-  content.innerHTML = `<section class="project-welcome"><div class="project-welcome-copy"><p class="eyebrow">TASKER \u2022 PORTAL PROJEKATA</p><h1 id="greeting">${greetingFor(new Date())}, ${esc(firstName())}.</h1><p>Organizujte projekte, kontroli\u0161ite materijal, pratite napredak i vodite evidenciju rada. Sve na jednom mestu.</p><p class="project-portal-slogan">Tasker \u2014 Kontrola svakog projekta.</p></div><div class="project-blueprint" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="project-welcome-count"><span>Aktivni projekti</span><b>1</b><small>projekat</small></div></section><div class="projects-section-heading"><span></span><h2>Moji projekti</h2><p>Izaberite aktivni projekat ili pripremite mesto za naredni.</p></div><section class="project-grid"><button type="button" class="project-card project-vertiv" id="open-vertiv-project"><span class="project-card-glow" aria-hidden="true"></span><span class="project-card-cover" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div class="project-card-top"><span class="project-symbol">V</span><span class="project-status"><i></i> Aktivan projekat</span></div><p class="project-label">PROJEKAT</p><h2>VERTIV</h2><p class="project-description">Upravljanje materijalom, modulima, zaposlenima i kompletnom evidencijom rada na gradili\u0161tu.</p><div class="project-card-footer"><span>MV \u00B7 MVS \u00B7 RPP</span><strong>Otvori projekat \u2192</strong></div></button>${waitingProjectCards}</section>`
- document.querySelector('#open-vertiv-project').addEventListener('click', enterVertivProject)
- document.querySelectorAll('[data-new-project-slot]').forEach((card) => card.addEventListener('click', () => openNewProject(card.dataset.newProjectSlot)))
+  const projectCount = 1 + savedProjects.length
+  const projectWord = projectCount === 1 ? 'projekt' : projectCount < 5 ? 'projekta' : 'projekata'
+  const waitingProjectCards = Array.from({ length: 5 }, (_, index) => projectCard(index + 2)).join('')
+  content.innerHTML = `<section class="project-welcome"><div class="project-welcome-copy"><p class="eyebrow">TASKER \u2022 PORTAL PROJEKATA</p><h1 id="greeting">${greetingFor(new Date())}, ${esc(firstName())}.</h1><p>Organizujte projekte, kontroli\u0161ite materijal, pratite napredak i vodite evidenciju rada. Sve na jednom mestu.</p><p class="project-portal-slogan">Tasker \u2014 Kontrola svakog projekta.</p></div><div class="project-blueprint" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="project-welcome-count"><span>Aktivni projekti</span><b>${projectCount}</b><small>${projectWord}</small></div></section><div class="projects-section-heading"><span></span><h2>Moji projekti</h2><p>Izaberite aktivni projekat ili pripremite mesto za naredni.</p></div><section class="project-grid"><button type="button" class="project-card project-vertiv" id="open-vertiv-project"><span class="project-card-glow" aria-hidden="true"></span><span class="project-card-cover" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div class="project-card-top"><span class="project-symbol">V</span><span class="project-status"><i></i> Aktivan projekat</span></div><p class="project-label">PROJEKAT</p><h2>VERTIV</h2><p class="project-description">Upravljanje materijalom, modulima, zaposlenima i kompletnom evidencijom rada na gradili\u0161tu.</p><div class="project-card-footer"><span>MV \u00B7 MVS \u00B7 RPP</span><strong>Otvori projekat \u2192</strong></div></button>${waitingProjectCards}</section>`
+  document.querySelector('#open-vertiv-project').addEventListener('click', enterVertivProject)
+  document.querySelectorAll('[data-new-project-slot]').forEach((card) => card.addEventListener('click', () => openNewProject(card.dataset.newProjectSlot)))
+  document.querySelectorAll('[data-open-project-slot]').forEach((card) => card.addEventListener('click', () => openNewProject(card.dataset.openProjectSlot)))
 }
 
 function openNewProject(slot) {
   projectOpen = false
   newProjectSlot = Number(slot)
+  const project = projectForSlot(newProjectSlot)
+  if (project) {
+    showSavedProject(project)
+    return
+  }
+  showNewProjectForm()
+}
+
+function showNewProjectForm(project = null) {
   document.querySelector('.shell').classList.add('project-home')
   const slotLabel = String(newProjectSlot).padStart(2, '0')
-  content.innerHTML = `<section class="new-project-screen"><section class="new-project-welcome"><span class="new-project-slot">MESTO ${slotLabel}</span><p class="eyebrow">TASKER \u2022 NOVI PROJEKAT</p><h1>Dobro dosli na novi projekat.</h1><p>Ovaj prostor je spreman za novi projekat. Kada budete spremni, ovde mozemo dodati naziv, podatke o gradilistu i kompletan sistem pracenja rada.</p><button type="button" class="new-project-return" id="back-to-project-list">\u2190 Nazad na projekte</button></section></section>`
+  content.innerHTML = `<section class="new-project-screen"><section class="new-project-welcome new-project-form-card"><span class="new-project-slot">MJESTO ${slotLabel}</span><p class="eyebrow">TASKER \u2022 NOVI PROJEKT</p><h1>Dobro do\u0161li na novi projekt.</h1><p>Unesite osnovne podatke. Projekt \u0107e ostati na ovom mjestu i mo\u017eete ga otvoriti kad god vam zatreba.</p><form id="new-project-form" class="new-project-form"><label>Naziv projekta<input name="projectName" required maxlength="70" placeholder="npr. Arena Zagreb" value="${esc(project?.name || '')}"></label><label>Lokacija / gradili\u0161te<input name="projectLocation" maxlength="100" placeholder="npr. Zagreb" value="${esc(project?.location || '')}"></label><label>Datum po\u010detka<input name="projectStartDate" type="date" value="${esc(project?.startDate || todayInputValue())}"></label><div class="new-project-form-actions"><button type="submit" class="primary-btn">Sa\u010duvaj projekt</button><button type="button" class="new-project-return" id="back-to-project-list">\u2190 Nazad na projekte</button></div></form></section></section>`
+  document.querySelector('#back-to-project-list').addEventListener('click', projectsHome)
+  document.querySelector('#new-project-form').addEventListener('submit', (event) => {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    const name = String(form.get('projectName') || '').trim()
+    if (!name) return
+    const savedProject = { slot: newProjectSlot, name, location: String(form.get('projectLocation') || '').trim(), startDate: String(form.get('projectStartDate') || ''), savedAt: new Date().toISOString() }
+    savedProjects = [...savedProjects.filter((item) => Number(item.slot) !== newProjectSlot), savedProject]
+    saveProjects()
+    showSavedProject(savedProject)
+  })
+}
+
+function showSavedProject(project) {
+  document.querySelector('.shell').classList.add('project-home')
+  const slotLabel = String(project.slot).padStart(2, '0')
+  content.innerHTML = `<section class="new-project-screen"><section class="new-project-welcome new-project-form-card"><span class="new-project-slot">PROJEKT ${slotLabel}</span><p class="eyebrow">TASKER \u2022 PORTAL PROJEKATA</p><h1>Dobro do\u0161li na ${esc(project.name)}.</h1><p>Projekt je spremljen na portalu. Ovdje \u0107e se u sljede\u0107em koraku postaviti njegov zaseban sustav rada.</p><div class="new-project-ready"><article><span>Lokacija</span><strong>${esc(project.location || 'Nije unesena')}</strong></article><article><span>Po\u010detak projekta</span><strong>${projectDateLabel(project.startDate)}</strong></article></div><div class="new-project-detail-actions"><button type="button" class="primary-btn" id="edit-new-project">Uredi podatke</button><button type="button" class="new-project-return" id="back-to-project-list">\u2190 Nazad na projekte</button></div></section></section>`
+  document.querySelector('#edit-new-project').addEventListener('click', () => showNewProjectForm(project))
   document.querySelector('#back-to-project-list').addEventListener('click', projectsHome)
 }
 
