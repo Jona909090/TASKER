@@ -38,7 +38,8 @@ app.innerHTML = `<div class="shell project-home"><aside class="sidebar"><a class
 const systemStatus = document.createElement('section')
 systemStatus.className = 'system-status'
 systemStatus.setAttribute('aria-label', 'Sistem status')
-systemStatus.innerHTML = `<p class="system-status-title">Sistem status</p><div class="system-status-row"><span><i></i>Aplikacija</span><b>Online</b></div><div class="system-status-row"><span><i></i>Lokalni podaci</span><b>Aktivno</b></div><div class="system-status-row"><span><i></i>Skladiste</span><b>Aktivno</b></div><div class="system-status-row"><span><i></i>Sinhronizacija</span><b>Lokalna</b></div><p class="system-status-version">TASKER v2.0</p>`
+const projectCount = 1 + savedProjects.length
+systemStatus.innerHTML = `<p class="system-status-title">Sistem status</p><div class="system-status-row"><span><i></i>Aplikacija</span><b>Online</b></div><div class="system-status-row"><span><i></i>Lokalni podaci</span><b>Aktivno</b></div><div class="system-status-row"><span><i></i>Skladi\u0161te</span><b>Aktivno</b></div><div class="system-status-row"><span><i></i>Sinhronizacija</span><b>Lokalna</b></div><div class="system-status-separator"></div><div class="system-status-row system-status-row--highlight"><span><i></i>Za\u0161ti\u0107en pristup</span><b>Aktivan</b></div><div class="system-status-row"><span><i></i>Projekti</span><b>${projectCount} / 6</b></div><div class="system-status-row"><span><i></i>Zadnja izmjena</span><b>Danas</b></div><p class="system-status-version">TASKER v2.0 <span>\u00a9 2026</span></p>`
 document.querySelector('.sidebar-footer').insertAdjacentElement('beforebegin', systemStatus)
 
 const moduleLink = document.createElement('button')
