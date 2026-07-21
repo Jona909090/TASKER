@@ -418,3 +418,23 @@
 .new-project-ready article span{display:block;width:auto;height:auto;padding:0;background:none;color:#86a8c7;font-size:11px;letter-spacing:.07em;text-transform:uppercase}
 .new-project-ready article strong{color:#f4f9ff;font-size:16px}
 @media(max-width:620px){.new-project-form{grid-template-columns:1fr}.new-project-form label:first-child{grid-column:auto}}
+
+/* Zaštićeni pristup projektima */
+.project-password-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:rgba(3,10,22,.78);backdrop-filter:blur(9px)}
+.project-password-dialog{position:relative;width:min(100%,430px);padding:32px;border:1px solid rgba(236,190,73,.65);border-radius:22px;background:linear-gradient(145deg,#203b5a,#10213a);box-shadow:0 30px 90px rgba(0,0,0,.55),0 0 40px rgba(236,190,73,.12);color:#f6fbff}
+.project-password-close{border:0;background:transparent;color:#b9d0e5;cursor:pointer}
+.project-password-dialog>.project-password-close{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:10px;font-size:24px;line-height:1}
+.project-password-dialog>.project-password-close:hover{background:rgba(120,165,202,.15);color:#fff}
+.project-password-icon{display:grid;place-items:center;width:52px;height:52px;border:1px solid rgba(236,190,73,.5);border-radius:15px;background:rgba(210,160,38,.14);font-size:24px}
+.project-password-dialog .eyebrow{margin:20px 0 6px;color:#f2cb64;font-size:11px;font-weight:900;letter-spacing:.12em}
+.project-password-dialog h2{margin:0;color:#fff;font-size:28px}
+.project-password-dialog>p:not(.eyebrow):not(.project-password-error){margin:9px 0 0;color:#a9c4dc;line-height:1.55}
+.project-password-dialog label{display:grid;gap:8px;margin-top:24px;color:#c4d8e9;font-size:13px;font-weight:800}
+.project-password-dialog input{width:100%;min-height:48px;padding:0 14px;border:1px solid rgba(104,164,204,.46);border-radius:11px;background:#0c1f38;color:#fff;font:inherit;letter-spacing:.18em;outline:none}
+.project-password-dialog input:focus{border-color:#f2cb64;box-shadow:0 0 0 3px rgba(242,203,100,.12)}
+.project-password-error{margin:11px 0 0!important;color:#ff9caf!important;font-size:13px;font-weight:700}
+.project-password-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.project-password-actions .secondary-btn,.project-password-actions .primary-btn{min-height:43px;border-radius:11px;padding:0 16px;font:inherit;font-weight:900;cursor:pointer}
+.project-password-actions .secondary-btn{border:1px solid rgba(136,171,202,.46);background:transparent;color:#cbe2f3}
+.project-password-actions .primary-btn{border:0;background:#43c7f3;color:#062039}
+@media(max-width:480px){.project-password-dialog{padding:27px 20px}.project-password-actions{display:grid;grid-template-columns:1fr}.project-password-actions button{width:100%}}
