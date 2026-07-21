@@ -398,3 +398,23 @@
 .shell.project-home .project-card:hover{transform:translateY(-5px) scale(1.008);border-color:#69d6ff;filter:brightness(1.035);box-shadow:0 24px 44px rgba(0,0,0,.31),0 0 0 1px rgba(100,212,255,.14),0 0 26px rgba(49,190,247,.13)}
 .shell.project-home .project-vertiv:hover{border-color:#f2cb64;box-shadow:0 25px 46px rgba(0,0,0,.32),0 0 0 1px rgba(242,203,100,.17),0 0 28px rgba(230,180,48,.13)}
 .shell.project-home .project-card-empty:hover{transform:translateY(-4px) scale(1.006);border-color:rgba(102,214,255,.72);box-shadow:0 20px 34px rgba(0,0,0,.27),0 0 22px rgba(49,190,247,.1)}
+
+/* Novi projekti na portalu: osnovni podaci ostaju u lokalnoj memoriji preglednika. */
+.shell.project-home .project-card-custom{display:block;cursor:pointer;font:inherit;text-align:left}
+.shell.project-home .project-card-custom .project-description{margin-bottom:0}
+.shell.project-home .project-card-custom .project-card-footer span{max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.new-project-form-card{min-height:0;padding-bottom:42px}
+.new-project-form-card h1{font-size:clamp(32px,3.4vw,48px)}
+.new-project-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;width:min(100%,720px);margin-top:28px}
+.new-project-form label{display:grid;gap:7px;color:#a9c4dc;font-size:12px;font-weight:800}
+.new-project-form label:first-child{grid-column:1/-1}
+.new-project-form input{width:100%;min-height:46px;padding:0 14px;border:1px solid rgba(104,164,204,.42);border-radius:11px;background:#0d2039;color:#f5fbff;font:inherit;outline:none}
+.new-project-form input:focus{border-color:#5fd7ff;box-shadow:0 0 0 3px rgba(73,200,255,.12)}
+.new-project-form-actions,.new-project-detail-actions{display:flex;flex-wrap:wrap;gap:12px;grid-column:1/-1;margin-top:4px}
+.new-project-form-actions .primary-btn,.new-project-detail-actions .primary-btn{min-height:44px;border:0;border-radius:11px;padding:0 19px;background:#43c7f3;color:#062039;font-weight:900;cursor:pointer}
+.new-project-form-actions .new-project-return,.new-project-detail-actions .new-project-return{margin-top:0}
+.new-project-detail-actions{margin-top:26px}
+.new-project-ready article{display:grid;gap:7px;align-content:start}
+.new-project-ready article span{display:block;width:auto;height:auto;padding:0;background:none;color:#86a8c7;font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+.new-project-ready article strong{color:#f4f9ff;font-size:16px}
+@media(max-width:620px){.new-project-form{grid-template-columns:1fr}.new-project-form label:first-child{grid-column:auto}}
