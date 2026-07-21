@@ -106,7 +106,7 @@ function openNewProject(slot) {
   newProjectSlot = Number(slot)
   document.querySelector('.shell').classList.add('project-home')
   const slotLabel = String(newProjectSlot).padStart(2, '0')
-  content.innerHTML = `<section class="new-project-screen"><section class="new-project-welcome"><span class="new-project-slot">MESTO ${slotLabel}</span><p class="eyebrow">TASKER \u2022 NOVI PROJEKAT</p><h1>Dobro dosli na novi projekat.</h1><p>Ovaj prostor je spreman za novi projekat. Kada budete spremni, ovde mozemo dodati naziv, podatke o gradilistu i kompletan sistem pracenja rada.</p><button type="button" class="new-project-return" id="back-to-project-list">\u2190 Nazad na projekte</button></section><section class="new-project-ready"><article><span>01</span><div><h2>Projekat je spreman</h2><p>Ovaj slot ostaje rezervisan dok ne odlucite koji projekat zelite voditi.</p></div></article><article><span>02</span><div><h2>Isti TASKER sistem</h2><p>Datum, sat, profil i originalni TASKER logo ostaju isti kao na glavnom portalu.</p></div></article></section></section>`
+  content.innerHTML = `<section class="new-project-screen"><section class="new-project-welcome"><span class="new-project-slot">MESTO ${slotLabel}</span><p class="eyebrow">TASKER \u2022 NOVI PROJEKAT</p><h1>Dobro dosli na novi projekat.</h1><p>Ovaj prostor je spreman za novi projekat. Kada budete spremni, ovde mozemo dodati naziv, podatke o gradilistu i kompletan sistem pracenja rada.</p><button type="button" class="new-project-return" id="back-to-project-list">\u2190 Nazad na projekte</button></section></section>`
   document.querySelector('#back-to-project-list').addEventListener('click', projectsHome)
 }
 
