@@ -18,7 +18,7 @@ const saveWorkPlans = () => localStorage.setItem(workPlanStorage, JSON.stringify
 const saveSettings = () => localStorage.setItem(settingsStorage, JSON.stringify(state.settings))
 const applyTheme = () => document.documentElement.dataset.theme = state.settings.theme
 applyTheme()
-const app = document.querySelector('#app'); let projectOpen = false; const low = materials.filter((item) => item.stock > 0 && item.stock <= item.minStock).length; const noStock = materials.filter((item) => item.stock <= 0).length
+const app = document.querySelector('#app'); let projectOpen = false; let newProjectSlot = null; const low = materials.filter((item) => item.stock > 0 && item.stock <= item.minStock).length; const noStock = materials.filter((item) => item.stock <= 0).length
 const esc = (text) => text.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
 const save = () => { localStorage.setItem(storage, JSON.stringify(state.todos)); localStorage.setItem(filterStorage, state.filter) }
 const saveOrder = () => localStorage.setItem(orderStorage, JSON.stringify(state.orderLines))
@@ -93,10 +93,21 @@ setInterval(updateClock, 1000)
 
 function projectsHome() {
   projectOpen = false
+  newProjectSlot = null
   document.querySelector('.shell').classList.add('project-home')
- const waitingProjectCards = Array.from({ length: 5 }, (_, index) => `<article class="project-card project-card-empty" aria-label="Slobodno mesto za novi projekat"><span class="empty-project-number">0${index + 2}</span><div class="empty-project-plus">+</div><p>Novi projekat</p><small>Slobodno mesto</small></article>`).join('')
+ const waitingProjectCards = Array.from({ length: 5 }, (_, index) => `<button type="button" class="project-card project-card-empty" data-new-project-slot="${index + 2}" aria-label="Otvori mesto ${index + 2} za novi projekat"><span class="empty-project-number">0${index + 2}</span><span class="empty-project-plus">+</span><p>Novi projekat</p><small>Slobodno mesto</small></button>`).join('')
   content.innerHTML = `<section class="project-welcome"><div class="project-welcome-copy"><p class="eyebrow">TASKER \u2022 PORTAL PROJEKATA</p><h1 id="greeting">${greetingFor(new Date())}, ${esc(firstName())}.</h1><p>Organizujte projekte, kontroli\u0161ite materijal, pratite napredak i vodite evidenciju rada. Sve na jednom mestu.</p><p class="project-portal-slogan">Tasker \u2014 Kontrola svakog projekta.</p></div><div class="project-blueprint" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="project-welcome-count"><span>Aktivni projekti</span><b>1</b><small>projekat</small></div></section><div class="projects-section-heading"><span></span><h2>Moji projekti</h2><p>Izaberite aktivni projekat ili pripremite mesto za naredni.</p></div><section class="project-grid"><button type="button" class="project-card project-vertiv" id="open-vertiv-project"><span class="project-card-glow" aria-hidden="true"></span><span class="project-card-cover" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div class="project-card-top"><span class="project-symbol">V</span><span class="project-status"><i></i> Aktivan projekat</span></div><p class="project-label">PROJEKAT</p><h2>VERTIV</h2><p class="project-description">Upravljanje materijalom, modulima, zaposlenima i kompletnom evidencijom rada na gradili\u0161tu.</p><div class="project-card-footer"><span>MV \u00B7 MVS \u00B7 RPP</span><strong>Otvori projekat \u2192</strong></div></button>${waitingProjectCards}</section>`
  document.querySelector('#open-vertiv-project').addEventListener('click', enterVertivProject)
+ document.querySelectorAll('[data-new-project-slot]').forEach((card) => card.addEventListener('click', () => openNewProject(card.dataset.newProjectSlot)))
+}
+
+function openNewProject(slot) {
+  projectOpen = false
+  newProjectSlot = Number(slot)
+  document.querySelector('.shell').classList.add('project-home')
+  const slotLabel = String(newProjectSlot).padStart(2, '0')
+  content.innerHTML = `<section class="new-project-screen"><section class="new-project-welcome"><span class="new-project-slot">MESTO ${slotLabel}</span><p class="eyebrow">TASKER \u2022 NOVI PROJEKAT</p><h1>Dobro dosli na novi projekat.</h1><p>Ovaj prostor je spreman za novi projekat. Kada budete spremni, ovde mozemo dodati naziv, podatke o gradilistu i kompletan sistem pracenja rada.</p><button type="button" class="new-project-return" id="back-to-project-list">\u2190 Nazad na projekte</button></section><section class="new-project-ready"><article><span>01</span><div><h2>Projekat je spreman</h2><p>Ovaj slot ostaje rezervisan dok ne odlucite koji projekat zelite voditi.</p></div></article><article><span>02</span><div><h2>Isti TASKER sistem</h2><p>Datum, sat, profil i originalni TASKER logo ostaju isti kao na glavnom portalu.</p></div></article></section></section>`
+  document.querySelector('#back-to-project-list').addEventListener('click', projectsHome)
 }
 
 function enterVertivProject() {
