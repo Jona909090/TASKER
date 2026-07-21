@@ -12,6 +12,10 @@ let savedProjects = []
 try { const storedProjects = JSON.parse(localStorage.getItem(projectStorage) || '[]'); savedProjects = Array.isArray(storedProjects) ? storedProjects : [] } catch {}
 const saveProjects = () => localStorage.setItem(projectStorage, JSON.stringify(savedProjects))
 const projectForSlot = (slot) => savedProjects.find((project) => Number(project.slot) === Number(slot))
+const projectPassword = '7070'
+const projectAccessKey = (key) => `tasker.project-access.${key}`
+const hasProjectAccess = (key) => sessionStorage.getItem(projectAccessKey(key)) === 'granted'
+const grantProjectAccess = (key) => sessionStorage.setItem(projectAccessKey(key), 'granted')
 const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}'), moduleDetails: JSON.parse(localStorage.getItem(moduleDetailStorage) || '{}'), attendance: JSON.parse(localStorage.getItem(attendanceStorage) || '{}'), workHours: JSON.parse(localStorage.getItem(workHoursStorage) || '{}'), workPlans: JSON.parse(localStorage.getItem(workPlanStorage) || '{}'), settings: { ...defaultSettings, ...savedSettings } }
 const defaultEmployees = [{ id: 1, name: 'Stefan Jonic', role: 'Vodja gradilista', phone: '---', active: true }, { id: 2, name: 'Marko Petrovic', role: 'Nadzor', phone: '---', active: true }, { id: 3, name: 'Nikola Ilic', role: 'Radnik', phone: '---', active: true }, { id: 4, name: 'Milan Jovanovic', role: 'Radnik', phone: '---', active: true }, { id: 5, name: 'Dejan Markovic', role: 'Radnik', phone: '---', active: true }, { id: 6, name: 'Aleksandar Nikolic', role: 'Pomocni radnik', phone: '---', active: true }]
 try { const savedEmployees = JSON.parse(localStorage.getItem(employeeStorage) || 'null'); state.employees = Array.isArray(savedEmployees) ? savedEmployees : defaultEmployees } catch { state.employees = defaultEmployees }
@@ -107,6 +111,31 @@ const todayInputValue = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
+function requestProjectAccess(key, onSuccess) {
+  if (hasProjectAccess(key)) { onSuccess(); return }
+  document.querySelector('.project-password-modal')?.remove()
+  document.body.insertAdjacentHTML('beforeend', `<div class="project-password-modal" role="dialog" aria-modal="true" aria-labelledby="project-password-title"><form class="project-password-dialog" id="project-password-form"><button type="button" class="project-password-close" aria-label="Zatvori">&times;</button><span class="project-password-icon" aria-hidden="true">&#128274;</span><p class="eyebrow">ZA&Scaron;TI&Cacute;ENI PRISTUP</p><h2 id="project-password-title">Unesite lozinku</h2><p>Za otvaranje ovog projekta potrebna je lozinka.</p><label>Lozinka<input id="project-password-input" type="password" inputmode="numeric" autocomplete="current-password" maxlength="20" required autofocus placeholder="****"></label><p class="project-password-error" id="project-password-error" role="alert" hidden>Pogre&scaron;na lozinka. Poku&scaron;ajte ponovno.</p><div class="project-password-actions"><button type="button" class="secondary-btn project-password-close">Odustani</button><button type="submit" class="primary-btn">Otklju&#269;aj projekt</button></div></form></div>`)
+  const modal = document.querySelector('.project-password-modal')
+  const close = () => modal.remove()
+  modal.querySelectorAll('.project-password-close').forEach((button) => button.addEventListener('click', close))
+  modal.addEventListener('click', (event) => { if (event.target === modal) close() })
+  const form = modal.querySelector('#project-password-form')
+  const input = modal.querySelector('#project-password-input')
+  form.addEventListener('submit', (event) => {
+    event.preventDefault()
+    if (input.value !== projectPassword) {
+      modal.querySelector('#project-password-error').hidden = false
+      input.value = ''
+      input.focus()
+      return
+    }
+    grantProjectAccess(key)
+    close()
+    onSuccess()
+  })
+  setTimeout(() => input.focus(), 0)
+}
+
 const projectCard = (slot) => {
   const project = projectForSlot(slot)
   const slotLabel = String(slot).padStart(2, '0')
@@ -125,9 +154,9 @@ function projectsHome() {
   const projectWord = projectCount === 1 ? 'projekt' : projectCount < 5 ? 'projekta' : 'projekata'
   const waitingProjectCards = Array.from({ length: 5 }, (_, index) => projectCard(index + 2)).join('')
   content.innerHTML = `<section class="project-welcome"><div class="project-welcome-copy"><p class="eyebrow">TASKER \u2022 PORTAL PROJEKATA</p><h1 id="greeting">${greetingFor(new Date())}, ${esc(firstName())}.</h1><p>Organizujte projekte, kontroli\u0161ite materijal, pratite napredak i vodite evidenciju rada. Sve na jednom mestu.</p><p class="project-portal-slogan">Tasker \u2014 Kontrola svakog projekta.</p></div><div class="project-blueprint" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="project-welcome-count"><span>Aktivni projekti</span><b>${projectCount}</b><small>${projectWord}</small></div></section><div class="projects-section-heading"><span></span><h2>Moji projekti</h2><p>Izaberite aktivni projekat ili pripremite mesto za naredni.</p></div><section class="project-grid"><button type="button" class="project-card project-vertiv" id="open-vertiv-project"><span class="project-card-glow" aria-hidden="true"></span><span class="project-card-cover" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div class="project-card-top"><span class="project-symbol">V</span><span class="project-status"><i></i> Aktivan projekat</span></div><p class="project-label">PROJEKAT</p><h2>VERTIV</h2><p class="project-description">Upravljanje materijalom, modulima, zaposlenima i kompletnom evidencijom rada na gradili\u0161tu.</p><div class="project-card-footer"><span>MV \u00B7 MVS \u00B7 RPP</span><strong>Otvori projekat \u2192</strong></div></button>${waitingProjectCards}</section>`
-  document.querySelector('#open-vertiv-project').addEventListener('click', enterVertivProject)
-  document.querySelectorAll('[data-new-project-slot]').forEach((card) => card.addEventListener('click', () => openNewProject(card.dataset.newProjectSlot)))
-  document.querySelectorAll('[data-open-project-slot]').forEach((card) => card.addEventListener('click', () => openNewProject(card.dataset.openProjectSlot)))
+  document.querySelector('#open-vertiv-project').addEventListener('click', () => requestProjectAccess('vertiv', enterVertivProject))
+  document.querySelectorAll('[data-new-project-slot]').forEach((card) => card.addEventListener('click', () => requestProjectAccess(`slot-${card.dataset.newProjectSlot}`, () => openNewProject(card.dataset.newProjectSlot))))
+  document.querySelectorAll('[data-open-project-slot]').forEach((card) => card.addEventListener('click', () => requestProjectAccess(`slot-${card.dataset.openProjectSlot}`, () => openNewProject(card.dataset.openProjectSlot))))
 }
 
 function openNewProject(slot) {
