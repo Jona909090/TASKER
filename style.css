@@ -311,6 +311,27 @@
   box-shadow:0 0 9px rgba(76,231,154,.8);
 }
 .system-status-row b{color:#59e59c;font-size:.7rem;font-weight:850}
+.system-status-separator{
+  height:1px;
+  margin:7px 0 5px;
+  background:linear-gradient(90deg,transparent,rgba(76,231,154,.72),transparent);
+  box-shadow:0 0 11px rgba(76,231,154,.35);
+}
+.system-status-row--highlight{
+  margin:3px -3px;
+  padding:7px 5px;
+  border-radius:8px;
+  background:linear-gradient(90deg,rgba(35,209,127,.15),rgba(35,209,127,.025));
+  box-shadow:inset 2px 0 0 #4ce79a,0 0 15px rgba(76,231,154,.1);
+}
+.system-status-row--highlight i{
+  box-shadow:0 0 0 3px rgba(76,231,154,.12),0 0 14px rgba(76,231,154,.92);
+  animation:statusPulse 2s ease-in-out infinite;
+}
+@keyframes statusPulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.65;transform:scale(1.18)}
+}
 .system-status-version{
   margin:12px 0 0;
   padding-top:10px;
@@ -319,7 +340,11 @@
   font-size:.66rem;
   font-weight:750;
   letter-spacing:.05em;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
 }
+.system-status-version span{color:#4ce79a;font-weight:850}
 @media(max-width:760px){.system-status{display:none}}
 
 /* Profil meni: diskretan dok se ne otvori, ali sa jasnim akcijama. */
