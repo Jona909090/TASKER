@@ -392,3 +392,9 @@
 .new-project-ready h2{margin:1px 0 5px;color:#f3f7fc;font-size:16px}
 .new-project-ready p{margin:0;color:#8ea9c3;font-size:13px;line-height:1.55}
 @media(max-width:700px){.new-project-welcome{min-height:300px;padding:38px 28px}.new-project-slot{position:static;align-self:flex-start;margin-bottom:22px}.new-project-welcome h1{font-size:38px}.new-project-welcome>p:not(.eyebrow){font-size:15px}.new-project-ready{grid-template-columns:1fr}}
+
+/* Diskretan odziv kartica na početnom portalu projekata. */
+.shell.project-home .project-card{will-change:transform,box-shadow;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease,filter .2s ease}
+.shell.project-home .project-card:hover{transform:translateY(-5px) scale(1.008);border-color:#69d6ff;filter:brightness(1.035);box-shadow:0 24px 44px rgba(0,0,0,.31),0 0 0 1px rgba(100,212,255,.14),0 0 26px rgba(49,190,247,.13)}
+.shell.project-home .project-vertiv:hover{border-color:#f2cb64;box-shadow:0 25px 46px rgba(0,0,0,.32),0 0 0 1px rgba(242,203,100,.17),0 0 28px rgba(230,180,48,.13)}
+.shell.project-home .project-card-empty:hover{transform:translateY(-4px) scale(1.006);border-color:rgba(102,214,255,.72);box-shadow:0 20px 34px rgba(0,0,0,.27),0 0 22px rgba(49,190,247,.1)}
