@@ -874,6 +874,8 @@ function workPlanPage(dateKey = dateKeyFor()) {
   })
 }
 
+const workDiaryDriveFolderUrl = 'https://drive.google.com/drive/folders/18rniLSVBoCf_KKT-qhq65F2ZRvJvdEnR'
+
 const loadWorkDiary = () => {
   try { return JSON.parse(localStorage.getItem(diaryStorage) || '{}') || {} } catch { return {} }
 }
@@ -960,7 +962,7 @@ function workDiaryPage(selectedDate = todayInputValue()) {
       pdf.text(lines.slice(0, 20), 22, 43, { lineHeightFactor: 1.48 })
       const fileName = `Dnevnik-rada-${date}.pdf`
       pdf.save(fileName)
-      status.innerHTML = `PDF je sačuvan kao <b>${fileName}</b>. <a href="${driveFolderUrl}" target="_blank" rel="noopener">Otvori Google Drive folder &nearr;</a>`
+      status.innerHTML = `PDF je sačuvan kao <b>${fileName}</b>. <a href="${workDiaryDriveFolderUrl}" target="_blank" rel="noopener">Otvori folder Dnevnik rada &nearr;</a>`
     } catch (error) {
       status.textContent = 'PDF nije napravljen. Proverite internet vezu i pokušajte ponovo.'
     } finally {
