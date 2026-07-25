@@ -87,6 +87,23 @@ document.querySelector('nav').insertBefore(documentsLink, document.querySelector
 const content = document.querySelector('#content')
 const breadcrumb = document.querySelector('#breadcrumb')
 const topbarMeta = document.querySelector('.topbar > div:first-child')
+const topbarSlogan = document.createElement('div')
+topbarSlogan.className = 'topbar-slogan'
+topbarSlogan.setAttribute('aria-label', 'Tasker slogan')
+topbarSlogan.innerHTML = '<div class="topbar-slogan-track"><strong>TASKER</strong><span>Gradilište pod kontrolom. Rezultat iznad očekivanja.</span></div>'
+document.querySelector('.topbar-profile-actions').insertAdjacentElement('beforebegin', topbarSlogan)
+const topbarSloganStyle = document.createElement('style')
+topbarSloganStyle.textContent = `
+  .topbar-slogan{position:relative;flex:1;min-width:120px;height:42px;margin:0 24px;overflow:hidden;display:flex;align-items:center;mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+  .topbar-slogan-track{position:absolute;left:0;display:flex;align-items:center;gap:14px;width:max-content;white-space:nowrap;color:#78ff9d;font-size:17px;font-weight:800;letter-spacing:.02em;text-shadow:0 0 7px rgba(73,255,126,.8),0 0 18px rgba(73,255,126,.35);animation:tasker-slogan-move 14s linear infinite}
+  .topbar-slogan-track strong{color:#a5ffbd;font-size:20px;letter-spacing:.18em}
+  .topbar-slogan-track strong:after{content:'◆';margin-left:14px;color:#34e978;font-size:9px;vertical-align:middle}
+  @keyframes tasker-slogan-move{0%{transform:translateX(-100%)}100%{transform:translateX(calc(100vw - 430px))}}
+  @media(max-width:900px){.topbar-slogan{margin:0 10px}.topbar-slogan-track{font-size:13px}.topbar-slogan-track strong{font-size:15px}@keyframes tasker-slogan-move{0%{transform:translateX(-100%)}100%{transform:translateX(65vw)}}}
+  @media(max-width:620px){.topbar-slogan{display:none}}
+  @media(prefers-reduced-motion:reduce){.topbar-slogan-track{animation-duration:24s}}
+`
+document.head.appendChild(topbarSloganStyle)
 const greetingFor = (date) => date.getHours() < 12 ? 'Dobro jutro' : date.getHours() < 18 ? 'Dobar dan' : 'Dobro ve\u010De'
 const firstName = () => state.settings.userName.trim().split(/\s+/)[0] || 'Korisniče'
 const initialsFor = (name) => name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || 'T'
