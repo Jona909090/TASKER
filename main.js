@@ -875,6 +875,8 @@ function workPlanPage(dateKey = dateKeyFor()) {
 }
 
 const workDiaryDriveFolderUrl = 'https://drive.google.com/drive/folders/18rniLSVBoCf_KKT-qhq65F2ZRvJvdEnR'
+const workDiaryUploadUrl = 'https://script.google.com/macros/s/AKfycbx3jJEO2SNjFt6f6ZaqhpnPSs9jNk8iFBLCMZYdTeX73YpTIc62Ayu8Ind95RpRLQ0H0Q/exec'
+const workDiaryUploadToken = 'tasker-2026-dnevnik-7f3c91'
 
 const loadWorkDiary = () => {
   try { return JSON.parse(localStorage.getItem(diaryStorage) || '{}') || {} } catch { return {} }
@@ -907,7 +909,7 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     </section>
     <div class="work-diary-actions">
       <p id="work-diary-status" role="status">Beleška se čuva za izabrani datum.</p>
-      <button id="save-work-diary" class="primary-btn" type="button">Sačuvaj kao PDF</button>
+      <button id="save-work-diary" class="primary-btn" type="button">Sačuvaj PDF u Drive</button>
     </div>
   </section>
   <style id="work-diary-layout">
@@ -961,13 +963,24 @@ function workDiaryPage(selectedDate = todayInputValue()) {
       const lines = pdf.splitTextToSize(report || ' ', 166)
       pdf.text(lines.slice(0, 20), 22, 43, { lineHeightFactor: 1.48 })
       const fileName = `Dnevnik-rada-${date}.pdf`
-      pdf.save(fileName)
-      status.innerHTML = `PDF je sačuvan kao <b>${fileName}</b>. <a href="${workDiaryDriveFolderUrl}" target="_blank" rel="noopener">Otvori folder Dnevnik rada &nearr;</a>`
+      const pdfBase64 = pdf.output('datauristring').split(',')[1]
+      status.textContent = 'Šaljem PDF u Google Drive...'
+      await fetch(workDiaryUploadUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          token: workDiaryUploadToken,
+          fileName,
+          pdfBase64
+        })
+      })
+      status.innerHTML = `PDF <b>${fileName}</b> je poslan u Google Drive. <a href="${workDiaryDriveFolderUrl}" target="_blank" rel="noopener">Proveri folder Dnevnik rada &nearr;</a>`
     } catch (error) {
-      status.textContent = 'PDF nije napravljen. Proverite internet vezu i pokušajte ponovo.'
+      status.textContent = 'PDF nije poslan u Drive. Proverite internet vezu i pokušajte ponovo.'
     } finally {
       button.disabled = false
-      button.textContent = 'Sačuvaj kao PDF'
+      button.textContent = 'Sačuvaj PDF u Drive'
     }
   })
 }
