@@ -954,12 +954,16 @@ function workDiaryPage(selectedDate = todayInputValue()) {
   const saved = diary[selectedDate] || {}
   const savedText = saved.text || ''
   const savedHtml = saved.html || esc(savedText).replace(/\n/g, '<div><br></div>')
+  const defaultDocumentNumber = `DR-${selectedDate.replaceAll('-', '')}-001`
   let lineCount = Math.max(10, Math.min(30, Number(saved.lineCount) || 22))
   content.innerHTML = `<section class="work-diary-page">
     <header class="work-diary-heading">
       <span></span>
       <h1>Dnevnik rada</h1>
-      <label>Datum<input id="work-diary-date" type="date" value="${esc(selectedDate)}"></label>
+      <div class="diary-document-meta">
+        <label>Datum<input id="work-diary-date" type="date" value="${esc(selectedDate)}"></label>
+        <label>Broj dokumenta<input id="diary-document-number" required maxlength="40" value="${esc(saved.documentNumber || defaultDocumentNumber)}" placeholder="npr. DR-20260725-001"></label>
+      </div>
     </header>
     <section class="diary-toolbar" aria-label="Alati za uređivanje teksta">
       <label>Font<select id="diary-font"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Courier New">Courier</option><option value="Times New Roman">Times</option></select></label>
@@ -989,7 +993,8 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     #content .work-diary-page{max-width:920px;margin:0 auto}
     #content .work-diary-heading{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:18px;margin-bottom:18px}
     #content .work-diary-heading h1{margin:0;text-align:center;font-size:32px;color:var(--text)}
-    #content .work-diary-heading label{justify-self:end;display:grid;gap:6px;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+    #content .diary-document-meta{justify-self:end;display:grid;grid-template-columns:auto auto;gap:10px}
+    #content .work-diary-heading label{display:grid;gap:6px;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
     #content .work-diary-heading input{padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);font:inherit;color-scheme:dark}
     #content .diary-toolbar{display:flex;align-items:end;gap:9px;flex-wrap:wrap;padding:12px 14px;border:1px solid #385273;border-bottom:0;border-radius:14px 14px 0 0;background:#15253d}
     #content .diary-toolbar label{display:grid;gap:4px;color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase}
@@ -1025,12 +1030,13 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     #content .work-diary-file button{padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#172944;color:var(--text);font-weight:800;cursor:pointer}
     #content .work-diary-file .diary-delete{padding:6px 10px;color:#ff9eaa;font-size:18px}
     #content .work-diary-empty{margin:0;padding:22px 2px;color:var(--muted);font-size:12px;text-align:center}
-    @media(max-width:650px){#content .work-diary-heading{grid-template-columns:1fr}#content .work-diary-heading>span{display:none}#content .work-diary-heading h1{text-align:left}#content .work-diary-heading label{justify-self:stretch}#content .work-diary-paper{padding:22px 14px}#content .diary-line-control{width:100%;margin-left:0}#content .stamp-name{width:100%;margin-left:0;justify-content:space-between}#content .work-diary-actions{align-items:stretch;flex-direction:column}#content .work-diary-actions button{width:100%}#content .work-diary-file{grid-template-columns:auto 1fr auto}#content .work-diary-file .diary-delete{grid-column:3;grid-row:2}}
+    @media(max-width:650px){#content .work-diary-heading{grid-template-columns:1fr}#content .work-diary-heading>span{display:none}#content .work-diary-heading h1{text-align:left}#content .diary-document-meta{justify-self:stretch;grid-template-columns:1fr}#content .work-diary-heading label{justify-self:stretch}#content .work-diary-paper{padding:22px 14px}#content .diary-line-control{width:100%;margin-left:0}#content .stamp-name{width:100%;margin-left:0;justify-content:space-between}#content .work-diary-actions{align-items:stretch;flex-direction:column}#content .work-diary-actions button{width:100%}#content .work-diary-file{grid-template-columns:auto 1fr auto}#content .work-diary-file .diary-delete{grid-column:3;grid-row:2}}
   </style>`
 
   const dateInput = document.querySelector('#work-diary-date')
   const editor = document.querySelector('#work-diary-text')
   const status = document.querySelector('#work-diary-status')
+  const documentNumber = document.querySelector('#diary-document-number')
   const stampEnabled = document.querySelector('#diary-stamp-enabled')
   const preparedBy = document.querySelector('#diary-prepared-by')
   const lineLabel = document.querySelector('#diary-line-count')
@@ -1102,6 +1108,7 @@ function workDiaryPage(selectedDate = todayInputValue()) {
   const saveDraft = () => saveWorkDiary(dateInput.value, editor.innerText, {
     html: editor.innerHTML,
     lineCount,
+    documentNumber: documentNumber.value.trim(),
     stampEnabled: stampEnabled.checked,
     preparedBy: preparedBy.value.trim()
   })
@@ -1114,13 +1121,19 @@ function workDiaryPage(selectedDate = todayInputValue()) {
       status.textContent = 'Nacrt je sačuvan na ovom uređaju.'
     }, 350)
   })
-  ;[stampEnabled, preparedBy].forEach((control) => control.addEventListener('change', saveDraft))
+  ;[documentNumber, stampEnabled, preparedBy].forEach((control) => control.addEventListener('change', saveDraft))
   dateInput.addEventListener('change', () => workDiaryPage(dateInput.value || todayInputValue()))
 
   document.querySelector('#save-work-diary').addEventListener('click', async (event) => {
     const button = event.currentTarget
     const date = dateInput.value || todayInputValue()
     const report = editor.innerText.trim()
+    const documentNo = documentNumber.value.trim()
+    if (!documentNo) {
+      status.textContent = 'Unesite obavezni broj dokumenta.'
+      documentNumber.focus()
+      return
+    }
     saveDraft()
     button.disabled = true
     button.textContent = 'Pravim PDF...'
@@ -1134,7 +1147,7 @@ function workDiaryPage(selectedDate = todayInputValue()) {
       sheet.innerHTML = `<header style="position:relative;height:128px;background:#163454;color:white;box-sizing:border-box;padding:31px 54px;">
         <div style="position:absolute;left:58px;top:22px;display:flex;flex-direction:column;align-items:center;gap:3px;" aria-label="Tasker logo"><i style="display:block;width:20px;height:7px;border-radius:8px;background:#f05252;"></i><b style="display:grid;place-items:center;width:31px;height:31px;border-radius:11px;background:#3b82f6;color:white;font-size:19px;">T</b><i style="display:block;width:20px;height:7px;border-radius:8px;background:#f5f7fa;"></i></div>
         <div style="text-align:center;"><h1 style="margin:0;font-size:30px;letter-spacing:1px;">DNEVNIK RADA</h1></div>
-        <p style="position:absolute;right:54px;top:40px;margin:0;color:#d8e8f6;font-size:14px;">Datum: ${date.split('-').reverse().join('.')}</p>
+        <div style="position:absolute;right:54px;top:32px;text-align:right;color:#d8e8f6;font-size:14px;line-height:23px;"><p style="margin:0;">Datum: ${date.split('-').reverse().join('.')}</p><p style="margin:0;font-size:12px;">Broj dokumenta: ${esc(documentNo)}</p></div>
       </header>
       <main style="position:relative;height:920px;padding:54px 54px 0 72px;box-sizing:border-box;">
         <div style="position:absolute;left:72px;right:54px;top:54px;height:${lineCount * 34}px;">${rules}</div>
@@ -1149,10 +1162,12 @@ function workDiaryPage(selectedDate = todayInputValue()) {
       sheet.remove()
       const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
       pdf.addImage(canvas.toDataURL('image/jpeg', .94), 'JPEG', 0, 0, 210, 297)
-      const fileName = `Dnevnik-rada-${date}.pdf`
+      const savedAt = new Date()
+      const timePart = [savedAt.getHours(), savedAt.getMinutes(), savedAt.getSeconds()].map((value) => String(value).padStart(2, '0')).join('')
+      const fileName = `Dnevnik-rada-${date}-${timePart}.pdf`
       const blob = pdf.output('blob')
-      status.textContent = 'Čuvam PDF u Tasker...'
-      await storeWorkDiaryPdf({ id: date, fileName, blob, text: report, createdAt: new Date().toISOString() })
+      status.textContent = 'Čuvam novu PDF verziju u Tasker...'
+      await storeWorkDiaryPdf({ id: `${date}-${savedAt.getTime()}`, fileName, blob, text: report, documentNumber: documentNo, createdAt: savedAt.toISOString() })
       await renderWorkDiaryArchive()
       status.innerHTML = `PDF <b>${fileName}</b> je sačuvan u Tasker na ovom uređaju.`
     } catch (error) {
