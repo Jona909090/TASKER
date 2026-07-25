@@ -1,6 +1,6 @@
 import { categories, materials, renderCategory, renderItems, renderMaterials } from './materials.js'
 
-const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const moduleDetailStorage = 'tasker.module-details'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const workHoursStorage = 'tasker.work-hours'; const workPlanStorage = 'tasker.work-plans'; const settingsStorage = 'tasker.settings'; const projectStorage = 'tasker.projects'
+const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const moduleDetailStorage = 'tasker.module-details'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const workHoursStorage = 'tasker.work-hours'; const workPlanStorage = 'tasker.work-plans'; const diaryStorage = 'tasker.work-diary'; const settingsStorage = 'tasker.settings'; const projectStorage = 'tasker.projects'
 try { const savedCategories = JSON.parse(localStorage.getItem(categoryStorage) || 'null'); if (Array.isArray(savedCategories)) categories.splice(0, categories.length, ...savedCategories) } catch {}
 const saveCategories = () => localStorage.setItem(categoryStorage, JSON.stringify(categories))
 try { const savedInventory = JSON.parse(localStorage.getItem(inventoryStorage) || 'null'); if (Array.isArray(savedInventory)) materials.splice(0, materials.length, ...savedInventory) } catch {}
@@ -53,6 +53,12 @@ dailyReportLink.className = 'nav-link'
 dailyReportLink.dataset.page = 'daily-report'
 dailyReportLink.innerHTML = '<span>\u25A4</span> Dnevni izve\u0161taj rada'
 document.querySelector('nav').insertBefore(dailyReportLink, document.querySelector('[data-page="reports"]'))
+
+const workDiaryLink = document.createElement('button')
+workDiaryLink.className = 'nav-link'
+workDiaryLink.dataset.page = 'work-diary'
+workDiaryLink.innerHTML = '<span>✎</span> Dnevnik rada'
+document.querySelector('nav').insertBefore(workDiaryLink, document.querySelector('[data-page="reports"]'))
 
 const workHoursLink = document.createElement('button')
 workHoursLink.className = 'nav-link'
@@ -868,6 +874,102 @@ function workPlanPage(dateKey = dateKeyFor()) {
   })
 }
 
+const loadWorkDiary = () => {
+  try { return JSON.parse(localStorage.getItem(diaryStorage) || '{}') || {} } catch { return {} }
+}
+const saveWorkDiary = (date, text) => {
+  const diary = loadWorkDiary()
+  diary[date] = { text, updatedAt: new Date().toISOString() }
+  localStorage.setItem(diaryStorage, JSON.stringify(diary))
+}
+const loadPdfLibrary = () => new Promise((resolve, reject) => {
+  if (window.jspdf?.jsPDF) { resolve(window.jspdf.jsPDF); return }
+  const script = document.createElement('script')
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+  script.onload = () => resolve(window.jspdf.jsPDF)
+  script.onerror = () => reject(new Error('PDF biblioteka nije dostupna.'))
+  document.head.appendChild(script)
+})
+
+function workDiaryPage(selectedDate = todayInputValue()) {
+  const diary = loadWorkDiary()
+  const savedText = diary[selectedDate]?.text || ''
+  content.innerHTML = `<section class="work-diary-page">
+    <header class="work-diary-heading">
+      <span></span>
+      <h1>Dnevnik rada</h1>
+      <label>Datum<input id="work-diary-date" type="date" value="${esc(selectedDate)}"></label>
+    </header>
+    <section class="work-diary-paper">
+      <textarea id="work-diary-text" aria-label="Dnevno izvešće rada" maxlength="4000" placeholder="Upišite dnevno izvešće rada...">${esc(savedText)}</textarea>
+    </section>
+    <div class="work-diary-actions">
+      <p id="work-diary-status" role="status">Beleška se čuva za izabrani datum.</p>
+      <button id="save-work-diary" class="primary-btn" type="button">Sačuvaj kao PDF</button>
+    </div>
+  </section>
+  <style id="work-diary-layout">
+    #content .work-diary-page{max-width:920px;margin:0 auto}
+    #content .work-diary-heading{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:18px;margin-bottom:24px}
+    #content .work-diary-heading h1{margin:0;text-align:center;font-size:32px;color:var(--text)}
+    #content .work-diary-heading label{justify-self:end;display:grid;gap:6px;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+    #content .work-diary-heading input{padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);font:inherit;color-scheme:dark}
+    #content .work-diary-paper{padding:34px 42px 36px;border:1px solid #385273;border-radius:16px;background:#f8f4e8;box-shadow:0 16px 40px rgba(0,0,0,.2)}
+    #content .work-diary-paper textarea{display:block;width:100%;height:380px;box-sizing:border-box;resize:vertical;border:0;outline:0;padding:0 8px;color:#172033;background:repeating-linear-gradient(to bottom,transparent 0,transparent 37px,#9db1c7 38px,#9db1c7 39px);font:18px/38px "Segoe UI",sans-serif}
+    #content .work-diary-paper textarea::placeholder{color:#7b8795}
+    #content .work-diary-actions{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:18px}
+    #content .work-diary-actions p{margin:0;color:var(--muted);font-size:12px}
+    @media(max-width:650px){#content .work-diary-heading{grid-template-columns:1fr}#content .work-diary-heading>span{display:none}#content .work-diary-heading h1{text-align:left}#content .work-diary-heading label{justify-self:stretch}#content .work-diary-paper{padding:24px 18px}#content .work-diary-actions{align-items:stretch;flex-direction:column}#content .work-diary-actions button{width:100%}}
+  </style>`
+
+  const dateInput = document.querySelector('#work-diary-date')
+  const textInput = document.querySelector('#work-diary-text')
+  const status = document.querySelector('#work-diary-status')
+  let saveTimer
+  textInput.addEventListener('input', () => {
+    clearTimeout(saveTimer)
+    status.textContent = 'Čuvanje nacrta...'
+    saveTimer = setTimeout(() => {
+      saveWorkDiary(dateInput.value, textInput.value)
+      status.textContent = 'Nacrt je sačuvan na ovom uređaju.'
+    }, 350)
+  })
+  dateInput.addEventListener('change', () => workDiaryPage(dateInput.value || todayInputValue()))
+  document.querySelector('#save-work-diary').addEventListener('click', async (event) => {
+    const button = event.currentTarget
+    const date = dateInput.value || todayInputValue()
+    const report = textInput.value.trim()
+    saveWorkDiary(date, textInput.value)
+    button.disabled = true
+    button.textContent = 'Pravim PDF...'
+    status.textContent = 'Priprema dokumenta.'
+    try {
+      const jsPDF = await loadPdfLibrary()
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(19)
+      pdf.text('DNEVNIK RADA', 105, 24, { align: 'center' })
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(11)
+      pdf.text(`Datum: ${date.split('-').reverse().join('.')}`, 190, 24, { align: 'right' })
+      pdf.setDrawColor(150, 165, 182)
+      for (let index = 0; index < 10; index += 1) pdf.line(20, 48 + (index * 15), 190, 48 + (index * 15))
+      pdf.setFontSize(12)
+      pdf.setTextColor(25, 32, 45)
+      const lines = pdf.splitTextToSize(report || ' ', 166)
+      pdf.text(lines.slice(0, 20), 22, 43, { lineHeightFactor: 1.48 })
+      const fileName = `Dnevnik-rada-${date}.pdf`
+      pdf.save(fileName)
+      status.innerHTML = `PDF je sačuvan kao <b>${fileName}</b>. <a href="${driveFolderUrl}" target="_blank" rel="noopener">Otvori Google Drive folder &nearr;</a>`
+    } catch (error) {
+      status.textContent = 'PDF nije napravljen. Proverite internet vezu i pokušajte ponovo.'
+    } finally {
+      button.disabled = false
+      button.textContent = 'Sačuvaj kao PDF'
+    }
+  })
+}
+
 const driveFolderUrl = 'https://drive.google.com/drive/folders/1LrYfOwBzadfWK3stckNvUOfhfc1aossX'
 
 function documentsPage() {
@@ -971,7 +1073,7 @@ function placeholder(title) {
 }
 
 function navigate(page) {
-  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', 'work-hours': 'Radni sati', 'monthly-hours': 'Mesecni sati', 'work-plan': 'Plan rada', documents: 'Dokumentacija', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
+  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', 'work-diary': 'Dnevnik rada', 'work-hours': 'Radni sati', 'monthly-hours': 'Mesecni sati', 'work-plan': 'Plan rada', documents: 'Dokumentacija', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
   document.querySelector('#breadcrumb').textContent = labels[page]
   document.querySelectorAll('.nav-link[data-page]').forEach((button) => button.classList.toggle('active', button.dataset.page === page))
 
@@ -981,6 +1083,7 @@ function navigate(page) {
   else if (page === 'orders') ordersPage()
   else if (page === 'modules') modulesPage()
   else if (page === 'daily-report') dailyReportPage()
+  else if (page === 'work-diary') workDiaryPage()
   else if (page === 'work-hours') workHoursPage()
   else if (page === 'monthly-hours') monthlyHoursPage()
   else if (page === 'work-plan') workPlanPage()
