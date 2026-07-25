@@ -1132,7 +1132,7 @@ function workDiaryPage(selectedDate = todayInputValue()) {
       const rules = Array.from({ length: lineCount }, () => '<i></i>').join('')
       const stamp = stampEnabled.checked && preparedBy.value.trim() ? `<div style="position:absolute;right:54px;bottom:58px;width:132px;height:82px;border:3px double #275a82;border-radius:50%;display:grid;place-content:center;text-align:center;color:#275a82;transform:rotate(-7deg);font-weight:800;text-transform:uppercase;"><small style="font-size:10px;letter-spacing:1px;">Pripremio</small><b style="max-width:110px;margin-top:5px;font-size:14px;">${esc(preparedBy.value.trim())}</b></div>` : ''
       sheet.innerHTML = `<header style="position:relative;height:128px;background:#163454;color:white;box-sizing:border-box;padding:31px 54px;">
-        <div style="position:absolute;left:54px;top:27px;width:58px;height:58px;border:2px solid #70c9ef;border-radius:14px;display:grid;place-items:center;background:#102b49;box-shadow:inset 0 0 0 4px #183e65;"><b style="font-size:32px;color:#8bdcff;">T</b></div>
+        <div style="position:absolute;left:58px;top:22px;display:flex;flex-direction:column;align-items:center;gap:3px;" aria-label="Tasker logo"><i style="display:block;width:20px;height:7px;border-radius:8px;background:#f05252;"></i><b style="display:grid;place-items:center;width:31px;height:31px;border-radius:11px;background:#3b82f6;color:white;font-size:19px;">T</b><i style="display:block;width:20px;height:7px;border-radius:8px;background:#f5f7fa;"></i></div>
         <div style="text-align:center;"><h1 style="margin:0;font-size:30px;letter-spacing:1px;">DNEVNIK RADA</h1></div>
         <p style="position:absolute;right:54px;top:40px;margin:0;color:#d8e8f6;font-size:14px;">Datum: ${date.split('-').reverse().join('.')}</p>
       </header>
@@ -1142,7 +1142,7 @@ function workDiaryPage(selectedDate = todayInputValue()) {
         <div style="position:absolute;left:84px;top:44px;width:2px;height:${lineCount * 34}px;background:#df7f87;"></div>
         ${stamp}
       </main>
-      <footer style="position:absolute;left:54px;right:54px;bottom:24px;display:flex;justify-content:space-between;color:#708096;font-size:11px;"><span>TASKER · Dnevnik rada</span><span>1</span></footer>
+      <footer style="position:absolute;left:54px;right:54px;bottom:24px;display:flex;justify-content:space-between;align-items:center;color:#708096;font-size:11px;"><span>TASKER · Dnevnik rada</span><span>Pripremio: ${esc(preparedBy.value.trim() || 'Stefan Jonić')} &nbsp;·&nbsp; 1</span></footer>
       <style>section i{display:block;height:34px;border-bottom:1px solid #9ebed6;box-sizing:border-box}section font[size="2"]{font-size:13px}section font[size="3"]{font-size:17px}section font[size="4"]{font-size:22px}section font[size="5"]{font-size:28px}</style>`
       document.body.appendChild(sheet)
       const canvas = await html2canvas(sheet, { scale: 2, backgroundColor: '#f8fafc', useCORS: true })
