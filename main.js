@@ -976,7 +976,7 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     #content .work-diary-archive>header{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid var(--line)}
     #content .work-diary-archive h2{margin:0;font-size:17px}
     #content .work-diary-archive header p{margin:4px 0 0;color:var(--muted);font-size:11px}
-    #content .work-diary-folder-icon{display:grid;place-items:center;width:42px;height:38px;border-radius:10px;background:#214d70;color:#8bdbff;font-size:19px}
+    #content .work-diary-folder-icon{position:relative;display:grid;place-items:center;width:48px;height:38px;border-radius:7px 10px 10px 10px;background:linear-gradient(145deg,#e0a62d,#b87912);color:#fff3c5;font-size:19px;box-shadow:0 5px 14px rgba(184,121,18,.25)}#content .work-diary-folder-icon:before{content:'';position:absolute;left:3px;top:-6px;width:20px;height:8px;border-radius:5px 5px 0 0;background:#d29420}
     #content .work-diary-archive-list{padding:8px 18px}
     #content .work-diary-file{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
     #content .work-diary-file:last-child{border-bottom:0}
@@ -1030,18 +1030,47 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     try {
       const jsPDF = await loadPdfLibrary()
       const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
+      pdf.setFillColor(248, 250, 252)
+      pdf.rect(0, 0, 210, 297, 'F')
+      pdf.setFillColor(22, 52, 84)
+      pdf.rect(0, 0, 210, 34, 'F')
       pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(19)
-      pdf.text('DNEVNIK RADA', 105, 24, { align: 'center' })
+      pdf.setFontSize(18)
+      pdf.setTextColor(255, 255, 255)
+      pdf.text('DNEVNIK RADA', 105, 20, { align: 'center' })
       pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(11)
-      pdf.text(`Datum: ${date.split('-').reverse().join('.')}`, 190, 24, { align: 'right' })
-      pdf.setDrawColor(150, 165, 182)
-      for (let index = 0; index < 10; index += 1) pdf.line(20, 48 + (index * 15), 190, 48 + (index * 15))
-      pdf.setFontSize(12)
-      pdf.setTextColor(25, 32, 45)
-      const lines = pdf.splitTextToSize(report || ' ', 166)
-      pdf.text(lines.slice(0, 20), 22, 43, { lineHeightFactor: 1.48 })
+      pdf.setFontSize(10)
+      pdf.setTextColor(215, 230, 244)
+      pdf.text(`Datum: ${date.split('-').reverse().join('.')}`, 190, 20, { align: 'right' })
+
+      const firstRuleY = 52
+      const ruleGap = 10.5
+      const ruleCount = 22
+      pdf.setDrawColor(158, 190, 216)
+      pdf.setLineWidth(0.3)
+      for (let index = 0; index < ruleCount; index += 1) {
+        const ruleY = firstRuleY + (index * ruleGap)
+        pdf.line(20, ruleY, 190, ruleY)
+      }
+      pdf.setDrawColor(224, 125, 132)
+      pdf.setLineWidth(0.45)
+      pdf.line(26, 42, 26, firstRuleY + ((ruleCount - 1) * ruleGap))
+
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(11.5)
+      pdf.setTextColor(25, 38, 55)
+      const reportLines = (report || ' ').split(/\r?\n/).flatMap((paragraph) => {
+        const wrapped = pdf.splitTextToSize(paragraph || ' ', 158)
+        return wrapped.length ? wrapped : [' ']
+      }).slice(0, ruleCount)
+      reportLines.forEach((line, index) => {
+        pdf.text(line, 29, firstRuleY - 2.2 + (index * ruleGap))
+      })
+
+      pdf.setFontSize(8.5)
+      pdf.setTextColor(105, 120, 137)
+      pdf.text('TASKER · Dnevnik rada', 20, 286)
+      pdf.text('1', 190, 286, { align: 'right' })
       const fileName = `Dnevnik-rada-${date}.pdf`
       const blob = pdf.output('blob')
       status.textContent = 'Čuvam PDF u Tasker...'
