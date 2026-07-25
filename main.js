@@ -881,9 +881,9 @@ const workDiaryUploadToken = 'tasker-2026-dnevnik-7f3c91'
 const loadWorkDiary = () => {
   try { return JSON.parse(localStorage.getItem(diaryStorage) || '{}') || {} } catch { return {} }
 }
-const saveWorkDiary = (date, text) => {
+const saveWorkDiary = (date, text, extra = {}) => {
   const diary = loadWorkDiary()
-  diary[date] = { text, updatedAt: new Date().toISOString() }
+  diary[date] = { text, ...extra, updatedAt: new Date().toISOString() }
   localStorage.setItem(diaryStorage, JSON.stringify(diary))
 }
 const loadPdfLibrary = () => new Promise((resolve, reject) => {
@@ -940,20 +940,44 @@ const renderWorkDiaryArchive = async () => {
   }
 }
 
+const loadHtml2Canvas = () => new Promise((resolve, reject) => {
+  if (window.html2canvas) { resolve(window.html2canvas); return }
+  const script = document.createElement('script')
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+  script.onload = () => resolve(window.html2canvas)
+  script.onerror = () => reject(new Error('Prikaz PDF stranice nije dostupan.'))
+  document.head.appendChild(script)
+})
+
 function workDiaryPage(selectedDate = todayInputValue()) {
   const diary = loadWorkDiary()
-  const savedText = diary[selectedDate]?.text || ''
+  const saved = diary[selectedDate] || {}
+  const savedText = saved.text || ''
+  const savedHtml = saved.html || esc(savedText).replace(/\n/g, '<div><br></div>')
+  let lineCount = Math.max(10, Math.min(30, Number(saved.lineCount) || 22))
   content.innerHTML = `<section class="work-diary-page">
     <header class="work-diary-heading">
       <span></span>
       <h1>Dnevnik rada</h1>
       <label>Datum<input id="work-diary-date" type="date" value="${esc(selectedDate)}"></label>
     </header>
+    <section class="diary-toolbar" aria-label="Alati za uređivanje teksta">
+      <label>Font<select id="diary-font"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Courier New">Courier</option><option value="Times New Roman">Times</option></select></label>
+      <label>Veličina<select id="diary-font-size"><option value="2">Mala</option><option value="3" selected>Normalna</option><option value="4">Velika</option><option value="5">Naslov</option></select></label>
+      <button type="button" data-diary-command="bold" title="Podebljano"><b>B</b></button>
+      <button type="button" data-diary-command="italic" title="Kurziv"><i>I</i></button>
+      <label class="diary-color-label">Boja<input id="diary-color" type="color" value="#172033" title="Boja označenog teksta"></label>
+      <div class="diary-line-control"><span>Linije</span><button type="button" id="diary-line-minus">−</button><b id="diary-line-count">${lineCount}</b><button type="button" id="diary-line-plus">+</button></div>
+    </section>
     <section class="work-diary-paper">
-      <textarea id="work-diary-text" aria-label="Dnevno izvešće rada" maxlength="4000" placeholder="Upišite dnevno izvešće rada...">${esc(savedText)}</textarea>
+      <div id="work-diary-text" class="work-diary-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Upišite dnevno izvešće rada..." style="--diary-line-count:${lineCount}">${savedHtml}</div>
+    </section>
+    <section class="diary-stamp-options">
+      <label class="stamp-toggle"><input id="diary-stamp-enabled" type="checkbox" ${saved.stampEnabled ? 'checked' : ''}><span>Dodaj pečat „Pripremio“ na PDF</span></label>
+      <label class="stamp-name">Ime na pečatu<input id="diary-prepared-by" value="${esc(saved.preparedBy || state.settings.userName || 'Stefan')}" maxlength="50"></label>
     </section>
     <div class="work-diary-actions">
-      <p id="work-diary-status" role="status">Beleška se čuva za izabrani datum.</p>
+      <p id="work-diary-status" role="status">Označite reč pa izaberite font ili boju.</p>
       <button id="save-work-diary" class="primary-btn" type="button">Sačuvaj u Tasker</button>
     </div>
     <section class="work-diary-archive">
@@ -963,20 +987,34 @@ function workDiaryPage(selectedDate = todayInputValue()) {
   </section>
   <style id="work-diary-layout">
     #content .work-diary-page{max-width:920px;margin:0 auto}
-    #content .work-diary-heading{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:18px;margin-bottom:24px}
+    #content .work-diary-heading{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:18px;margin-bottom:18px}
     #content .work-diary-heading h1{margin:0;text-align:center;font-size:32px;color:var(--text)}
     #content .work-diary-heading label{justify-self:end;display:grid;gap:6px;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
     #content .work-diary-heading input{padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);font:inherit;color-scheme:dark}
-    #content .work-diary-paper{padding:34px 42px 36px;border:1px solid #385273;border-radius:16px;background:#f8f4e8;box-shadow:0 16px 40px rgba(0,0,0,.2)}
-    #content .work-diary-paper textarea{display:block;width:100%;height:380px;box-sizing:border-box;resize:vertical;border:0;outline:0;padding:0 8px;color:#172033;background:repeating-linear-gradient(to bottom,transparent 0,transparent 37px,#9db1c7 38px,#9db1c7 39px);font:18px/38px "Segoe UI",sans-serif}
-    #content .work-diary-paper textarea::placeholder{color:#7b8795}
-    #content .work-diary-actions{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:18px}
+    #content .diary-toolbar{display:flex;align-items:end;gap:9px;flex-wrap:wrap;padding:12px 14px;border:1px solid #385273;border-bottom:0;border-radius:14px 14px 0 0;background:#15253d}
+    #content .diary-toolbar label{display:grid;gap:4px;color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase}
+    #content .diary-toolbar select,#content .diary-toolbar button{height:34px;padding:0 10px;border:1px solid #3b5675;border-radius:7px;background:#1d314e;color:#edf7ff;font:inherit;cursor:pointer}
+    #content .diary-toolbar>button{min-width:36px;font-size:15px}
+    #content .diary-color-label input{width:44px;height:34px;padding:3px;border:1px solid #3b5675;border-radius:7px;background:#1d314e}
+    #content .diary-line-control{display:flex;align-items:center;gap:7px;margin-left:auto;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase}
+    #content .diary-line-control button{width:34px;padding:0;font-size:18px}
+    #content .diary-line-control b{min-width:24px;color:#fff;text-align:center;font-size:13px}
+    #content .work-diary-paper{padding:30px 38px 34px;border:1px solid #385273;border-radius:0 0 16px 16px;background:#f8f4e8;box-shadow:0 16px 40px rgba(0,0,0,.2)}
+    #content .work-diary-editor{display:block;width:100%;min-height:calc(var(--diary-line-count) * 38px);box-sizing:border-box;border:0;outline:0;padding:0 8px;color:#172033;background:repeating-linear-gradient(to bottom,transparent 0,transparent 37px,#9db1c7 38px,#9db1c7 39px);font:18px/38px Arial,sans-serif;overflow-wrap:anywhere}
+    #content .work-diary-editor:empty:before{content:attr(data-placeholder);color:#7b8795}
+    #content .diary-stamp-options{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:14px;padding:13px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+    #content .stamp-toggle{display:flex;align-items:center;gap:9px;color:var(--text);font-size:12px;font-weight:800}
+    #content .stamp-toggle input{width:18px;height:18px}
+    #content .stamp-name{display:flex;align-items:center;gap:9px;margin-left:auto;color:var(--muted);font-size:11px;font-weight:800}
+    #content .stamp-name input{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#172944;color:var(--text)}
+    #content .work-diary-actions{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:16px}
     #content .work-diary-actions p{margin:0;color:var(--muted);font-size:12px}
     #content .work-diary-archive{margin-top:24px;border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
     #content .work-diary-archive>header{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid var(--line)}
     #content .work-diary-archive h2{margin:0;font-size:17px}
     #content .work-diary-archive header p{margin:4px 0 0;color:var(--muted);font-size:11px}
-    #content .work-diary-folder-icon{position:relative;display:grid;place-items:center;width:48px;height:38px;border-radius:7px 10px 10px 10px;background:linear-gradient(145deg,#e0a62d,#b87912);color:#fff3c5;font-size:19px;box-shadow:0 5px 14px rgba(184,121,18,.25)}#content .work-diary-folder-icon:before{content:'';position:absolute;left:3px;top:-6px;width:20px;height:8px;border-radius:5px 5px 0 0;background:#d29420}
+    #content .work-diary-folder-icon{position:relative;display:grid;place-items:center;width:48px;height:38px;border-radius:7px 10px 10px 10px;background:linear-gradient(145deg,#e0a62d,#b87912);color:#fff3c5;font-size:19px;box-shadow:0 5px 14px rgba(184,121,18,.25)}
+    #content .work-diary-folder-icon:before{content:'';position:absolute;left:3px;top:-6px;width:20px;height:8px;border-radius:5px 5px 0 0;background:#d29420}
     #content .work-diary-archive-list{padding:8px 18px}
     #content .work-diary-file{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
     #content .work-diary-file:last-child{border-bottom:0}
@@ -987,13 +1025,44 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     #content .work-diary-file button{padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#172944;color:var(--text);font-weight:800;cursor:pointer}
     #content .work-diary-file .diary-delete{padding:6px 10px;color:#ff9eaa;font-size:18px}
     #content .work-diary-empty{margin:0;padding:22px 2px;color:var(--muted);font-size:12px;text-align:center}
-    @media(max-width:650px){#content .work-diary-heading{grid-template-columns:1fr}#content .work-diary-heading>span{display:none}#content .work-diary-heading h1{text-align:left}#content .work-diary-heading label{justify-self:stretch}#content .work-diary-paper{padding:24px 18px}#content .work-diary-actions{align-items:stretch;flex-direction:column}#content .work-diary-actions button{width:100%}#content .work-diary-file{grid-template-columns:auto 1fr auto}#content .work-diary-file .diary-delete{grid-column:3;grid-row:2}}
+    @media(max-width:650px){#content .work-diary-heading{grid-template-columns:1fr}#content .work-diary-heading>span{display:none}#content .work-diary-heading h1{text-align:left}#content .work-diary-heading label{justify-self:stretch}#content .work-diary-paper{padding:22px 14px}#content .diary-line-control{width:100%;margin-left:0}#content .stamp-name{width:100%;margin-left:0;justify-content:space-between}#content .work-diary-actions{align-items:stretch;flex-direction:column}#content .work-diary-actions button{width:100%}#content .work-diary-file{grid-template-columns:auto 1fr auto}#content .work-diary-file .diary-delete{grid-column:3;grid-row:2}}
   </style>`
 
   const dateInput = document.querySelector('#work-diary-date')
-  const textInput = document.querySelector('#work-diary-text')
+  const editor = document.querySelector('#work-diary-text')
   const status = document.querySelector('#work-diary-status')
+  const stampEnabled = document.querySelector('#diary-stamp-enabled')
+  const preparedBy = document.querySelector('#diary-prepared-by')
+  const lineLabel = document.querySelector('#diary-line-count')
+  const applyLineCount = () => {
+    lineLabel.textContent = lineCount
+    editor.style.setProperty('--diary-line-count', lineCount)
+  }
   renderWorkDiaryArchive()
+
+  document.querySelector('#diary-line-minus').addEventListener('click', () => { lineCount = Math.max(10, lineCount - 1); applyLineCount() })
+  document.querySelector('#diary-line-plus').addEventListener('click', () => { lineCount = Math.min(30, lineCount + 1); applyLineCount() })
+  document.querySelectorAll('[data-diary-command]').forEach((button) => button.addEventListener('mousedown', (event) => {
+    event.preventDefault()
+    document.execCommand(button.dataset.diaryCommand, false)
+  }))
+  document.querySelector('#diary-font').addEventListener('change', (event) => {
+    editor.focus()
+    document.execCommand('fontName', false, event.target.value)
+  })
+  document.querySelector('#diary-font-size').addEventListener('change', (event) => {
+    editor.focus()
+    document.execCommand('fontSize', false, event.target.value)
+  })
+  document.querySelector('#diary-color').addEventListener('input', (event) => {
+    editor.focus()
+    document.execCommand('foreColor', false, event.target.value)
+  })
+  editor.addEventListener('paste', (event) => {
+    event.preventDefault()
+    document.execCommand('insertText', false, event.clipboardData.getData('text/plain'))
+  })
+
   document.querySelector('#work-diary-archive-list').addEventListener('click', async (event) => {
     const openId = event.target.closest('[data-diary-open]')?.dataset.diaryOpen
     const deleteId = event.target.closest('[data-diary-delete]')?.dataset.diaryDelete
@@ -1009,68 +1078,57 @@ function workDiaryPage(selectedDate = todayInputValue()) {
       renderWorkDiaryArchive()
     }
   })
+
+  const saveDraft = () => saveWorkDiary(dateInput.value, editor.innerText, {
+    html: editor.innerHTML,
+    lineCount,
+    stampEnabled: stampEnabled.checked,
+    preparedBy: preparedBy.value.trim()
+  })
   let saveTimer
-  textInput.addEventListener('input', () => {
+  editor.addEventListener('input', () => {
     clearTimeout(saveTimer)
     status.textContent = 'Čuvanje nacrta...'
     saveTimer = setTimeout(() => {
-      saveWorkDiary(dateInput.value, textInput.value)
+      saveDraft()
       status.textContent = 'Nacrt je sačuvan na ovom uređaju.'
     }, 350)
   })
+  ;[stampEnabled, preparedBy].forEach((control) => control.addEventListener('change', saveDraft))
   dateInput.addEventListener('change', () => workDiaryPage(dateInput.value || todayInputValue()))
+
   document.querySelector('#save-work-diary').addEventListener('click', async (event) => {
     const button = event.currentTarget
     const date = dateInput.value || todayInputValue()
-    const report = textInput.value.trim()
-    saveWorkDiary(date, textInput.value)
+    const report = editor.innerText.trim()
+    saveDraft()
     button.disabled = true
     button.textContent = 'Pravim PDF...'
     status.textContent = 'Priprema dokumenta.'
     try {
-      const jsPDF = await loadPdfLibrary()
+      const [jsPDF, html2canvas] = await Promise.all([loadPdfLibrary(), loadHtml2Canvas()])
+      const sheet = document.createElement('section')
+      sheet.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;height:1123px;background:#f8fafc;color:#172033;font-family:Arial,sans-serif;box-sizing:border-box;overflow:hidden;'
+      const rules = Array.from({ length: lineCount }, () => '<i></i>').join('')
+      const stamp = stampEnabled.checked && preparedBy.value.trim() ? `<div style="position:absolute;right:54px;bottom:58px;width:132px;height:82px;border:3px double #275a82;border-radius:50%;display:grid;place-content:center;text-align:center;color:#275a82;transform:rotate(-7deg);font-weight:800;text-transform:uppercase;"><small style="font-size:10px;letter-spacing:1px;">Pripremio</small><b style="max-width:110px;margin-top:5px;font-size:14px;">${esc(preparedBy.value.trim())}</b></div>` : ''
+      sheet.innerHTML = `<header style="position:relative;height:128px;background:#163454;color:white;box-sizing:border-box;padding:31px 54px;">
+        <div style="position:absolute;left:54px;top:27px;width:58px;height:58px;border:2px solid #70c9ef;border-radius:14px;display:grid;place-items:center;background:#102b49;box-shadow:inset 0 0 0 4px #183e65;"><b style="font-size:32px;color:#8bdcff;">T</b></div>
+        <div style="text-align:center;"><h1 style="margin:0;font-size:30px;letter-spacing:1px;">DNEVNIK RADA</h1></div>
+        <p style="position:absolute;right:54px;top:40px;margin:0;color:#d8e8f6;font-size:14px;">Datum: ${date.split('-').reverse().join('.')}</p>
+      </header>
+      <main style="position:relative;height:920px;padding:54px 54px 0 72px;box-sizing:border-box;">
+        <div style="position:absolute;left:72px;right:54px;top:54px;height:${lineCount * 34}px;">${rules}</div>
+        <div style="position:absolute;left:92px;right:62px;top:49px;min-height:${lineCount * 34}px;font-size:17px;line-height:34px;overflow:hidden;">${editor.innerHTML}</div>
+        <div style="position:absolute;left:84px;top:44px;width:2px;height:${lineCount * 34}px;background:#df7f87;"></div>
+        ${stamp}
+      </main>
+      <footer style="position:absolute;left:54px;right:54px;bottom:24px;display:flex;justify-content:space-between;color:#708096;font-size:11px;"><span>TASKER · Dnevnik rada</span><span>1</span></footer>
+      <style>section i{display:block;height:34px;border-bottom:1px solid #9ebed6;box-sizing:border-box}section font[size="2"]{font-size:13px}section font[size="3"]{font-size:17px}section font[size="4"]{font-size:22px}section font[size="5"]{font-size:28px}</style>`
+      document.body.appendChild(sheet)
+      const canvas = await html2canvas(sheet, { scale: 2, backgroundColor: '#f8fafc', useCORS: true })
+      sheet.remove()
       const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
-      pdf.setFillColor(248, 250, 252)
-      pdf.rect(0, 0, 210, 297, 'F')
-      pdf.setFillColor(22, 52, 84)
-      pdf.rect(0, 0, 210, 34, 'F')
-      pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(18)
-      pdf.setTextColor(255, 255, 255)
-      pdf.text('DNEVNIK RADA', 105, 20, { align: 'center' })
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(10)
-      pdf.setTextColor(215, 230, 244)
-      pdf.text(`Datum: ${date.split('-').reverse().join('.')}`, 190, 20, { align: 'right' })
-
-      const firstRuleY = 52
-      const ruleGap = 10.5
-      const ruleCount = 22
-      pdf.setDrawColor(158, 190, 216)
-      pdf.setLineWidth(0.3)
-      for (let index = 0; index < ruleCount; index += 1) {
-        const ruleY = firstRuleY + (index * ruleGap)
-        pdf.line(20, ruleY, 190, ruleY)
-      }
-      pdf.setDrawColor(224, 125, 132)
-      pdf.setLineWidth(0.45)
-      pdf.line(26, 42, 26, firstRuleY + ((ruleCount - 1) * ruleGap))
-
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(11.5)
-      pdf.setTextColor(25, 38, 55)
-      const reportLines = (report || ' ').split(/\r?\n/).flatMap((paragraph) => {
-        const wrapped = pdf.splitTextToSize(paragraph || ' ', 158)
-        return wrapped.length ? wrapped : [' ']
-      }).slice(0, ruleCount)
-      reportLines.forEach((line, index) => {
-        pdf.text(line, 29, firstRuleY - 2.2 + (index * ruleGap))
-      })
-
-      pdf.setFontSize(8.5)
-      pdf.setTextColor(105, 120, 137)
-      pdf.text('TASKER · Dnevnik rada', 20, 286)
-      pdf.text('1', 190, 286, { align: 'right' })
+      pdf.addImage(canvas.toDataURL('image/jpeg', .94), 'JPEG', 0, 0, 210, 297)
       const fileName = `Dnevnik-rada-${date}.pdf`
       const blob = pdf.output('blob')
       status.textContent = 'Čuvam PDF u Tasker...'
@@ -1078,6 +1136,7 @@ function workDiaryPage(selectedDate = todayInputValue()) {
       await renderWorkDiaryArchive()
       status.innerHTML = `PDF <b>${fileName}</b> je sačuvan u Tasker na ovom uređaju.`
     } catch (error) {
+      document.querySelectorAll('body > section').forEach((node) => { if (node.style.left === '-10000px') node.remove() })
       status.textContent = 'PDF nije sačuvan. Pokušajte ponovo.'
     } finally {
       button.disabled = false
@@ -1085,7 +1144,6 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     }
   })
 }
-
 const driveFolderUrl = 'https://drive.google.com/drive/folders/1LrYfOwBzadfWK3stckNvUOfhfc1aossX'
 
 function documentsPage() {
