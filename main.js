@@ -970,6 +970,11 @@ function workDiaryPage(selectedDate = todayInputValue()) {
       <label>Veličina<select id="diary-font-size"><option value="2">Mala</option><option value="3" selected>Normalna</option><option value="4">Velika</option><option value="5">Naslov</option></select></label>
       <button type="button" data-diary-command="bold" title="Podebljano"><b>B</b></button>
       <button type="button" data-diary-command="italic" title="Kurziv"><i>I</i></button>
+      <span class="diary-position-tools" aria-label="Položaj slova">
+        <button type="button" data-diary-position="super" title="Slova gore">A<sup>↑</sup></button>
+        <button type="button" data-diary-position="normal" title="Slova na sredini">A–</button>
+        <button type="button" data-diary-position="sub" title="Slova dole">A<sub>↓</sub></button>
+      </span>
       <label class="diary-color-label">Boja<input id="diary-color" type="color" value="#172033" title="Boja označenog teksta"></label>
       <div class="diary-line-control"><span>Linije</span><button type="button" id="diary-line-minus">−</button><b id="diary-line-count">${lineCount}</b><button type="button" id="diary-line-plus">+</button></div>
     </section>
@@ -999,7 +1004,7 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     #content .diary-toolbar{display:flex;align-items:end;gap:9px;flex-wrap:wrap;padding:12px 14px;border:1px solid #385273;border-bottom:0;border-radius:14px 14px 0 0;background:#15253d}
     #content .diary-toolbar label{display:grid;gap:4px;color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase}
     #content .diary-toolbar select,#content .diary-toolbar button{height:34px;padding:0 10px;border:1px solid #3b5675;border-radius:7px;background:#1d314e;color:#edf7ff;font:inherit;cursor:pointer}
-    #content .diary-toolbar>button{min-width:36px;font-size:15px}
+    #content .diary-toolbar>button{min-width:36px;font-size:15px}#content .diary-position-tools{display:flex;gap:5px;padding-left:8px;border-left:1px solid #3b5675}#content .diary-position-tools button{min-width:38px;font-size:14px}#content .diary-position-tools sup,#content .diary-position-tools sub{font-size:9px}
     #content .diary-color-label input{width:44px;height:34px;padding:3px;border:1px solid #3b5675;border-radius:7px;background:#1d314e}
     #content .diary-line-control{display:flex;align-items:center;gap:7px;margin-left:auto;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase}
     #content .diary-line-control button{width:34px;padding:0;font-size:18px}
@@ -1067,6 +1072,22 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     event.preventDefault()
     restoreSelection()
     document.execCommand(button.dataset.diaryCommand, false)
+    rememberSelection()
+  }))
+  document.querySelectorAll('[data-diary-position]').forEach((button) => button.addEventListener('mousedown', (event) => {
+    event.preventDefault()
+    restoreSelection()
+    const position = button.dataset.diaryPosition
+    if (position === 'super') {
+      if (document.queryCommandState('subscript')) document.execCommand('subscript', false)
+      if (!document.queryCommandState('superscript')) document.execCommand('superscript', false)
+    } else if (position === 'sub') {
+      if (document.queryCommandState('superscript')) document.execCommand('superscript', false)
+      if (!document.queryCommandState('subscript')) document.execCommand('subscript', false)
+    } else {
+      if (document.queryCommandState('superscript')) document.execCommand('superscript', false)
+      if (document.queryCommandState('subscript')) document.execCommand('subscript', false)
+    }
     rememberSelection()
   }))
   document.querySelector('#diary-font').addEventListener('change', (event) => {
