@@ -1038,25 +1038,45 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     lineLabel.textContent = lineCount
     editor.style.setProperty('--diary-line-count', lineCount)
   }
+  let savedSelection
+  const rememberSelection = () => {
+    const selection = window.getSelection()
+    if (selection.rangeCount && editor.contains(selection.anchorNode)) savedSelection = selection.getRangeAt(0).cloneRange()
+  }
+  const restoreSelection = () => {
+    editor.focus()
+    if (!savedSelection) return
+    const selection = window.getSelection()
+    selection.removeAllRanges()
+    selection.addRange(savedSelection)
+  }
+  editor.addEventListener('mouseup', rememberSelection)
+  editor.addEventListener('keyup', rememberSelection)
+  editor.addEventListener('touchend', () => setTimeout(rememberSelection, 0))
   renderWorkDiaryArchive()
 
   document.querySelector('#diary-line-minus').addEventListener('click', () => { lineCount = Math.max(10, lineCount - 1); applyLineCount() })
   document.querySelector('#diary-line-plus').addEventListener('click', () => { lineCount = Math.min(30, lineCount + 1); applyLineCount() })
   document.querySelectorAll('[data-diary-command]').forEach((button) => button.addEventListener('mousedown', (event) => {
     event.preventDefault()
+    restoreSelection()
     document.execCommand(button.dataset.diaryCommand, false)
+    rememberSelection()
   }))
   document.querySelector('#diary-font').addEventListener('change', (event) => {
-    editor.focus()
+    restoreSelection()
     document.execCommand('fontName', false, event.target.value)
+    rememberSelection()
   })
   document.querySelector('#diary-font-size').addEventListener('change', (event) => {
-    editor.focus()
+    restoreSelection()
     document.execCommand('fontSize', false, event.target.value)
+    rememberSelection()
   })
   document.querySelector('#diary-color').addEventListener('input', (event) => {
-    editor.focus()
+    restoreSelection()
     document.execCommand('foreColor', false, event.target.value)
+    rememberSelection()
   })
   editor.addEventListener('paste', (event) => {
     event.preventDefault()
