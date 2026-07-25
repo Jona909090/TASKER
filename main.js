@@ -895,6 +895,51 @@ const loadPdfLibrary = () => new Promise((resolve, reject) => {
   document.head.appendChild(script)
 })
 
+const workDiaryDb = () => new Promise((resolve, reject) => {
+  const request = indexedDB.open('tasker-work-diary', 1)
+  request.onupgradeneeded = () => {
+    if (!request.result.objectStoreNames.contains('pdfs')) request.result.createObjectStore('pdfs', { keyPath: 'id' })
+  }
+  request.onsuccess = () => resolve(request.result)
+  request.onerror = () => reject(request.error)
+})
+const storeWorkDiaryPdf = async (entry) => {
+  const db = await workDiaryDb()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('pdfs', 'readwrite')
+    transaction.objectStore('pdfs').put(entry)
+    transaction.oncomplete = resolve
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+const listWorkDiaryPdfs = async () => {
+  const db = await workDiaryDb()
+  return new Promise((resolve, reject) => {
+    const request = db.transaction('pdfs', 'readonly').objectStore('pdfs').getAll()
+    request.onsuccess = () => resolve(request.result.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))))
+    request.onerror = () => reject(request.error)
+  })
+}
+const deleteWorkDiaryPdf = async (id) => {
+  const db = await workDiaryDb()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('pdfs', 'readwrite')
+    transaction.objectStore('pdfs').delete(id)
+    transaction.oncomplete = resolve
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+const renderWorkDiaryArchive = async () => {
+  const archive = document.querySelector('#work-diary-archive-list')
+  if (!archive) return
+  try {
+    const entries = await listWorkDiaryPdfs()
+    archive.innerHTML = entries.length ? entries.map((entry) => `<article class="work-diary-file" data-diary-id="${esc(entry.id)}"><span class="work-diary-file-icon">PDF</span><div><b>${esc(entry.fileName)}</b><small>Sačuvano ${new Intl.DateTimeFormat('sr-Latn-RS', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(entry.createdAt))}</small></div><button type="button" data-diary-open="${esc(entry.id)}">Otvori</button><button type="button" class="diary-delete" data-diary-delete="${esc(entry.id)}" aria-label="Obriši PDF">&times;</button></article>`).join('') : '<p class="work-diary-empty">Još nema sačuvanih PDF dnevnika.</p>'
+  } catch {
+    archive.innerHTML = '<p class="work-diary-empty">Lokalna arhiva trenutno nije dostupna.</p>'
+  }
+}
+
 function workDiaryPage(selectedDate = todayInputValue()) {
   const diary = loadWorkDiary()
   const savedText = diary[selectedDate]?.text || ''
@@ -909,8 +954,12 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     </section>
     <div class="work-diary-actions">
       <p id="work-diary-status" role="status">Beleška se čuva za izabrani datum.</p>
-      <button id="save-work-diary" class="primary-btn" type="button">Sačuvaj PDF u Drive</button>
+      <button id="save-work-diary" class="primary-btn" type="button">Sačuvaj u Tasker</button>
     </div>
+    <section class="work-diary-archive">
+      <header><span class="work-diary-folder-icon">▰</span><div><h2>Sačuvani dnevnici</h2><p>PDF arhiva na ovom uređaju</p></div></header>
+      <div id="work-diary-archive-list" class="work-diary-archive-list"><p class="work-diary-empty">Učitavanje...</p></div>
+    </section>
   </section>
   <style id="work-diary-layout">
     #content .work-diary-page{max-width:920px;margin:0 auto}
@@ -923,12 +972,43 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     #content .work-diary-paper textarea::placeholder{color:#7b8795}
     #content .work-diary-actions{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:18px}
     #content .work-diary-actions p{margin:0;color:var(--muted);font-size:12px}
-    @media(max-width:650px){#content .work-diary-heading{grid-template-columns:1fr}#content .work-diary-heading>span{display:none}#content .work-diary-heading h1{text-align:left}#content .work-diary-heading label{justify-self:stretch}#content .work-diary-paper{padding:24px 18px}#content .work-diary-actions{align-items:stretch;flex-direction:column}#content .work-diary-actions button{width:100%}}
+    #content .work-diary-archive{margin-top:24px;border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
+    #content .work-diary-archive>header{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid var(--line)}
+    #content .work-diary-archive h2{margin:0;font-size:17px}
+    #content .work-diary-archive header p{margin:4px 0 0;color:var(--muted);font-size:11px}
+    #content .work-diary-folder-icon{display:grid;place-items:center;width:42px;height:38px;border-radius:10px;background:#214d70;color:#8bdbff;font-size:19px}
+    #content .work-diary-archive-list{padding:8px 18px}
+    #content .work-diary-file{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+    #content .work-diary-file:last-child{border-bottom:0}
+    #content .work-diary-file-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:9px;background:#692e3e;color:#ffbac5;font-size:10px;font-weight:900}
+    #content .work-diary-file div{display:grid;gap:4px;min-width:0}
+    #content .work-diary-file b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+    #content .work-diary-file small{color:var(--muted);font-size:10px}
+    #content .work-diary-file button{padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#172944;color:var(--text);font-weight:800;cursor:pointer}
+    #content .work-diary-file .diary-delete{padding:6px 10px;color:#ff9eaa;font-size:18px}
+    #content .work-diary-empty{margin:0;padding:22px 2px;color:var(--muted);font-size:12px;text-align:center}
+    @media(max-width:650px){#content .work-diary-heading{grid-template-columns:1fr}#content .work-diary-heading>span{display:none}#content .work-diary-heading h1{text-align:left}#content .work-diary-heading label{justify-self:stretch}#content .work-diary-paper{padding:24px 18px}#content .work-diary-actions{align-items:stretch;flex-direction:column}#content .work-diary-actions button{width:100%}#content .work-diary-file{grid-template-columns:auto 1fr auto}#content .work-diary-file .diary-delete{grid-column:3;grid-row:2}}
   </style>`
 
   const dateInput = document.querySelector('#work-diary-date')
   const textInput = document.querySelector('#work-diary-text')
   const status = document.querySelector('#work-diary-status')
+  renderWorkDiaryArchive()
+  document.querySelector('#work-diary-archive-list').addEventListener('click', async (event) => {
+    const openId = event.target.closest('[data-diary-open]')?.dataset.diaryOpen
+    const deleteId = event.target.closest('[data-diary-delete]')?.dataset.diaryDelete
+    if (openId) {
+      const entry = (await listWorkDiaryPdfs()).find((item) => item.id === openId)
+      if (!entry) return
+      const url = URL.createObjectURL(entry.blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    }
+    if (deleteId && confirm('Obrisati ovaj PDF dnevnik iz Taskera?')) {
+      await deleteWorkDiaryPdf(deleteId)
+      renderWorkDiaryArchive()
+    }
+  })
   let saveTimer
   textInput.addEventListener('input', () => {
     clearTimeout(saveTimer)
@@ -963,24 +1043,16 @@ function workDiaryPage(selectedDate = todayInputValue()) {
       const lines = pdf.splitTextToSize(report || ' ', 166)
       pdf.text(lines.slice(0, 20), 22, 43, { lineHeightFactor: 1.48 })
       const fileName = `Dnevnik-rada-${date}.pdf`
-      const pdfBase64 = pdf.output('datauristring').split(',')[1]
-      status.textContent = 'Šaljem PDF u Google Drive...'
-      await fetch(workDiaryUploadUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          token: workDiaryUploadToken,
-          fileName,
-          pdfBase64
-        })
-      })
-      status.innerHTML = `PDF <b>${fileName}</b> je poslan u Google Drive. <a href="${workDiaryDriveFolderUrl}" target="_blank" rel="noopener">Proveri folder Dnevnik rada &nearr;</a>`
+      const blob = pdf.output('blob')
+      status.textContent = 'Čuvam PDF u Tasker...'
+      await storeWorkDiaryPdf({ id: date, fileName, blob, text: report, createdAt: new Date().toISOString() })
+      await renderWorkDiaryArchive()
+      status.innerHTML = `PDF <b>${fileName}</b> je sačuvan u Tasker na ovom uređaju.`
     } catch (error) {
-      status.textContent = 'PDF nije poslan u Drive. Proverite internet vezu i pokušajte ponovo.'
+      status.textContent = 'PDF nije sačuvan. Pokušajte ponovo.'
     } finally {
       button.disabled = false
-      button.textContent = 'Sačuvaj PDF u Drive'
+      button.textContent = 'Sačuvaj u Tasker'
     }
   })
 }
