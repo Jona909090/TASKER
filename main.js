@@ -95,7 +95,7 @@ document.querySelector('.topbar-profile-actions').insertAdjacentElement('beforeb
 const topbarSloganStyle = document.createElement('style')
 topbarSloganStyle.textContent = `
   .topbar-slogan{position:relative;flex:1;min-width:120px;height:42px;margin:0 24px;overflow:hidden;display:flex;align-items:center;mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
-  .topbar-slogan-track{position:absolute;left:0;display:flex;align-items:center;gap:14px;width:max-content;white-space:nowrap;color:#78ff9d;font-size:24px;font-weight:900;letter-spacing:.16em;text-shadow:0 0 8px rgba(73,255,126,.9),0 0 22px rgba(73,255,126,.42);animation:tasker-slogan-move 26s linear infinite}
+  .topbar-slogan-track{position:absolute;left:0;display:flex;align-items:center;gap:14px;width:max-content;white-space:nowrap;color:#78ff9d;font-size:24px;font-weight:900;letter-spacing:.16em;text-shadow:0 0 8px rgba(73,255,126,.9),0 0 22px rgba(73,255,126,.42);animation:tasker-slogan-move 42s linear infinite}
   .topbar-slogan-track strong{color:#8fffaa;font-size:24px;letter-spacing:.22em}
   @keyframes tasker-slogan-move{0%{transform:translateX(-100%)}100%{transform:translateX(calc(100vw - 430px))}}
   @media(max-width:900px){.topbar-slogan{margin:0 10px}.topbar-slogan-track{font-size:19px}.topbar-slogan-track strong{font-size:19px}@keyframes tasker-slogan-move{0%{transform:translateX(-100%)}100%{transform:translateX(65vw)}}}
