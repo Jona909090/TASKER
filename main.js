@@ -35,6 +35,29 @@ const saveModuleDetails = () => localStorage.setItem(moduleDetailStorage, JSON.s
 
 app.innerHTML = `<div class="shell project-home"><aside class="sidebar"><a class="brand" href="#"><span class="brand-mark"><i></i><b>T</b><i></i></span><span><strong id="brand-company">${esc(state.settings.companyName)}</strong></span></a><button class="back-to-projects" id="back-to-projects" type="button">\u2190 Projekti</button><nav><button class="nav-link active" data-page="dashboard"><span>\u2302</span> Po\u010Detna</button><button class="nav-link" data-page="materials"><span>\u25A6</span> Materijal <b>${materials.length}</b></button><button class="nav-link" data-page="employees"><span>\u263B</span> Zaposleni</button><button class="nav-link" data-page="orders"><span>\u25A4</span> Narud\u017Ebine</button><button class="nav-link" data-page="reports"><span>\u25A5</span> Izve\u0161taji</button></nav><div class="sidebar-footer"><button class="nav-link" data-page="settings"><span>\u2699</span> Pode\u0161avanja</button><p>Tasker v2.0</p></div></aside><div class="workspace"><header class="topbar"><div class="topbar-time-area"><span id="breadcrumb" hidden>Po\u010Detna</span></div><div class="topbar-profile-actions"><a class="radio-tvornica" href="https://www.radiotvornica.hr/" target="_blank" rel="noopener noreferrer" aria-label="Otvori Radio Tvornicu" title="Radio Tvornica">&#128251;</a><button type="button" class="profile" aria-label="Otvori profil" style="border:0;background:transparent;color:inherit;cursor:pointer;"><span id="profile-initials">SJ</span><b id="profile-name">${esc(state.settings.userName)}</b></button></div></header><main id="content" class="content"></main></div></div>`
 
+
+/* TASKER instalacija na telefon i tablet. */
+let taskerInstallPrompt=null
+const taskerStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true
+const showTaskerInstallHelp=()=>{
+  document.querySelector('#tasker-install-help')?.remove()
+  const isApple=/iphone|ipad|ipod/i.test(navigator.userAgent)
+  document.body.insertAdjacentHTML('beforeend',`<div class="tasker-install-help" id="tasker-install-help"><section role="dialog" aria-modal="true"><button type="button" data-install-close>×</button><span class="tasker-install-logo"><i></i><b>T</b><i></i></span><p class="eyebrow">TASKER APLIKACIJA</p><h2>Instaliraj TASKER</h2><p>${isApple?'Na iPhone/iPad uređaju dodirnite dugme Deljenje u Safariju, pa izaberite „Dodaj na početni ekran“.':'Otvorite meni pregledača i izaberite „Instaliraj aplikaciju“ ili „Dodaj na početni ekran“.'}</p><small>Aplikacija će dobiti svoju ikonicu i otvarati se preko celog ekrana.</small><button type="button" class="primary-btn" data-install-close>Razumem</button></section></div>`)
+  const modal=document.querySelector('#tasker-install-help'),close=()=>modal.remove()
+  modal.querySelectorAll('[data-install-close]').forEach((button)=>button.addEventListener('click',close))
+  modal.addEventListener('click',(event)=>{if(event.target===modal)close()})
+}
+const taskerInstallButton=document.createElement('button')
+taskerInstallButton.type='button'
+taskerInstallButton.className='tasker-install-button'
+taskerInstallButton.innerHTML='<span>⇩</span><b>Instaliraj</b>'
+taskerInstallButton.title='Instaliraj TASKER na uređaj'
+document.querySelector('.topbar-profile-actions')?.prepend(taskerInstallButton)
+if(taskerStandalone())taskerInstallButton.hidden=true
+window.addEventListener('beforeinstallprompt',(event)=>{event.preventDefault();taskerInstallPrompt=event;taskerInstallButton.hidden=false;taskerInstallButton.classList.add('ready')})
+taskerInstallButton.addEventListener('click',async()=>{if(taskerInstallPrompt){taskerInstallPrompt.prompt();await taskerInstallPrompt.userChoice;taskerInstallPrompt=null}else showTaskerInstallHelp()})
+window.addEventListener('appinstalled',()=>{taskerInstallButton.hidden=true;taskerInstallPrompt=null})
+
 const systemStatus = document.createElement('section')
 systemStatus.className = 'system-status'
 systemStatus.setAttribute('aria-label', 'Sistem status')
