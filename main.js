@@ -317,6 +317,111 @@ function enterVertivProject() {
   navigate('dashboard')
 }
 
+const notificationSeenStorage = 'tasker.notification-seen'
+const notificationDayKey = () => {
+  const date = new Date()
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
+}
+const readNotificationSeen = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(notificationSeenStorage) || '{}')
+    return saved.day === notificationDayKey() && Array.isArray(saved.ids) ? saved.ids : []
+  } catch { return [] }
+}
+const saveNotificationSeen = (ids) => localStorage.setItem(notificationSeenStorage, JSON.stringify({ day:notificationDayKey(), ids }))
+const notificationMinutes = (time) => {
+  const [hour,minute] = String(time || '').split(':').map(Number)
+  return Number.isFinite(hour) && Number.isFinite(minute) ? hour*60+minute : 9999
+}
+const isSmallHardware = (item) => /šraf|sraf|vijak|zakovic|matica|podlošk|podlosk|tipla|anker|spojn|kopč|kopc/i.test(`${item.name} ${item.standard} ${item.category}`)
+const taskerNotifications = () => {
+  const now = new Date()
+  const minutes = now.getHours()*60+now.getMinutes()
+  const day = notificationDayKey()
+  const items = [
+    { id:`${day}-report-0800`, kind:'rok', time:'08:00', title:'Pošalji dnevni izveštaj', text:minutes>=480?'Rok 08:00 je stigao ili je prošao.':'Dnevni izveštaj treba poslati do 08:00.', urgent:minutes>=480 },
+    { id:`${day}-people-0830`, kind:'rok', time:'08:30', title:'Pošalji brojno stanje ljudi', text:minutes>=510?'Rok 08:30 je stigao ili je prošao.':'Brojno stanje ljudi treba poslati do 08:30.', urgent:minutes>=510 }
+  ]
+  state.todos.filter((todo)=>!todo.done && todo.time).forEach((todo)=>{
+    const due=notificationMinutes(todo.time)
+    items.push({ id:`${day}-todo-${todo.id}-${todo.time}`, kind:'obaveza', time:todo.time, title:todo.text, text:minutes>=due?`Obaveza je zakazana za ${todo.time}.`:`Podsetnik je zakazan za ${todo.time}.`, urgent:minutes>=due })
+  })
+  materials.forEach((item)=>{
+    const stock=Number(item.stock)||0
+    const threshold=isSmallHardware(item)?100:10
+    if(stock<threshold) items.push({ id:`material-${item.id}-${threshold}`, kind:'materijal', time:'', title:item.name, text:`Na stanju: ${stock} ${item.unit}. Upozorenje ispod ${threshold}.`, urgent:true })
+  })
+  return items.sort((a,b)=>Number(b.urgent)-Number(a.urgent)||notificationMinutes(a.time)-notificationMinutes(b.time))
+}
+let taskerBellAudioPending=false
+const playTaskerBell = () => {
+  try {
+    const AudioContextClass=window.AudioContext||window.webkitAudioContext
+    if(!AudioContextClass) return
+    const ctx=new AudioContextClass()
+    const ring=(delay,frequency)=>{
+      const oscillator=ctx.createOscillator(), gain=ctx.createGain()
+      oscillator.type='sine'; oscillator.frequency.setValueAtTime(frequency,ctx.currentTime+delay)
+      gain.gain.setValueAtTime(.0001,ctx.currentTime+delay)
+      gain.gain.exponentialRampToValueAtTime(.19,ctx.currentTime+delay+.025)
+      gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+delay+.42)
+      oscillator.connect(gain); gain.connect(ctx.destination)
+      oscillator.start(ctx.currentTime+delay); oscillator.stop(ctx.currentTime+delay+.46)
+    }
+    ring(0,880); ring(.18,1174); ring(.42,988)
+    taskerBellAudioPending=false
+    setTimeout(()=>ctx.close(),1200)
+  } catch { taskerBellAudioPending=true }
+}
+const taskerUnreadNotifications = () => {
+  const seen=readNotificationSeen()
+  return taskerNotifications().filter((item)=>!seen.includes(item.id))
+}
+const updateTaskerBell = () => {
+  const button=document.querySelector('#tasker-notification-bell')
+  if(!button) return
+  const unread=taskerUnreadNotifications()
+  button.classList.toggle('has-alerts',unread.length>0)
+  button.querySelector('b').textContent=unread.length
+  button.querySelector('b').hidden=!unread.length
+  button.title=unread.length?`${unread.length} novih obaveštenja`:'Nema novih obaveštenja'
+}
+const openTaskerNotifications = () => {
+  document.querySelector('#tasker-notification-modal')?.remove()
+  const notifications=taskerNotifications()
+  const seen=readNotificationSeen()
+  document.body.insertAdjacentHTML('beforeend',`<div class="tasker-notification-modal" id="tasker-notification-modal"><section role="dialog" aria-modal="true" aria-label="Obaveštenja i podsetnici"><header><div><span>🔔</span><div><h2>Obaveštenja i podsetnici</h2><p>${notifications.length} aktivnih stavki</p></div></div><button type="button" data-notification-close aria-label="Zatvori">×</button></header><div class="tasker-notification-list">${notifications.length?notifications.map((item)=>`<article class="${item.urgent?'urgent':''} ${seen.includes(item.id)?'seen':''}"><span>${item.kind==='materijal'?'▣':item.kind==='rok'?'⌚':'✓'}</span><div><small>${item.kind.toLocaleUpperCase('sr')}${item.time?` · ${item.time}`:''}</small><b>${esc(item.title)}</b><p>${esc(item.text)}</p></div><em>${seen.includes(item.id)?'Pregledano':'Novo'}</em></article>`).join(''):'<div class="notification-empty">✓ Sve je pod kontrolom. Nema aktivnih upozorenja.</div>'}</div><footer><button type="button" class="secondary-btn" data-notification-close>Zatvori</button><button type="button" class="primary-btn" id="mark-notifications-read">Označi sve kao pregledano</button></footer></section></div>`)
+  const modal=document.querySelector('#tasker-notification-modal')
+  const close=()=>modal.remove()
+  modal.querySelectorAll('[data-notification-close]').forEach((button)=>button.addEventListener('click',close))
+  modal.addEventListener('click',(event)=>{if(event.target===modal)close()})
+  modal.querySelector('#mark-notifications-read')?.addEventListener('click',()=>{
+    saveNotificationSeen(notifications.map((item)=>item.id)); close(); updateTaskerBell()
+  })
+}
+let taskerNotificationTimer
+const bindTaskerNotificationCenter = () => {
+  const button=document.querySelector('#tasker-notification-bell')
+  if(!button) return
+  updateTaskerBell()
+  button.addEventListener('click',openTaskerNotifications)
+  const unread=taskerUnreadNotifications()
+  const soundKey=`tasker.notification-sounded.${notificationDayKey()}`
+  if(unread.some((item)=>item.urgent)&&!sessionStorage.getItem(soundKey)){
+    sessionStorage.setItem(soundKey,'yes')
+    taskerBellAudioPending=true
+    playTaskerBell()
+    if(taskerBellAudioPending) document.addEventListener('pointerdown',playTaskerBell,{once:true})
+  }
+  clearInterval(taskerNotificationTimer)
+  taskerNotificationTimer=setInterval(()=>{
+    const before=document.querySelector('#tasker-notification-bell')?.classList.contains('has-alerts')
+    updateTaskerBell()
+    const urgent=taskerUnreadNotifications().some((item)=>item.urgent)
+    if(urgent&&!before) playTaskerBell()
+  },30000)
+}
+
 function dashboard() {
   const done = state.todos.filter((todo) => todo.done).length
   const activeEmployees = state.employees.filter((employee) => employee.active !== false).length
@@ -328,11 +433,12 @@ function dashboard() {
     const count = Number(moduleData(type).count) || 0
     return `<button class="module-today-row" data-module-type="${type.id}"><span class="module-today-name"><b>${type.label}</b><small>${count} modula</small></span><span class="module-today-progress"><i><em style="width:${progress}%"></em></i><strong>${progress}%</strong></span></button>`
   }).join('')
-  content.innerHTML = `<style id="dashboard-compact-layout">#content .dashboard-grid{grid-template-columns:minmax(0,1.12fr) minmax(250px,.84fr) minmax(290px,.9fr);gap:22px;align-items:stretch}#content .modules-today-panel{display:flex;flex-direction:column}#content .modules-today-panel .panel-heading{margin-bottom:9px}#content .modules-today-panel .panel-heading p{max-width:190px}.module-today-row{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 0;border:0;border-top:1px solid var(--line);background:transparent;color:var(--text);text-align:left;cursor:pointer}.module-today-row:hover .module-today-name b{color:var(--blue)}.module-today-name{display:grid;gap:3px}.module-today-name b{font-size:13px}.module-today-name small{color:var(--muted);font-size:11px}.module-today-progress{display:flex;align-items:center;gap:8px}.module-today-progress i{display:block;width:64px;height:7px;overflow:hidden;border-radius:99px;background:#0e1b30}.module-today-progress i em{display:block;height:100%;border-radius:inherit;background:var(--blue)}.module-today-progress strong{min-width:31px;text-align:right;color:#7bd8ff;font-size:13px}.modules-today-link{margin-top:auto;padding-top:13px;border:0;background:transparent;color:#82dcfb;font-size:12px;font-weight:700;text-align:left;cursor:pointer}@media(max-width:1180px){#content .dashboard-grid{grid-template-columns:minmax(0,1.12fr) minmax(270px,.88fr)}#content .modules-today-panel{grid-column:1/2}#content .dashboard-grid>article:last-child{grid-column:2;grid-row:1/3}}@media(max-width:1050px){#content .dashboard-grid{grid-template-columns:1fr}#content .modules-today-panel,#content .dashboard-grid>article:last-child{grid-column:auto;grid-row:auto}}</style><section class="welcome"><div><p class="eyebrow">Kontrolna tabla</p><h1 id="greeting">${greetingFor(new Date())}, ${esc(firstName())}.</h1><p>Ovo je pregled stanja magacina i dana\u0161njih obaveza.</p></div><button class="primary-btn" data-page="materials">Pregledaj materijal \u2192</button></section><section class="stat-grid"><article><span class="stat-icon blue">\u25A6</span><p>Ukupno artikala</p><strong>${materials.length}</strong><small>u 12 kategorija</small></article><article><span class="stat-icon amber">!</span><p>Materijal pri kraju</p><strong>${low}</strong><small>zahteva proveru</small></article><article><span class="stat-icon red">\u00D7</span><p>Nema na stanju</p><strong>${noStock}</strong><small>potrebna narud\u017Ebina</small></article><article><span class="stat-icon green">\u25A4</span><p>Aktivne narud\u017Ebine</p><strong>0</strong><small>nema otvorenih</small></article><button class="employee-overview" data-page="employees" title="Otvori zaposlene"><span class="stat-icon employee-icon">\u263B</span><p>Zaposleni danas</p><strong>${activeEmployees}</strong><small><b>${activeEmployees} aktivnih</b><i>${inactiveEmployees} neaktivnih</i></small><em>Otvori pregled \u2192</em></button></section><section class="dashboard-grid"><article class="panel"><header class="panel-heading"><div><h2>Dnevne obaveze</h2><p>Organizujte zadatke za danas.</p></div><span>${done}/${state.todos.length} zavr\u0161eno</span></header><form id="add-form" class="add-form"><input id="new-todo" maxlength="200" placeholder="Dodajte novu obavezu\u2026"><button>+</button></form><div class="filters" id="filters"><button data-filter="all">Sve</button><button data-filter="active">Aktivne</button><button data-filter="done">Zavr\u0161ene</button></div><ul class="todo-list" id="todo-list"></ul><button id="clear-done" class="clear-btn">Obri\u0161i zavr\u0161ene</button></article><article class="panel modules-today-panel"><header class="panel-heading"><div><h2>Moduli danas</h2><p>Brz pregled napretka po tipu modula.</p></div></header>${moduleRows}<button class="modules-today-link" id="open-dashboard-modules">Otvori kontrolnu tablu modula \u2192</button></article><article class="panel"><header class="panel-heading"><div><h2>Brzi pregled</h2><p>Najva\u017Enije informacije iz magacina.</p></div></header><div class="activity"><span class="blue">\u25A6</span><div><b>\u0160rafovska roba</b><p>3.220 komada na stanju</p></div></div><div class="activity"><span class="amber">!</span><div><b>Zakovice pri kraju</b><p>850 kom \u00B7 minimum 1.000</p></div></div><div class="activity"><span class="green">\u2713</span><div><b>Plywood 18 mm</b><p>152 plo\u010De na stanju</p></div></div></article></section>`
+  content.innerHTML = `<style id="dashboard-compact-layout">#content .dashboard-grid{grid-template-columns:minmax(0,1.12fr) minmax(250px,.84fr) minmax(290px,.9fr);gap:22px;align-items:stretch}#content .modules-today-panel{display:flex;flex-direction:column}#content .modules-today-panel .panel-heading{margin-bottom:9px}#content .modules-today-panel .panel-heading p{max-width:190px}.module-today-row{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 0;border:0;border-top:1px solid var(--line);background:transparent;color:var(--text);text-align:left;cursor:pointer}.module-today-row:hover .module-today-name b{color:var(--blue)}.module-today-name{display:grid;gap:3px}.module-today-name b{font-size:13px}.module-today-name small{color:var(--muted);font-size:11px}.module-today-progress{display:flex;align-items:center;gap:8px}.module-today-progress i{display:block;width:64px;height:7px;overflow:hidden;border-radius:99px;background:#0e1b30}.module-today-progress i em{display:block;height:100%;border-radius:inherit;background:var(--blue)}.module-today-progress strong{min-width:31px;text-align:right;color:#7bd8ff;font-size:13px}.modules-today-link{margin-top:auto;padding-top:13px;border:0;background:transparent;color:#82dcfb;font-size:12px;font-weight:700;text-align:left;cursor:pointer}@media(max-width:1180px){#content .dashboard-grid{grid-template-columns:minmax(0,1.12fr) minmax(270px,.88fr)}#content .modules-today-panel{grid-column:1/2}#content .dashboard-grid>article:last-child{grid-column:2;grid-row:1/3}}@media(max-width:1050px){#content .dashboard-grid{grid-template-columns:1fr}#content .modules-today-panel,#content .dashboard-grid>article:last-child{grid-column:auto;grid-row:auto}}</style><section class="welcome"><div><p class="eyebrow">Kontrolna tabla</p><h1 id="greeting">${greetingFor(new Date())}, ${esc(firstName())}.</h1><p>Ovo je pregled stanja magacina i dana\u0161njih obaveza.</p></div><div class="welcome-actions"><button type="button" class="tasker-notification-bell" id="tasker-notification-bell" aria-label="Otvori obaveštenja"><span>🔔</span><b hidden>0</b><small>Obaveštenja</small></button><button class="primary-btn" data-page="materials">Pregledaj materijal \u2192</button></div></section><section class="stat-grid"><article><span class="stat-icon blue">\u25A6</span><p>Ukupno artikala</p><strong>${materials.length}</strong><small>u 12 kategorija</small></article><article><span class="stat-icon amber">!</span><p>Materijal pri kraju</p><strong>${low}</strong><small>zahteva proveru</small></article><article><span class="stat-icon red">\u00D7</span><p>Nema na stanju</p><strong>${noStock}</strong><small>potrebna narud\u017Ebina</small></article><article><span class="stat-icon green">\u25A4</span><p>Aktivne narud\u017Ebine</p><strong>0</strong><small>nema otvorenih</small></article><button class="employee-overview" data-page="employees" title="Otvori zaposlene"><span class="stat-icon employee-icon">\u263B</span><p>Zaposleni danas</p><strong>${activeEmployees}</strong><small><b>${activeEmployees} aktivnih</b><i>${inactiveEmployees} neaktivnih</i></small><em>Otvori pregled \u2192</em></button></section><section class="dashboard-grid"><article class="panel"><header class="panel-heading"><div><h2>Dnevne obaveze</h2><p>Organizujte zadatke za danas.</p></div><span>${done}/${state.todos.length} zavr\u0161eno</span></header><form id="add-form" class="add-form"><input id="new-todo" maxlength="200" placeholder="Dodajte novu obavezu\u2026"><input id="new-todo-time" type="time" aria-label="Vreme podsetnika"><button aria-label="Dodaj obavezu">+</button></form><div class="filters" id="filters"><button data-filter="all">Sve</button><button data-filter="active">Aktivne</button><button data-filter="done">Zavr\u0161ene</button></div><ul class="todo-list" id="todo-list"></ul><button id="clear-done" class="clear-btn">Obri\u0161i zavr\u0161ene</button></article><article class="panel modules-today-panel"><header class="panel-heading"><div><h2>Moduli danas</h2><p>Brz pregled napretka po tipu modula.</p></div></header>${moduleRows}<button class="modules-today-link" id="open-dashboard-modules">Otvori kontrolnu tablu modula \u2192</button></article><article class="panel"><header class="panel-heading"><div><h2>Brzi pregled</h2><p>Najva\u017Enije informacije iz magacina.</p></div></header><div class="activity"><span class="blue">\u25A6</span><div><b>\u0160rafovska roba</b><p>3.220 komada na stanju</p></div></div><div class="activity"><span class="amber">!</span><div><b>Zakovice pri kraju</b><p>850 kom \u00B7 minimum 1.000</p></div></div><div class="activity"><span class="green">\u2713</span><div><b>Plywood 18 mm</b><p>152 plo\u010De na stanju</p></div></div></article></section>`
   content.insertAdjacentHTML('afterbegin', `<style id="live-strip-style">.dashboard-live-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:-8px 0 23px}.live-item{display:flex;align-items:center;gap:11px;padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:linear-gradient(145deg,#172b45,#132239);color:var(--text);text-align:left;cursor:pointer;transition:.18s}.live-item:hover{transform:translateY(-2px);border-color:#4a7898;box-shadow:0 12px 22px rgba(0,0,0,.16)}.live-item>span{display:grid;place-items:center;width:29px;height:29px;border-radius:9px;font-size:15px;font-weight:900}.live-item div{display:grid;gap:3px;min-width:0}.live-item small{color:var(--muted);font-size:10px;font-weight:700}.live-item b{overflow:hidden;font-size:12px;white-space:nowrap;text-overflow:ellipsis}.live-item em{margin-left:auto;color:#83dcff;font-size:11px;font-style:normal;font-weight:800;white-space:nowrap}.live-green>span{background:#194833;color:#80f1bd}.live-amber>span{background:#503e18;color:#ffd768}.live-blue>span{background:#174d73;color:#6ed9ff}@media(max-width:850px){.dashboard-live-strip{grid-template-columns:1fr}.live-item{min-height:56px}}@media(max-width:520px){.dashboard-live-strip{gap:8px;margin-top:0}.live-item{padding:11px}.live-item em{display:none}}</style>`)
   document.querySelector('.stat-grid').insertAdjacentHTML('afterend', `<section class="dashboard-live-strip"><button class="live-item live-green" data-live-page="employees"><span>●</span><div><small>Zaposleni danas</small><b>${activeEmployees} aktivnih</b></div><em>Otvori →</em></button><button class="live-item live-amber" data-live-page="materials-low"><span>!</span><div><small>Materijal za proveru</small><b>${low ? `${low} ${low === 1 ? 'stavka' : 'stavke'}` : 'Sve je na stanju'}</b></div><em>Otvori →</em></button><button class="live-item live-blue" data-live-page="modules"><span>⌁</span><div><small>Modul u toku</small><b>${highlightedModule ? `${highlightedModule.unit.id} · ${highlightedModule.unit.progress}%` : 'Nema modula u toku'}</b></div><em>Otvori →</em></button></section>`)
   document.querySelector('.dashboard-live-strip').addEventListener('click', (event) => { const button = event.target.closest('[data-live-page]'); if (!button) return; if (button.dataset.livePage === 'employees') navigate('employees'); if (button.dataset.livePage === 'materials-low') materialStatusPage('low'); if (button.dataset.livePage === 'modules') moduleDashboardPage() })
   bindTodos()
+  bindTaskerNotificationCenter()
   document.querySelector('#open-dashboard-modules')?.addEventListener('click', moduleDashboardPage)
   document.querySelectorAll('.module-today-row').forEach((button) => button.addEventListener('click', () => moduleTypePage(button.dataset.moduleType)))
   const dashboardActions = [() => navigate('materials'), () => materialStatusPage('low'), () => materialStatusPage('empty'), () => navigate('orders')]
@@ -352,7 +458,7 @@ function showTodos() {
   const list = document.querySelector('#todo-list')
   const data = state.filter === 'active' ? state.todos.filter((todo) => !todo.done) : state.filter === 'done' ? state.todos.filter((todo) => todo.done) : state.todos
   document.querySelectorAll('[data-filter]').forEach((button) => button.classList.toggle('active', button.dataset.filter === state.filter))
-  list.innerHTML = data.length ? data.map((todo) => `<li data-id="${todo.id}" class="todo ${todo.done ? 'done' : ''}"><button class="check">${todo.done ? '\u2713' : ''}</button><span>${esc(todo.text)}</span><button class="delete">\u00D7</button></li>`).join('') : '<li class="task-empty">Nema obaveza za ovaj prikaz.</li>'
+  list.innerHTML = data.length ? data.map((todo) => `<li data-id="${todo.id}" class="todo ${todo.done ? 'done' : ''}"><button class="check">${todo.done ? '\u2713' : ''}</button><span>${esc(todo.text)}${todo.time?`<small class="todo-reminder-time">🔔 ${esc(todo.time)}</small>`:''}</span><button class="delete">\u00D7</button></li>`).join('') : '<li class="task-empty">Nema obaveza za ovaj prikaz.</li>'
 }
 
 function bindTodos() {
@@ -360,11 +466,14 @@ function bindTodos() {
   document.querySelector('#add-form').addEventListener('submit', (event) => {
     event.preventDefault()
     const input = document.querySelector('#new-todo')
+    const timeInput = document.querySelector('#new-todo-time')
     if (!input.value.trim()) return
-    state.todos.unshift({ id: String(Date.now()), text: input.value.trim(), done: false })
+    state.todos.unshift({ id: String(Date.now()), text: input.value.trim(), time: timeInput?.value || '', done: false })
     input.value = ''
+    if (timeInput) timeInput.value = ''
     save()
     showTodos()
+    updateTaskerBell()
   })
 
   document.querySelector('#filters').addEventListener('click', (event) => {
@@ -383,6 +492,7 @@ function bindTodos() {
     if (event.target.closest('.delete')) state.todos = state.todos.filter((item) => item !== todo)
     save()
     showTodos()
+    updateTaskerBell()
   })
 
   document.querySelector('#clear-done').addEventListener('click', () => {
