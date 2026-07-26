@@ -1750,6 +1750,37 @@ document.querySelector('#back-to-projects').addEventListener('click', projectsHo
 
 projectsHome()
 
+function openProfilePoster() {
+  let modal = document.querySelector('#profile-poster-modal')
+  if (!modal) {
+    modal = document.createElement('div')
+    modal.id = 'profile-poster-modal'
+    modal.className = 'profile-poster-modal'
+    modal.hidden = true
+    modal.innerHTML = `<div class="profile-poster-dialog" role="dialog" aria-modal="true" aria-label="Tasker profil Stefana Jonića"><button type="button" class="profile-poster-close" aria-label="Zatvori">&times;</button><img src="./profile-stefan.svg" alt="Tasker profil Stefana Jonića"><div><b>Stefan Jonić</b><span>TASKER · Sve pod kontrolom.</span></div></div>`
+    document.body.appendChild(modal)
+    const style = document.createElement('style')
+    style.textContent = `
+      .profile-poster-modal{position:fixed;z-index:10000;inset:0;display:grid;place-items:center;padding:22px;background:rgba(3,9,18,.9);backdrop-filter:blur(10px)}
+      .profile-poster-modal[hidden]{display:none}
+      .profile-poster-dialog{position:relative;overflow:hidden;width:min(92vw,820px);max-height:92vh;border:1px solid #315473;border-radius:20px;background:#0b1728;box-shadow:0 28px 80px rgba(0,0,0,.72),0 0 35px rgba(38,125,214,.18)}
+      .profile-poster-dialog img{display:block;width:100%;max-height:82vh;object-fit:contain;background:#07111f}
+      .profile-poster-dialog>div{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:13px 18px;color:#edf7ff}
+      .profile-poster-dialog>div b{font-size:14px}
+      .profile-poster-dialog>div span{color:#70bfff;font-size:11px;font-weight:800}
+      .profile-poster-close{position:absolute;z-index:2;right:12px;top:12px;display:grid;place-items:center;width:38px;height:38px;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:rgba(5,14,26,.82);color:white;font-size:25px;cursor:pointer;box-shadow:0 5px 18px rgba(0,0,0,.4)}
+      .profile-poster-close:hover{border-color:#68d5ff;color:#8ee4ff}
+      @media(max-width:600px){.profile-poster-modal{padding:10px}.profile-poster-dialog{width:96vw;border-radius:14px}.profile-poster-dialog>div{padding:10px 13px}.profile-poster-dialog>div span{display:none}}
+    `
+    document.head.appendChild(style)
+    const closePoster = () => { modal.hidden = true }
+    modal.querySelector('.profile-poster-close').addEventListener('click', closePoster)
+    modal.addEventListener('click', (event) => { if (event.target === modal) closePoster() })
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closePoster() })
+  }
+  modal.hidden = false
+}
+
 /* Profil meni u gornjem desnom uglu. */
 (() => {
   const profileButton = document.querySelector('.profile')
@@ -1839,6 +1870,11 @@ projectsHome()
     if (!button) return
     event.preventDefault()
     event.stopImmediatePropagation()
+    if (event.target.closest('#profile-name')) {
+      if (menu && !menu.hidden) close()
+      openProfilePoster()
+      return
+    }
     if (menu && !menu.hidden) close()
     else open(button)
   }, true)
