@@ -1759,20 +1759,28 @@ function openProfilePoster() {
     modal.hidden = true
     const posterData = window.__taskerProfileChunks?.join('') || ''
     const posterSource = posterData ? `data:image/jpeg;base64,${posterData}` : './profile-stefan.svg'
-    modal.innerHTML = `<div class="profile-poster-dialog" role="dialog" aria-modal="true" aria-label="Tasker profil Stefana Jonića"><button type="button" class="profile-poster-close" aria-label="Zatvori">&times;</button><img src="${posterSource}" alt="Tasker profil Stefana Jonića"><div><b>Stefan Jonić</b><span>TASKER · Sve pod kontrolom.</span></div></div>`
+    modal.innerHTML = `<div class="profile-poster-dialog" role="dialog" aria-modal="true" aria-label="Tasker profil Stefana Jonića"><button type="button" class="profile-poster-close" aria-label="Zatvori">&times;</button><section class="profile-poster-message"><span class="gold-kicker">TASKER poruka</span><p>Svaki uspešan posao počinje jasnim planom. Kada su zadaci evidentirani, materijal pod kontrolom i dokumentacija uredno sačuvana, nema nepotrebnog čekanja i iznenađenja.</p><p>TASKER je napravljen da svakog dana znaš šta je završeno, šta još treba uraditi i koji je sledeći korak. Jer dobra organizacija ne znači više administracije — ona znači manje problema, sigurniji rad i više vremena za posao koji je zaista važan.</p><strong>Planiraj jasno.<br>Prati precizno.<br>Završi sigurno.</strong></section><section class="profile-poster-visual"><img src="${posterSource}" alt="Tasker profil Stefana Jonića"><footer><b>Stefan Jonić</b><span>TASKER · Sve pod kontrolom.</span></footer></section></div>`
     document.body.appendChild(modal)
     const style = document.createElement('style')
     style.textContent = `
       .profile-poster-modal{position:fixed;z-index:10000;inset:0;display:grid;place-items:center;padding:22px;background:rgba(3,9,18,.9);backdrop-filter:blur(10px)}
       .profile-poster-modal[hidden]{display:none}
-      .profile-poster-dialog{position:relative;overflow:hidden;width:min(92vw,820px);max-height:92vh;border:1px solid #315473;border-radius:20px;background:#0b1728;box-shadow:0 28px 80px rgba(0,0,0,.72),0 0 35px rgba(38,125,214,.18)}
-      .profile-poster-dialog img{display:block;width:100%;max-height:82vh;object-fit:contain;background:#07111f}
-      .profile-poster-dialog>div{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:13px 18px;color:#edf7ff}
-      .profile-poster-dialog>div b{font-size:14px}
-      .profile-poster-dialog>div span{color:#70bfff;font-size:11px;font-weight:800}
+      .profile-poster-dialog{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(290px,440px) minmax(390px,820px);width:min(96vw,1280px);max-height:94vh;border:1px solid rgba(255,211,94,.48);border-radius:20px;background:linear-gradient(145deg,#101a29,#07111f);box-shadow:0 28px 80px rgba(0,0,0,.76),0 0 34px rgba(255,190,40,.22),inset 0 0 22px rgba(255,218,100,.05)}
+      .profile-poster-message{position:relative;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:46px 38px;overflow:hidden;border-right:1px solid rgba(255,211,94,.24);background:radial-gradient(circle at 20% 25%,rgba(255,201,66,.12),transparent 42%),linear-gradient(155deg,#111c2c,#081321)}
+      .profile-poster-message:before{content:'';position:absolute;inset:-70% -45%;pointer-events:none;background:linear-gradient(115deg,transparent 42%,rgba(255,247,190,.18) 49%,rgba(255,211,80,.32) 50%,transparent 58%);animation:tasker-gold-shine 5.5s ease-in-out infinite}
+      .profile-poster-message .gold-kicker{position:relative;color:#ffe794;font:700 16px Georgia,serif;letter-spacing:.18em;text-transform:uppercase;text-shadow:0 0 7px #ffcb35,0 0 18px rgba(255,184,23,.9),0 0 34px rgba(255,160,0,.65)}
+      .profile-poster-message p{position:relative;margin:0;color:#ffe7a3;font:italic 600 22px/1.48 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;text-shadow:0 1px 0 #4b2c00,0 0 6px rgba(255,229,145,.95),0 0 15px rgba(255,188,36,.72),0 0 30px rgba(255,150,0,.45)}
+      .profile-poster-message strong{position:relative;margin-top:7px;color:#fff2a8;font:italic 800 27px/1.42 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;letter-spacing:.02em;text-shadow:0 0 5px #fff8cf,0 0 12px #ffd34d,0 0 25px #ff9f00,0 0 45px rgba(255,153,0,.8)}
+      .profile-poster-visual{min-width:0;background:#07111f}
+      .profile-poster-visual img{display:block;width:100%;max-height:82vh;object-fit:contain;background:#07111f}
+      .profile-poster-visual footer{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:13px 18px;color:#edf7ff}
+      .profile-poster-visual footer b{font-size:14px}
+      .profile-poster-visual footer span{color:#70bfff;font-size:11px;font-weight:800}
+      @keyframes tasker-gold-shine{0%,52%{transform:translateX(-38%);opacity:0}65%{opacity:1}88%,100%{transform:translateX(42%);opacity:0}}
       .profile-poster-close{position:absolute;z-index:2;right:12px;top:12px;display:grid;place-items:center;width:38px;height:38px;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:rgba(5,14,26,.82);color:white;font-size:25px;cursor:pointer;box-shadow:0 5px 18px rgba(0,0,0,.4)}
       .profile-poster-close:hover{border-color:#68d5ff;color:#8ee4ff}
-      @media(max-width:600px){.profile-poster-modal{padding:10px}.profile-poster-dialog{width:96vw;border-radius:14px}.profile-poster-dialog>div{padding:10px 13px}.profile-poster-dialog>div span{display:none}}
+      @media(max-width:960px){.profile-poster-dialog{grid-template-columns:minmax(245px,36%) minmax(0,1fr)}.profile-poster-message{gap:13px;padding:30px 25px}.profile-poster-message p{font-size:17px}.profile-poster-message strong{font-size:21px}}
+      @media(max-width:700px){.profile-poster-modal{padding:10px;overflow:auto}.profile-poster-dialog{display:block;width:96vw;max-height:none;border-radius:14px}.profile-poster-message{padding:31px 24px;border-right:0;border-bottom:1px solid rgba(255,211,94,.24)}.profile-poster-message p{font-size:16px}.profile-poster-message strong{font-size:20px}.profile-poster-visual img{max-height:none}.profile-poster-visual footer{padding:10px 13px}.profile-poster-visual footer span{display:none}}
     `
     document.head.appendChild(style)
     const closePoster = () => { modal.hidden = true }
