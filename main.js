@@ -494,7 +494,7 @@ async function createOrderPdf(meta, lines) {
       <div class="pdf-order-columns"><span>R.br.</span><span>Artikal / opis</span><span>Količina</span><span>Jed.</span><span>Napomena</span></div>
       <div class="pdf-order-rows">${rows}</div>
     </main>
-    <footer><span>TASKER · Narudžbenica</span><span>Pripremio: ${esc(meta.preparedBy)} &nbsp;·&nbsp; Stranica ${Number(meta.pageNumber) + pageIndex}</span></footer>
+    <footer><span>TASKER · Narudžbenica</span><span>Pripremio: ${esc(meta.preparedBy)} &nbsp;·&nbsp; ${Number(meta.pageNumber) + pageIndex}</span></footer>
     <style>
       .order-pdf-render-sheet *{box-sizing:border-box}
       .pdf-order-header{position:relative;height:188px;padding-top:42px;background:linear-gradient(135deg,#101f34,#0d192a);border-bottom:1px solid #29445f}
@@ -506,11 +506,11 @@ async function createOrderPdf(meta, lines) {
       .pdf-order-date{position:absolute;right:54px;top:35px;margin:0;color:#b9cce0;font-size:15px}
       .pdf-order-number{position:absolute;right:54px;bottom:12px;margin:0;color:#a9bfd5;font-size:13px}
       .pdf-order-number b{color:#7ee6ff;font-size:14px}
-      .pdf-order-main{padding:0 48px}
-      .pdf-order-columns,.pdf-order-row{display:grid;grid-template-columns:52px minmax(0,1fr) 96px 72px 145px;align-items:center}
-      .pdf-order-columns{height:46px;padding:0 10px;border:1px solid #315272;border-radius:10px 10px 0 0;background:#173a5c;color:#f5fbff;font-size:12px;font-weight:900}
+      .pdf-order-main{padding:0}
+      .pdf-order-columns,.pdf-order-row{display:grid;grid-template-columns:58px minmax(0,1fr) 100px 78px 155px;align-items:center}
+      .pdf-order-columns{height:46px;padding:0 10px;border:1px solid #315272;border-radius:0;background:#173a5c;color:#f5fbff;font-size:12px;font-weight:900}
       .pdf-order-columns span:nth-child(3),.pdf-order-columns span:nth-child(4){text-align:center}
-      .pdf-order-row{height:55px;padding:0 10px;border:1px solid #29445f;border-top:0;background:#101f33;color:#eaf4ff}
+      .pdf-order-row{height:59.5px;padding:0 10px;border:1px solid #29445f;border-top:0;background:#101f33;color:#eaf4ff}
       .pdf-order-row:nth-child(even){background:#13263d}
       .pdf-order-row>span{text-align:center;color:#91a8be;font-size:12px}
       .pdf-order-row>div{display:grid;gap:4px;min-width:0;padding-right:10px}
@@ -519,7 +519,7 @@ async function createOrderPdf(meta, lines) {
       .pdf-order-row>b,.pdf-order-row>em{text-align:center;color:#dcecff;font-size:13px;font-style:normal}
       .pdf-order-row>small{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;padding-left:8px;color:#b8cce0;font-size:10px;line-height:14px}
       .pdf-order-row.empty{color:#53697f}
-      .order-pdf-render-sheet footer{position:absolute;left:48px;right:48px;bottom:28px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #29445f;color:#8299af;font-size:11px}
+      .order-pdf-render-sheet footer{position:absolute;left:18px;right:18px;bottom:20px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #29445f;color:#8299af;font-size:11px}
     </style>`
     document.body.appendChild(sheet)
     try {
