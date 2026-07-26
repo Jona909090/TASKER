@@ -7,7 +7,7 @@ try { const savedInventory = JSON.parse(localStorage.getItem(inventoryStorage) |
 const saveInventory = () => localStorage.setItem(inventoryStorage, JSON.stringify(materials))
 const defaultSettings = { userName: 'Stefan Jonić', companyName: 'TASKER', defaultMinStock: 0, theme: 'dark' }
 let savedSettings = {}
-try { savedSettings = JSON.parse(localStorage.getItem(settingsStorage) || '{}') || {} } catch {}
+try { savedSettings = JSON.parse(localStorage.getItem(settingsStorage) || '{}') || {}; if (savedSettings.theme === 'light') savedSettings.theme = 'dark' } catch {}
 let savedProjects = []
 try { const storedProjects = JSON.parse(localStorage.getItem(projectStorage) || '[]'); savedProjects = Array.isArray(storedProjects) ? storedProjects : [] } catch {}
 const saveProjects = () => localStorage.setItem(projectStorage, JSON.stringify(savedProjects))
@@ -847,22 +847,40 @@ function exportCsv() {
 
 function settingsPage() {
   const now = new Intl.DateTimeFormat('sr-Latn-RS', { dateStyle: 'full', timeStyle: 'medium' }).format(new Date())
-  content.innerHTML = `<section class="page-heading"><div><p class="eyebrow">Administracija sistema</p><h1>Podešavanja</h1><p>Upravljajte profilom, podacima i izgledom aplikacije.</p></div><a class="secondary-btn settings-back" href="./">← Nazad na početnu</a></section><section class="settings-grid"><article class="settings-card"><header><span class="stat-icon blue">◉</span><div><h2>Korisnik i firma</h2><p>Podaci koji se prikazuju u aplikaciji.</p></div></header><form id="profile-settings" class="settings-form"><label>Ime korisnika<input name="userName" required value="${esc(state.settings.userName)}"></label><label>Naziv firme / aplikacije<input name="companyName" required value="${esc(state.settings.companyName)}"></label><button type="submit" class="primary-btn">Sačuvaj podatke</button><button type="button" class="secondary-btn" id="quick-change-profile">Promeni kroz prozor</button></form></article><article class="settings-card"><header><span class="stat-icon amber">◐</span><div><h2>Izgled aplikacije</h2><p>Izaberite temu koja vam odgovara.</p></div></header><div class="theme-options"><button type="button" class="theme-option ${state.settings.theme === 'dark' ? 'selected' : ''}" data-theme="dark"><b>● Tamna tema</b><small>Prijatna za rad uveče.</small></button><button type="button" class="theme-option ${state.settings.theme === 'light' ? 'selected' : ''}" data-theme="light"><b>○ Svetla tema</b><small>Preglednija pri dnevnom svetlu.</small></button></div></article><article class="settings-card"><header><span class="stat-icon green">⌚</span><div><h2>Datum i vreme</h2><p>Aplikacija koristi vreme vašeg uređaja.</p></div></header><div class="settings-info"><b>${now}</b><small>Za promenu vremena podesite datum i sat na računaru ili telefonu.</small></div></article><article class="settings-card"><header><span class="stat-icon blue">▣</span><div><h2>Magacin</h2><p>Podrazumevana minimalna količina za nove artikle.</p></div></header><form id="warehouse-settings" class="settings-form inline-form"><label>Minimalna količina<input name="defaultMinStock" type="number" min="0" value="${Number(state.settings.defaultMinStock) || 0}"></label><button type="submit" class="secondary-btn">Sačuvaj</button></form></article><article class="settings-card settings-card-wide"><header><span class="stat-icon green">⇩</span><div><h2>Rezervna kopija podataka</h2><p>Sačuvajte kompletno stanje aplikacije na računaru ili vratite ranije sačuvanu kopiju.</p></div></header><div class="settings-actions"><button type="button" class="primary-btn" id="backup-data">Preuzmi rezervnu kopiju</button><label class="secondary-btn restore-label">Učitaj rezervnu kopiju<input id="restore-data" type="file" accept="application/json,.json"></label><button type="button" class="secondary-btn" id="settings-export-csv">Izvezi materijal u CSV</button></div></article><article class="settings-card danger-card settings-card-wide"><header><span class="stat-icon red">!</span><div><h2>Brisanje podataka</h2><p>Ove radnje se ne mogu vratiti bez prethodno preuzete rezervne kopije.</p></div></header><div class="settings-actions"><button type="button" class="danger-btn" id="clear-attendance">Obriši dnevnu evidenciju</button><button type="button" class="danger-btn" id="reset-app">Obriši sve probne podatke</button></div></article><article class="settings-card settings-card-wide about-card"><header><span class="stat-icon blue">i</span><div><h2>O aplikaciji</h2><p><b>Tasker v2.0</b> · Sistem za materijal, zaposlene, narudžbine i evidenciju rada.</p></div></header></article></section>`
+  const themes = [
+    { id: 'dark', name: 'Noćno plava', note: 'Originalna TASKER tamna tema.', color: '#17385b' },
+    { id: 'graphite', name: 'Grafitna', note: 'Elegantna crna i siva nijansa.', color: '#343b46' },
+    { id: 'midnight', name: 'Ponoćna', note: 'Duboka teget sa ljubičastim odsjajem.', color: '#29285e' },
+    { id: 'emerald', name: 'Tamnozelena', note: 'Tamna tema sa zelenim akcentima.', color: '#174a3b' }
+  ]
+  if (!themes.some((theme) => theme.id === state.settings.theme)) state.settings.theme = 'dark'
+  content.innerHTML = `<section class="page-heading settings-heading"><div><p class="eyebrow">Administracija sistema</p><h1>Podešavanja</h1><p>Upravljajte profilom, podacima i izgledom aplikacije.</p></div><button type="button" class="secondary-btn settings-back" id="settings-back">← Nazad na početnu</button></section><div class="settings-notice" id="settings-notice" role="status" hidden></div><section class="settings-grid"><article class="settings-card"><header><span class="stat-icon blue">◉</span><div><h2>Korisnik i firma</h2><p>Podaci koji se prikazuju u aplikaciji.</p></div></header><form id="profile-settings" class="settings-form"><label>Ime korisnika<input name="userName" required value="${esc(state.settings.userName)}"></label><label>Naziv firme / aplikacije<input name="companyName" required value="${esc(state.settings.companyName)}"></label><div class="settings-form-actions"><button type="submit" class="primary-btn">Sačuvaj podatke</button><button type="button" class="secondary-btn" id="quick-change-profile">Promeni kroz prozor</button></div></form></article><article class="settings-card"><header><span class="stat-icon amber">◐</span><div><h2>Izgled aplikacije</h2><p>Sve ponuđene teme su tamne.</p></div></header><div class="theme-options">${themes.map((theme) => `<button type="button" class="theme-option ${state.settings.theme === theme.id ? 'selected' : ''}" data-theme="${theme.id}"><i style="--theme-dot:${theme.color}"></i><span><b>${theme.name}</b><small>${theme.note}</small></span><em>${state.settings.theme === theme.id ? '✓' : ''}</em></button>`).join('')}</div></article><article class="settings-card"><header><span class="stat-icon green">⌚</span><div><h2>Datum i vreme</h2><p>Aplikacija koristi vreme vašeg uređaja.</p></div></header><div class="settings-info"><b>${now}</b><small>Za promenu vremena podesite datum i sat na uređaju.</small></div></article><article class="settings-card"><header><span class="stat-icon blue">▣</span><div><h2>Magacin</h2><p>Minimalna količina za nove artikle.</p></div></header><form id="warehouse-settings" class="settings-form inline-form"><label>Minimalna količina<input name="defaultMinStock" type="number" min="0" value="${Number(state.settings.defaultMinStock) || 0}"></label><button type="submit" class="secondary-btn">Sačuvaj</button></form></article><article class="settings-card settings-card-wide"><header><span class="stat-icon green">⇩</span><div><h2>Rezervna kopija podataka</h2><p>Sačuvajte kompletno stanje aplikacije ili vratite raniju kopiju.</p></div></header><div class="settings-actions"><button type="button" class="primary-btn" id="backup-data">Preuzmi rezervnu kopiju</button><label class="secondary-btn restore-label">Učitaj rezervnu kopiju<input id="restore-data" type="file" accept="application/json,.json"></label><button type="button" class="secondary-btn" id="settings-export-csv">Izvezi materijal u CSV</button></div></article><article class="settings-card danger-card settings-card-wide"><header><span class="stat-icon red">!</span><div><h2>Brisanje podataka</h2><p>Radnje se ne mogu vratiti bez rezervne kopije.</p></div></header><div class="settings-actions"><button type="button" class="danger-btn" id="clear-attendance">Obriši dnevnu evidenciju</button><button type="button" class="danger-btn" id="reset-app">Obriši sve probne podatke</button></div></article><article class="settings-card settings-card-wide about-card"><header><span class="stat-icon blue">i</span><div><h2>O aplikaciji</h2><p><b>Tasker v2.0</b> · Sistem za materijal, zaposlene, narudžbine i evidenciju rada.</p></div></header></article></section>`
 
-  document.querySelector('#profile-settings').addEventListener('submit', (event) => {
+  const root = content
+  const notice = (message) => {
+    const box = root.querySelector('#settings-notice')
+    if (!box) return
+    box.textContent = message
+    box.hidden = false
+    clearTimeout(settingsPage.noticeTimer)
+    settingsPage.noticeTimer = setTimeout(() => { if (box.isConnected) box.hidden = true }, 3200)
+  }
+  root.querySelector('#settings-back')?.addEventListener('click', () => navigate('dashboard'))
+  root.querySelector('#profile-settings')?.addEventListener('submit', (event) => {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
-    state.settings.userName = data.get('userName').trim()
-    state.settings.companyName = data.get('companyName').trim().toLocaleUpperCase('sr')
+    const userName = String(data.get('userName') || '').trim()
+    const companyName = String(data.get('companyName') || '').trim()
+    if (!userName || !companyName) return notice('Unesite ime korisnika i naziv firme.')
+    state.settings.userName = userName
+    state.settings.companyName = companyName.toLocaleUpperCase('sr')
     saveSettings()
     document.querySelector('#brand-company').textContent = state.settings.companyName
     document.querySelector('#profile-name').textContent = state.settings.userName
     document.querySelector('#profile-initials').textContent = initialsFor(state.settings.userName)
-    settingsPage()
-    alert('Ime i naziv firme su sačuvani.')
+    notice('Ime i naziv firme su sačuvani.')
   })
-
-  document.querySelector('#quick-change-profile').addEventListener('click', () => {
+  root.querySelector('#quick-change-profile')?.addEventListener('click', () => {
     const userName = prompt('Upišite novo ime korisnika:', state.settings.userName)
     if (userName === null || !userName.trim()) return
     const companyName = prompt('Upišite novi naziv firme / aplikacije:', state.settings.companyName)
@@ -873,60 +891,53 @@ function settingsPage() {
     document.querySelector('#brand-company').textContent = state.settings.companyName
     document.querySelector('#profile-name').textContent = state.settings.userName
     document.querySelector('#profile-initials').textContent = initialsFor(state.settings.userName)
-    settingsPage()
-    alert('Ime i naziv firme su sačuvani.')
+    root.querySelector('[name="userName"]').value = state.settings.userName
+    root.querySelector('[name="companyName"]').value = state.settings.companyName
+    notice('Ime i naziv firme su sačuvani.')
   })
-
-  document.querySelectorAll('[data-theme]').forEach((button) => button.addEventListener('click', () => {
+  root.querySelectorAll('.theme-option[data-theme]').forEach((button) => button.addEventListener('click', () => {
     state.settings.theme = button.dataset.theme
     saveSettings()
     applyTheme()
     settingsPage()
   }))
-
-  document.querySelector('#warehouse-settings').addEventListener('submit', (event) => {
+  root.querySelector('#warehouse-settings')?.addEventListener('submit', (event) => {
     event.preventDefault()
     state.settings.defaultMinStock = Math.max(0, Number(new FormData(event.currentTarget).get('defaultMinStock')) || 0)
     saveSettings()
-    alert('Podrazumevana minimalna količina je sačuvana.')
+    notice('Minimalna količina je sačuvana.')
   })
-
-  document.querySelector('#backup-data').addEventListener('click', () => {
-    const backup = { version: 'Tasker v2.0', createdAt: new Date().toISOString(), data: { todos: state.todos, filter: state.filter, inventory: materials, categories, orderLines: state.orderLines, moduleProgress: state.moduleProgress, moduleDetails: state.moduleDetails, employees: state.employees, attendance: state.attendance, workHours: state.workHours, workPlans: state.workPlans, settings: state.settings } }
+  root.querySelector('#backup-data')?.addEventListener('click', () => {
+    const backup = { version:'Tasker v2.0', createdAt:new Date().toISOString(), data:{ todos:state.todos, filter:state.filter, inventory:materials, categories, orderLines:state.orderLines, moduleProgress:state.moduleProgress, moduleDetails:state.moduleDetails, employees:state.employees, attendance:state.attendance, workHours:state.workHours, workPlans:state.workPlans, settings:state.settings } }
+    const url = URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}))
     const link = document.createElement('a')
-    link.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }))
-    link.download = `tasker-rezervna-kopija-${dateKeyFor()}.json`
-    link.click()
-    URL.revokeObjectURL(link.href)
+    link.href=url; link.download=`tasker-rezervna-kopija-${dateKeyFor()}.json`; document.body.appendChild(link); link.click(); link.remove()
+    setTimeout(() => URL.revokeObjectURL(url),1000)
+    notice('Rezervna kopija je preuzeta.')
   })
-
-  document.querySelector('#restore-data').addEventListener('change', (event) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
+  root.querySelector('#restore-data')?.addEventListener('change', (event) => {
+    const file=event.target.files?.[0]
+    if(!file) return
+    const reader=new FileReader()
+    reader.onload=()=>{
       try {
-        const backup = JSON.parse(reader.result)
-        const data = backup.data
-        if (!data || !Array.isArray(data.inventory) || !Array.isArray(data.categories) || !Array.isArray(data.employees)) throw new Error('Neispravan fajl')
-        if (!confirm('Da li želite da vratite ovu rezervnu kopiju? Trenutni podaci biće zamenjeni.')) return
-        localStorage.setItem(storage, JSON.stringify(data.todos || [])); localStorage.setItem(filterStorage, data.filter || 'all'); localStorage.setItem(inventoryStorage, JSON.stringify(data.inventory)); localStorage.setItem(categoryStorage, JSON.stringify(data.categories)); localStorage.setItem(orderStorage, JSON.stringify(data.orderLines || [])); localStorage.setItem(moduleStorage, JSON.stringify(data.moduleProgress || { mv: 0, mvs: 0, rpp: 0 })); localStorage.setItem(moduleDetailStorage, JSON.stringify(data.moduleDetails || {})); localStorage.setItem(employeeStorage, JSON.stringify(data.employees)); localStorage.setItem(attendanceStorage, JSON.stringify(data.attendance || {})); localStorage.setItem(workHoursStorage, JSON.stringify(data.workHours || {})); localStorage.setItem(workPlanStorage, JSON.stringify(data.workPlans || {})); localStorage.setItem(settingsStorage, JSON.stringify({ ...defaultSettings, ...(data.settings || {}) }))
+        const data=JSON.parse(reader.result)?.data
+        if(!data||!Array.isArray(data.inventory)||!Array.isArray(data.categories)||!Array.isArray(data.employees)) throw new Error()
+        if(!confirm('Vratiti rezervnu kopiju i zameniti trenutne podatke?')) return
+        localStorage.setItem(storage,JSON.stringify(data.todos||[])); localStorage.setItem(filterStorage,data.filter||'all'); localStorage.setItem(inventoryStorage,JSON.stringify(data.inventory)); localStorage.setItem(categoryStorage,JSON.stringify(data.categories)); localStorage.setItem(orderStorage,JSON.stringify(data.orderLines||[])); localStorage.setItem(moduleStorage,JSON.stringify(data.moduleProgress||{mv:0,mvs:0,rpp:0})); localStorage.setItem(moduleDetailStorage,JSON.stringify(data.moduleDetails||{})); localStorage.setItem(employeeStorage,JSON.stringify(data.employees)); localStorage.setItem(attendanceStorage,JSON.stringify(data.attendance||{})); localStorage.setItem(workHoursStorage,JSON.stringify(data.workHours||{})); localStorage.setItem(workPlanStorage,JSON.stringify(data.workPlans||{})); localStorage.setItem(settingsStorage,JSON.stringify({...defaultSettings,...(data.settings||{}),theme:data.settings?.theme==='light'?'dark':(data.settings?.theme||'dark')}))
         location.reload()
       } catch { alert('Ovaj fajl nije ispravna Tasker rezervna kopija.') }
     }
     reader.readAsText(file)
   })
-
-  document.querySelector('#settings-export-csv').addEventListener('click', exportCsv)
-  document.querySelector('#clear-attendance').addEventListener('click', () => {
-    if (!confirm('Da li želite da obrišete svu dnevnu evidenciju rada?')) return
-    state.attendance = {}
-    saveAttendance()
-    alert('Dnevna evidencija je obrisana.')
+  root.querySelector('#settings-export-csv')?.addEventListener('click', () => { exportCsv(); notice('CSV izvoz je pokrenut.') })
+  root.querySelector('#clear-attendance')?.addEventListener('click', () => {
+    if(!confirm('Obrisati svu dnevnu evidenciju rada?')) return
+    state.attendance={}; saveAttendance(); notice('Dnevna evidencija je obrisana.')
   })
-  document.querySelector('#reset-app').addEventListener('click', () => {
-    if (!confirm('Ovo briše sve unete materijale, zaposlene, narudžbine i evidenciju. Da li ste sigurni?')) return
-    ;[storage, filterStorage, inventoryStorage, categoryStorage, orderStorage, moduleStorage, moduleDetailStorage, employeeStorage, attendanceStorage, workHoursStorage, workPlanStorage, settingsStorage].forEach((key) => localStorage.removeItem(key))
+  root.querySelector('#reset-app')?.addEventListener('click', () => {
+    if(!confirm('Ovo briše sve unete podatke. Da li ste sigurni?')) return
+    ;[storage,filterStorage,inventoryStorage,categoryStorage,orderStorage,moduleStorage,moduleDetailStorage,employeeStorage,attendanceStorage,workHoursStorage,workPlanStorage,settingsStorage].forEach((key)=>localStorage.removeItem(key))
     location.reload()
   })
 }
