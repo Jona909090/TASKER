@@ -84,6 +84,12 @@ documentsLink.dataset.page = 'documents'
 documentsLink.innerHTML = '<span>\u25A3</span> Dokumentacija'
 document.querySelector('nav').insertBefore(documentsLink, document.querySelector('[data-page="reports"]'))
 
+const photosLink = document.createElement('button')
+photosLink.className = 'nav-link'
+photosLink.dataset.page = 'photos'
+photosLink.innerHTML = '<span>▧</span> Slike'
+document.querySelector('nav').insertBefore(photosLink, documentsLink)
+
 const navOrderStorage = 'tasker.nav-order'
 const navLabels = {
   dashboard: 'Početna',
@@ -96,6 +102,7 @@ const navLabels = {
   'work-hours': 'Radni sati',
   'monthly-hours': 'Mesečni sati',
   'work-plan': 'Plan rada',
+  photos: 'Slike',
   documents: 'Dokumentacija',
   reports: 'Izveštaji'
 }
@@ -1733,6 +1740,21 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     }
   })
 }
+const taskerPhotoDbName='tasker-photo-archive',taskerPhotoStore='photos'
+let taskerPhotoRecords=[],taskerPhotoUrls=[]
+const openTaskerPhotoDb=()=>new Promise((resolve,reject)=>{const request=indexedDB.open(taskerPhotoDbName,1);request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains(taskerPhotoStore))request.result.createObjectStore(taskerPhotoStore,{keyPath:'id'})};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)})
+const taskerPhotoTransaction=async(mode,action)=>{const db=await openTaskerPhotoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(taskerPhotoStore,mode),request=action(tx.objectStore(taskerPhotoStore));request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>db.close()})}
+const getTaskerPhotos=async()=>{const photos=await taskerPhotoTransaction('readonly',(store)=>store.getAll());return photos.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))}
+const saveTaskerPhoto=(record)=>taskerPhotoTransaction('readwrite',(store)=>store.put(record))
+const deleteTaskerPhoto=(id)=>taskerPhotoTransaction('readwrite',(store)=>store.delete(id))
+const taskerPhotoDate=(iso)=>new Intl.DateTimeFormat('sr-Latn-RS',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).format(new Date(iso))
+const taskerPhotoTime=(iso)=>new Intl.DateTimeFormat('sr-Latn-RS',{hour:'2-digit',minute:'2-digit'}).format(new Date(iso))
+const clearTaskerPhotoUrls=()=>{taskerPhotoUrls.forEach((url)=>URL.revokeObjectURL(url));taskerPhotoUrls=[]}
+const shareTaskerPhoto=async(record)=>{const extension=(record.type||'image/jpeg').split('/')[1]?.replace('jpeg','jpg')||'jpg';const file=new File([record.blob],record.name||`tasker-slika-${record.id}.${extension}`,{type:record.type||record.blob.type||'image/jpeg'});try{if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:'TASKER slika',text:`TASKER fotografija · ${taskerPhotoDate(record.createdAt)}`,files:[file]});return}}catch(error){if(error?.name==='AbortError')return}const url=URL.createObjectURL(record.blob),link=document.createElement('a');link.href=url;link.download=file.name;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);alert('Slika je preuzeta. Možete je priložiti u email ili WhatsApp.')}
+const renderTaskerPhotoGallery=async()=>{const host=document.querySelector('#tasker-photo-gallery');if(!host)return;clearTaskerPhotoUrls();taskerPhotoRecords=await getTaskerPhotos();if(!taskerPhotoRecords.length){host.innerHTML='<div class="tasker-photo-empty"><span>▧</span><h2>Folder je prazan</h2><p>Snimite prvu fotografiju ili je izaberite sa uređaja.</p></div>';return}const groups={};taskerPhotoRecords.forEach((record)=>{const day=String(record.createdAt).slice(0,10);(groups[day]||(groups[day]=[])).push(record)});host.innerHTML=Object.entries(groups).map(([day,records])=>`<section class="tasker-photo-day"><header><div><span>📅</span><h2>${taskerPhotoDate(records[0].createdAt)}</h2></div><b>${records.length} slika</b></header><div class="tasker-photo-grid">${records.map((record)=>{const url=URL.createObjectURL(record.blob);taskerPhotoUrls.push(url);return `<article class="tasker-photo-card"><button type="button" class="tasker-photo-open" data-photo-open="${record.id}"><img src="${url}" alt="TASKER fotografija"><span>${taskerPhotoTime(record.createdAt)}</span></button><div><small>Slikano ${taskerPhotoDate(record.createdAt)} u ${taskerPhotoTime(record.createdAt)}</small><div><button type="button" data-photo-share="${record.id}">Pošalji mailom / WhatsApp</button><button type="button" class="photo-delete" data-photo-delete="${record.id}">×</button></div></div></article>`}).join('')}</div></section>`).join('')}
+const openTaskerPhoto=(record)=>{document.querySelector('#tasker-photo-viewer')?.remove();const url=URL.createObjectURL(record.blob);document.body.insertAdjacentHTML('beforeend',`<div class="tasker-photo-viewer" id="tasker-photo-viewer"><section role="dialog" aria-modal="true"><button type="button" data-photo-view-close>×</button><img src="${url}" alt="TASKER fotografija"><footer><div><b>${taskerPhotoDate(record.createdAt)}</b><small>Slikano u ${taskerPhotoTime(record.createdAt)}</small></div><button type="button" class="primary-btn" id="share-open-photo">Pošalji mailom / WhatsApp</button></footer></section></div>`);const modal=document.querySelector('#tasker-photo-viewer'),close=()=>{URL.revokeObjectURL(url);modal.remove()};modal.querySelector('[data-photo-view-close]').addEventListener('click',close);modal.addEventListener('click',(event)=>{if(event.target===modal)close()});modal.querySelector('#share-open-photo').addEventListener('click',()=>shareTaskerPhoto(record))}
+async function photosPage(){content.innerHTML=`<section class="page-heading photos-heading"><div><p class="eyebrow">Foto dokumentacija</p><h1>Slike</h1><p>Sve fotografije su na jednom mestu i automatski označene datumom i vremenom.</p></div><div class="photos-heading-actions"><label class="secondary-btn">📁 Izaberi slike<input id="tasker-photo-files" type="file" accept="image/*" multiple></label><label class="primary-btn">📷 Slikaj sada<input id="tasker-photo-camera" type="file" accept="image/*" capture="environment"></label></div></section><section class="tasker-photo-info"><span>i</span><p>Slike se čuvaju lokalno u TASKER-u na ovom uređaju. Dugme za slanje otvara email, WhatsApp i ostale aplikacije uređaja.</p></section><div id="tasker-photo-gallery"><div class="tasker-photo-loading">Učitavam slike…</div></div>`;const importFiles=async(files)=>{const list=Array.from(files||[]).filter((file)=>file.type.startsWith('image/'));for(let index=0;index<list.length;index+=1){const file=list[index],createdAt=new Date(Date.now()+index).toISOString();await saveTaskerPhoto({id:`${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,name:file.name||`tasker-slika-${createdAt.slice(0,10)}.jpg`,type:file.type,createdAt,blob:file})}await renderTaskerPhotoGallery()};content.querySelector('#tasker-photo-files').addEventListener('change',(event)=>importFiles(event.target.files));content.querySelector('#tasker-photo-camera').addEventListener('change',(event)=>importFiles(event.target.files));content.addEventListener('click',async(event)=>{const openId=event.target.closest('[data-photo-open]')?.dataset.photoOpen,shareId=event.target.closest('[data-photo-share]')?.dataset.photoShare,deleteId=event.target.closest('[data-photo-delete]')?.dataset.photoDelete;if(openId){const record=taskerPhotoRecords.find((item)=>item.id===openId);if(record)openTaskerPhoto(record)}if(shareId){const record=taskerPhotoRecords.find((item)=>item.id===shareId);if(record)await shareTaskerPhoto(record)}if(deleteId&&confirm('Obrisati ovu fotografiju iz TASKER-a?')){await deleteTaskerPhoto(deleteId);await renderTaskerPhotoGallery()}});await renderTaskerPhotoGallery()}
+
 const driveFolderUrl = 'https://drive.google.com/drive/folders/1LrYfOwBzadfWK3stckNvUOfhfc1aossX'
 
 function documentsPage() {
@@ -1850,6 +1872,7 @@ function navigate(page) {
   else if (page === 'work-hours') workHoursPage()
   else if (page === 'monthly-hours') monthlyHoursPage()
   else if (page === 'work-plan') workPlanPage()
+  else if (page === 'photos') photosPage()
   else if (page === 'documents') documentsPage()
   else if (page === 'reports') reportsPage()
   else if (page === 'settings') settingsPage()
