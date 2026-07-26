@@ -503,8 +503,8 @@ async function createOrderPdf(meta, lines) {
       .pdf-tasker-mark i:last-child{background:#f5f7fa}
       .pdf-tasker-mark b{display:grid;place-items:center;width:31px;height:31px;border-radius:11px;background:#3b82f6;color:white;font-size:19px}
       .pdf-order-header h1{margin:0;text-align:center;color:#f3f9ff;font-size:31px;letter-spacing:1.5px}
-      .pdf-order-date{position:absolute;right:54px;top:35px;margin:0;color:#b9cce0;font-size:15px}
-      .pdf-order-number{position:absolute;right:54px;bottom:12px;margin:0;color:#a9bfd5;font-size:13px}
+      .pdf-order-date{position:absolute;right:18px;top:35px;margin:0;color:#b9cce0;font-size:15px}
+      .pdf-order-number{position:absolute;right:18px;bottom:12px;margin:0;color:#a9bfd5;font-size:13px}
       .pdf-order-number b{color:#7ee6ff;font-size:14px}
       .pdf-order-main{padding:0}
       .pdf-order-columns,.pdf-order-row{display:grid;grid-template-columns:58px minmax(0,1fr) 100px 78px 155px;align-items:center}
