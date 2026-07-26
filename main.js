@@ -1757,7 +1757,9 @@ function openProfilePoster() {
     modal.id = 'profile-poster-modal'
     modal.className = 'profile-poster-modal'
     modal.hidden = true
-    modal.innerHTML = `<div class="profile-poster-dialog" role="dialog" aria-modal="true" aria-label="Tasker profil Stefana Jonića"><button type="button" class="profile-poster-close" aria-label="Zatvori">&times;</button><img src="./profile-stefan.svg" alt="Tasker profil Stefana Jonića"><div><b>Stefan Jonić</b><span>TASKER · Sve pod kontrolom.</span></div></div>`
+    const posterData = window.__taskerProfileChunks?.join('') || ''
+    const posterSource = posterData ? `data:image/jpeg;base64,${posterData}` : './profile-stefan.svg'
+    modal.innerHTML = `<div class="profile-poster-dialog" role="dialog" aria-modal="true" aria-label="Tasker profil Stefana Jonića"><button type="button" class="profile-poster-close" aria-label="Zatvori">&times;</button><img src="${posterSource}" alt="Tasker profil Stefana Jonića"><div><b>Stefan Jonić</b><span>TASKER · Sve pod kontrolom.</span></div></div>`
     document.body.appendChild(modal)
     const style = document.createElement('style')
     style.textContent = `
