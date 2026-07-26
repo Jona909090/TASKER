@@ -84,6 +84,94 @@ documentsLink.dataset.page = 'documents'
 documentsLink.innerHTML = '<span>\u25A3</span> Dokumentacija'
 document.querySelector('nav').insertBefore(documentsLink, document.querySelector('[data-page="reports"]'))
 
+const navOrderStorage = 'tasker.nav-order'
+const navLabels = {
+  dashboard: 'Početna',
+  materials: 'Materijal',
+  employees: 'Zaposleni',
+  orders: 'Narudžbine',
+  modules: 'Modul',
+  'daily-report': 'Dnevni izveštaj rada',
+  'work-diary': 'Dnevnik rada',
+  'work-hours': 'Radni sati',
+  'monthly-hours': 'Mesečni sati',
+  'work-plan': 'Plan rada',
+  documents: 'Dokumentacija',
+  reports: 'Izveštaji'
+}
+const mainNav = document.querySelector('nav')
+const currentNavPages = () => Array.from(mainNav.querySelectorAll('.nav-link[data-page]')).map((button) => button.dataset.page)
+const loadNavOrder = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(navOrderStorage) || '[]')
+    const available = currentNavPages()
+    return [...saved.filter((page) => available.includes(page)), ...available.filter((page) => !saved.includes(page))]
+  } catch {
+    return currentNavPages()
+  }
+}
+let navOrder = loadNavOrder()
+const applyNavOrder = () => {
+  navOrder.forEach((page) => {
+    const button = mainNav.querySelector(`[data-page="${page}"]`)
+    if (button) mainNav.appendChild(button)
+  })
+}
+applyNavOrder()
+
+const navOrganizerButton = document.createElement('button')
+navOrganizerButton.type = 'button'
+navOrganizerButton.className = 'nav-organizer-toggle'
+navOrganizerButton.innerHTML = '<span>↕</span> Rasporedi meni'
+mainNav.insertAdjacentElement('afterend', navOrganizerButton)
+const navOrganizer = document.createElement('section')
+navOrganizer.className = 'nav-organizer'
+navOrganizer.hidden = true
+navOrganizer.innerHTML = '<header><b>Redosled menija</b><button type="button" aria-label="Zatvori">×</button></header><div class="nav-organizer-list"></div><p>Strelicama pomerite karticu gore ili dole.</p>'
+navOrganizerButton.insertAdjacentElement('afterend', navOrganizer)
+const navOrganizerStyle = document.createElement('style')
+navOrganizerStyle.textContent = `
+  .nav-organizer-toggle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;padding:10px;border:1px dashed #36536f;border-radius:9px;background:#13243a;color:#8fb2d0;font-size:11px;font-weight:800;cursor:pointer}
+  .nav-organizer-toggle:hover,.nav-organizer-toggle.active{border-color:#58c9ef;color:#83ddff;background:#17314b}
+  .nav-organizer{position:absolute;z-index:40;left:12px;right:12px;top:82px;max-height:calc(100vh - 105px);overflow:auto;padding:12px;border:1px solid #3d617f;border-radius:13px;background:#101d30;box-shadow:0 18px 45px rgba(0,0,0,.48)}
+  .nav-organizer[hidden]{display:none}
+  .nav-organizer header{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;color:#ecf7ff;font-size:13px}
+  .nav-organizer header button{width:30px;height:30px;border:1px solid #3a5572;border-radius:8px;background:#172a43;color:#bcd2e7;font-size:18px;cursor:pointer}
+  .nav-organizer-list{display:grid;gap:6px}
+  .nav-organizer-row{display:grid;grid-template-columns:1fr 34px 34px;align-items:center;gap:5px;padding:7px 8px;border:1px solid #263f5b;border-radius:9px;background:#14263e}
+  .nav-organizer-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#dcecff;font-size:11px;font-weight:700}
+  .nav-organizer-row button{height:31px;border:1px solid #3a5876;border-radius:7px;background:#1a3452;color:#82dcff;font-size:16px;cursor:pointer}
+  .nav-organizer-row button:disabled{opacity:.25;cursor:default}
+  .nav-organizer>p{margin:10px 2px 0;color:#7892aa;font-size:9px;text-align:center}
+`
+document.head.appendChild(navOrganizerStyle)
+const renderNavOrganizer = () => {
+  navOrganizer.querySelector('.nav-organizer-list').innerHTML = navOrder.map((page, index) => `<div class="nav-organizer-row" data-nav-page="${page}"><span>${esc(navLabels[page] || page)}</span><button type="button" data-nav-up="${page}" ${index === 0 ? 'disabled' : ''} aria-label="Pomeri gore">↑</button><button type="button" data-nav-down="${page}" ${index === navOrder.length - 1 ? 'disabled' : ''} aria-label="Pomeri dole">↓</button></div>`).join('')
+}
+const closeNavOrganizer = () => {
+  navOrganizer.hidden = true
+  navOrganizerButton.classList.remove('active')
+}
+navOrganizerButton.addEventListener('click', () => {
+  navOrganizer.hidden = !navOrganizer.hidden
+  navOrganizerButton.classList.toggle('active', !navOrganizer.hidden)
+  if (!navOrganizer.hidden) renderNavOrganizer()
+})
+navOrganizer.querySelector('header button').addEventListener('click', closeNavOrganizer)
+navOrganizer.addEventListener('click', (event) => {
+  const up = event.target.closest('[data-nav-up]')
+  const down = event.target.closest('[data-nav-down]')
+  const page = up?.dataset.navUp || down?.dataset.navDown
+  if (!page) return
+  const index = navOrder.indexOf(page)
+  const target = up ? index - 1 : index + 1
+  if (target < 0 || target >= navOrder.length) return
+  ;[navOrder[index], navOrder[target]] = [navOrder[target], navOrder[index]]
+  localStorage.setItem(navOrderStorage, JSON.stringify(navOrder))
+  applyNavOrder()
+  renderNavOrganizer()
+})
+
 const content = document.querySelector('#content')
 const breadcrumb = document.querySelector('#breadcrumb')
 const topbarMeta = document.querySelector('.topbar > div:first-child')
