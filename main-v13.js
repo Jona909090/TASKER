@@ -403,46 +403,355 @@ function showAddEmployee() {
   })
 }
 
+function normalizeOrderLines() {
+  return state.orderLines.map((line) => {
+    const material = materials.find((item) => item.id === Number(line.materialId))
+    return {
+      ...line,
+      name: line.name || material?.name || 'Stavka',
+      description: line.description ?? material?.standard ?? '',
+      quantity: Number(line.quantity) || 1,
+      unit: line.unit || material?.unit || 'kom'
+    }
+  })
+}
+
+function orderPdfDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('tasker-order-pdfs', 1)
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains('pdfs')) request.result.createObjectStore('pdfs', { keyPath: 'id' })
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+async function storeOrderPdf(entry) {
+  const db = await orderPdfDb()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('pdfs', 'readwrite')
+    transaction.objectStore('pdfs').put(entry)
+    transaction.oncomplete = resolve
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+async function listOrderPdfs() {
+  const db = await orderPdfDb()
+  return new Promise((resolve, reject) => {
+    const request = db.transaction('pdfs', 'readonly').objectStore('pdfs').getAll()
+    request.onsuccess = () => resolve(request.result.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))))
+    request.onerror = () => reject(request.error)
+  })
+}
+
+async function deleteOrderPdf(id) {
+  const db = await orderPdfDb()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('pdfs', 'readwrite')
+    transaction.objectStore('pdfs').delete(id)
+    transaction.oncomplete = resolve
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+async function renderOrderPdfArchive() {
+  const list = document.querySelector('#order-pdf-list')
+  if (!list) return
+  try {
+    const entries = await listOrderPdfs()
+    list.innerHTML = entries.length ? entries.map((entry) => `<article class="order-pdf-file"><span>PDF</span><div><b>${esc(entry.fileName)}</b><small>${esc(entry.documentNumber)} · ${new Intl.DateTimeFormat('sr-Latn-RS', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(entry.createdAt))}</small></div><div class="order-pdf-actions"><button type="button" data-order-share="${esc(entry.id)}">↗ Pošalji</button><button type="button" data-order-open="${esc(entry.id)}">Otvori</button><button type="button" class="order-pdf-delete" data-order-delete="${esc(entry.id)}">×</button></div></article>`).join('') : '<p class="order-pdf-empty">Još nema sačuvanih PDF narudžbenica.</p>'
+  } catch {
+    list.innerHTML = '<p class="order-pdf-empty">Arhiva trenutno nije dostupna.</p>'
+  }
+}
+
+async function createOrderPdf(meta, lines) {
+  const jsPDF = await loadPdfLibrary()
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
+  const rowsPerPage = 14
+  const pages = Math.max(1, Math.ceil(lines.length / rowsPerPage))
+  const drawLogo = () => {
+    pdf.setFillColor(240, 82, 82)
+    pdf.roundedRect(17, 10, 18, 3.8, 1.7, 1.7, 'F')
+    pdf.setFillColor(59, 130, 246)
+    pdf.roundedRect(13.5, 15.5, 25, 18, 5, 5, 'F')
+    pdf.setTextColor(255, 255, 255)
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(15)
+    pdf.text('T', 26, 27.3, { align: 'center' })
+    pdf.setFillColor(180, 190, 202)
+    pdf.roundedRect(17, 35.3, 18, 3.8, 1.7, 1.7, 'F')
+  }
+  const drawPage = (pageIndex) => {
+    pdf.setFillColor(248, 250, 252)
+    pdf.rect(0, 0, 210, 297, 'F')
+    drawLogo()
+    pdf.setFont('helvetica', 'bold')
+    pdf.setTextColor(22, 52, 84)
+    pdf.setFontSize(21)
+    pdf.text('NARUDŽBENICA', 105, 24, { align: 'center' })
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(10)
+    pdf.setTextColor(55, 70, 88)
+    pdf.text(`Datum: ${meta.date.split('-').reverse().join('.')}`, 194, 17, { align: 'right' })
+    pdf.text(`Broj dokumenta: ${meta.documentNumber}`, 194, 23, { align: 'right' })
+    pdf.setFontSize(9)
+    pdf.text(`Strana: ${Number(meta.pageNumber) + pageIndex}`, 194, 29, { align: 'right' })
+
+    const x = [15, 27, 112, 141, 161, 195]
+    const tableTop = 48
+    const rowHeight = 15
+    pdf.setFillColor(22, 52, 84)
+    pdf.roundedRect(15, tableTop, 180, 10, 2, 2, 'F')
+    pdf.setTextColor(255, 255, 255)
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(9)
+    pdf.text('R.br.', 17, tableTop + 6.5)
+    pdf.text('Artikal / opis', 29, tableTop + 6.5)
+    pdf.text('Količina', 114, tableTop + 6.5)
+    pdf.text('Jed.', 143, tableTop + 6.5)
+    pdf.text('Napomena', 163, tableTop + 6.5)
+
+    const pageRows = lines.slice(pageIndex * rowsPerPage, (pageIndex + 1) * rowsPerPage)
+    pageRows.forEach((line, index) => {
+      const y = tableTop + 10 + (index * rowHeight)
+      pdf.setFillColor(index % 2 ? 248 : 239, index % 2 ? 250 : 245, index % 2 ? 252 : 249)
+      pdf.rect(15, y, 180, rowHeight, 'F')
+      pdf.setDrawColor(190, 202, 216)
+      pdf.setLineWidth(.25)
+      pdf.line(15, y + rowHeight, 195, y + rowHeight)
+      x.slice(1, -1).forEach((lineX) => pdf.line(lineX, y, lineX, y + rowHeight))
+      pdf.setTextColor(24, 37, 53)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(9)
+      pdf.text(String((pageIndex * rowsPerPage) + index + 1), 21, y + 8.5, { align: 'center' })
+      pdf.setFont('helvetica', 'bold')
+      pdf.text(pdf.splitTextToSize(line.name, 78).slice(0, 1), 30, y + 5.5)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(7.5)
+      pdf.setTextColor(92, 105, 120)
+      if (line.description) pdf.text(pdf.splitTextToSize(line.description, 78).slice(0, 1), 30, y + 11)
+      pdf.setTextColor(24, 37, 53)
+      pdf.setFontSize(9)
+      pdf.text(String(line.quantity), 126.5, y + 8.5, { align: 'center' })
+      pdf.text(String(line.unit), 151, y + 8.5, { align: 'center' })
+      pdf.setFontSize(7.5)
+      pdf.text(pdf.splitTextToSize(line.note || '', 30).slice(0, 2), 163, y + 5.5)
+    })
+
+    pdf.setDrawColor(190, 202, 216)
+    for (let index = pageRows.length; index < rowsPerPage; index += 1) {
+      const y = tableTop + 10 + (index * rowHeight)
+      pdf.rect(15, y, 180, rowHeight)
+      x.slice(1, -1).forEach((lineX) => pdf.line(lineX, y, lineX, y + rowHeight))
+    }
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(8.5)
+    pdf.setTextColor(105, 120, 137)
+    pdf.text('TASKER · Narudžbenica', 15, 288)
+    pdf.text(`Pripremio: ${meta.preparedBy}  ·  Strana ${Number(meta.pageNumber) + pageIndex}`, 195, 288, { align: 'right' })
+  }
+  for (let page = 0; page < pages; page += 1) {
+    if (page) pdf.addPage()
+    drawPage(page)
+  }
+  return pdf.output('blob')
+}
+
 function ordersPage() {
-  content.innerHTML = `<section class="page-heading"><div><p class="eyebrow">Nabavka</p><h1>Narud\u017Ebine</h1><p>Dodajte materijale koje treba naru\u010Diti i proverite raspolo\u017Eivo stanje.</p></div><button class="secondary-btn clear-order" ${state.orderLines.length ? '' : 'disabled'}>Obri\u0161i listu</button></section><section class="order-panel"><h2>Dodaj stavku za narud\u017Ebinu</h2><form class="order-form" id="order-form"><label>Materijal<select id="order-material">${materials.map((item) => `<option value="${item.id}">${item.name} \u00B7 ${item.stock} ${item.unit} na stanju</option>`).join('')}</select></label><label>Potrebna koli\u010Dina<input id="order-quantity" type="number" min="1" required value="1"></label><button class="primary-btn">\uFF0B Dodaj u listu</button></form></section><section class="order-list"><header><h2>Lista za naru\u010Divanje</h2><span>${state.orderLines.length} stavki</span></header>${renderOrderLines()}</section>`
+  const today = todayInputValue()
+  let savedMeta = {}
+  try { savedMeta = JSON.parse(localStorage.getItem('tasker.order-document-meta') || '{}') || {} } catch {}
+  const meta = {
+    date: savedMeta.date || today,
+    documentNumber: savedMeta.documentNumber || `NAR-${today.replaceAll('-', '')}-001`,
+    pageNumber: Number(savedMeta.pageNumber) || 1,
+    preparedBy: savedMeta.preparedBy || state.settings.userName || 'Stefan Jonić'
+  }
+  content.innerHTML = `<section class="page-heading order-page-heading"><div><p class="eyebrow">Nabavka</p><h1>Narudžbenice</h1><p>Slobodno unesite i uredite sve stavke prije izrade dokumenta.</p></div><button class="secondary-btn clear-order" ${state.orderLines.length ? '' : 'disabled'}>Obriši listu</button></section>
+  <section class="order-document-meta">
+    <label>Datum<input id="order-doc-date" type="date" value="${esc(meta.date)}"></label>
+    <label>Broj dokumenta<input id="order-doc-number" required value="${esc(meta.documentNumber)}" maxlength="40"></label>
+    <label>Početni broj strane<input id="order-page-number" type="number" min="1" value="${meta.pageNumber}"></label>
+    <label>Pripremio<input id="order-prepared-by" value="${esc(meta.preparedBy)}" maxlength="50"></label>
+  </section>
+  <section class="order-panel custom-order-panel"><h2>Dodaj stavku</h2><form class="order-form custom-order-form" id="order-form">
+    <label>Naziv artikla<input id="order-name" list="order-material-options" required placeholder="Upišite bilo koji artikal"><datalist id="order-material-options">${materials.map((item) => `<option value="${esc(item.name)}">${esc(item.standard)}</option>`).join('')}</datalist></label>
+    <label>Opis<input id="order-description" placeholder="Model, dimenzija ili specifikacija"></label>
+    <label>Količina<input id="order-quantity" type="number" min="0.01" step="any" required value="1"></label>
+    <label>Jedinica<input id="order-unit" required value="kom"></label>
+    <label>Napomena<input id="order-note" placeholder="Dobavljač, rok ili drugo"></label>
+    <button class="primary-btn">＋ Dodaj</button>
+  </form></section>
+  <section class="order-list editable-order-list"><header><h2>Stavke narudžbenice</h2><span>${state.orderLines.length} stavki</span></header>${renderOrderLines()}</section>
+  <div class="order-document-actions"><p id="order-document-status" role="status">Sve stavke možete mijenjati direktno u tabeli.</p><button id="save-order-pdf" class="primary-btn" ${state.orderLines.length ? '' : 'disabled'}>Sačuvaj PDF narudžbenicu</button></div>
+  <section class="order-pdf-archive"><header><span class="order-folder-icon">▰</span><div><h2>Sačuvane narudžbenice</h2><p>PDF dokumenti na ovom uređaju</p></div></header><div id="order-pdf-list"><p class="order-pdf-empty">Učitavanje...</p></div></section>
+  <style id="order-document-styles">
+    #content .order-page-heading{display:flex!important;justify-content:space-between!important;align-items:end!important}
+    #content .order-document-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+    #content .order-document-meta label,#content .custom-order-form label{display:grid;gap:6px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase}
+    #content .order-document-meta input,#content .custom-order-form input,#content .editable-order-row input{box-sizing:border-box;width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:#14243b;color:var(--text);font:inherit}
+    #content .custom-order-form{display:grid!important;grid-template-columns:1.5fr 1.5fr .6fr .55fr 1.2fr auto!important;align-items:end!important;gap:10px!important}
+    #content .editable-order-list{margin-top:18px}
+    #content .editable-order-table{overflow-x:auto}
+    #content .editable-order-head,#content .editable-order-row{display:grid;grid-template-columns:1.35fr 1.35fr .55fr .5fr 1fr 38px;gap:8px;align-items:center;min-width:760px}
+    #content .editable-order-head{padding:9px;color:var(--muted);font-size:9px;font-weight:900;text-transform:uppercase}
+    #content .editable-order-row{padding:8px;border-top:1px solid var(--line)}
+    #content .editable-order-row .remove-order{height:38px;border:1px solid #6a3543;border-radius:8px;background:#482332;color:#ffacb8;font-size:20px;cursor:pointer}
+    #content .order-document-actions{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:16px}
+    #content .order-document-actions p{margin:0;color:var(--muted);font-size:12px}
+    #content .order-pdf-archive{margin-top:22px;border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
+    #content .order-pdf-archive>header{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid var(--line)}
+    #content .order-pdf-archive h2{margin:0;font-size:17px}
+    #content .order-pdf-archive header p{margin:4px 0 0;color:var(--muted);font-size:11px}
+    #content .order-folder-icon{position:relative;display:grid;place-items:center;width:48px;height:38px;border-radius:7px 10px 10px 10px;background:linear-gradient(145deg,#e0a62d,#b87912);color:#fff3c5}
+    #content #order-pdf-list{padding:8px 18px}
+    #content .order-pdf-file{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+    #content .order-pdf-file>span{display:grid;place-items:center;width:40px;height:40px;border-radius:9px;background:#692e3e;color:#ffbac5;font-size:10px;font-weight:900}
+    #content .order-pdf-file>div:nth-child(2){display:grid;gap:4px;min-width:0}
+    #content .order-pdf-file b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+    #content .order-pdf-file small{color:var(--muted);font-size:10px}
+    #content .order-pdf-actions{display:flex;gap:7px}
+    #content .order-pdf-actions button{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#172944;color:var(--text);font-weight:800;cursor:pointer}
+    #content .order-pdf-actions button:first-child{border-color:#2e8d69;background:#176044;color:#c4ffe0}
+    #content .order-pdf-actions .order-pdf-delete{color:#ff9eaa}
+    #content .order-pdf-empty{margin:0;padding:22px;color:var(--muted);font-size:12px;text-align:center}
+    @media(max-width:900px){#content .order-document-meta{grid-template-columns:repeat(2,1fr)}#content .custom-order-form{grid-template-columns:repeat(2,1fr)!important}#content .custom-order-form button{grid-column:1/-1}}
+    @media(max-width:600px){#content .order-document-meta{grid-template-columns:1fr}#content .order-document-actions{align-items:stretch;flex-direction:column}#content .order-document-actions button{width:100%}#content .order-pdf-file{grid-template-columns:auto 1fr}#content .order-pdf-actions{grid-column:1/-1}#content .order-pdf-actions button{flex:1}}
+  </style>`
+
+  const saveMeta = () => {
+    const next = {
+      date: document.querySelector('#order-doc-date').value,
+      documentNumber: document.querySelector('#order-doc-number').value.trim(),
+      pageNumber: Number(document.querySelector('#order-page-number').value) || 1,
+      preparedBy: document.querySelector('#order-prepared-by').value.trim() || 'Stefan Jonić'
+    }
+    localStorage.setItem('tasker.order-document-meta', JSON.stringify(next))
+    return next
+  }
+  document.querySelectorAll('.order-document-meta input').forEach((input) => input.addEventListener('change', saveMeta))
+  renderOrderPdfArchive()
 
   document.querySelector('#order-form').addEventListener('submit', (event) => {
     event.preventDefault()
-    const materialId = Number(document.querySelector('#order-material').value)
+    const name = document.querySelector('#order-name').value.trim()
     const quantity = Number(document.querySelector('#order-quantity').value)
-    const existing = state.orderLines.find((line) => line.materialId === materialId)
-    if (existing) existing.quantity += quantity
-    else state.orderLines.push({ id: Date.now(), materialId, quantity })
+    if (!name || !quantity) return
+    state.orderLines.push({
+      id: Date.now(),
+      name,
+      description: document.querySelector('#order-description').value.trim(),
+      quantity,
+      unit: document.querySelector('#order-unit').value.trim() || 'kom',
+      note: document.querySelector('#order-note').value.trim()
+    })
     saveOrder()
     ordersPage()
   })
 
   document.querySelector('.clear-order').addEventListener('click', () => {
-    if (state.orderLines.length && confirm('Da li \u017Eelite da obri\u0161ete celu listu narud\u017Ebine?')) {
+    if (state.orderLines.length && confirm('Obrisati sve stavke trenutne narudžbenice?')) {
       state.orderLines = []
       saveOrder()
       ordersPage()
     }
   })
 
+  document.querySelector('.order-list').addEventListener('change', (event) => {
+    const input = event.target.closest('[data-order-field]')
+    if (!input) return
+    const id = Number(input.closest('[data-order-id]').dataset.orderId)
+    const line = state.orderLines.find((entry) => Number(entry.id) === id)
+    if (!line) return
+    const field = input.dataset.orderField
+    line[field] = field === 'quantity' ? Number(input.value) || 0 : input.value.trim()
+    if (!line.name && line.materialId) line.name = materials.find((item) => item.id === Number(line.materialId))?.name || 'Stavka'
+    saveOrder()
+  })
+
   document.querySelector('.order-list').addEventListener('click', (event) => {
     const remove = event.target.closest('[data-remove-order]')
     if (!remove) return
-    state.orderLines = state.orderLines.filter((line) => line.id !== Number(remove.dataset.removeOrder))
+    state.orderLines = state.orderLines.filter((line) => Number(line.id) !== Number(remove.dataset.removeOrder))
     saveOrder()
     ordersPage()
+  })
+
+  document.querySelector('#save-order-pdf').addEventListener('click', async (event) => {
+    const button = event.currentTarget
+    const status = document.querySelector('#order-document-status')
+    const documentMeta = saveMeta()
+    if (!documentMeta.documentNumber) {
+      status.textContent = 'Unesite obavezni broj dokumenta.'
+      document.querySelector('#order-doc-number').focus()
+      return
+    }
+    const lines = normalizeOrderLines()
+    if (!lines.length) return
+    button.disabled = true
+    button.textContent = 'Pravim PDF...'
+    status.textContent = 'Priprema narudžbenice.'
+    try {
+      const blob = await createOrderPdf(documentMeta, lines)
+      const now = new Date()
+      const time = [now.getHours(), now.getMinutes(), now.getSeconds()].map((value) => String(value).padStart(2, '0')).join('')
+      const fileName = `Narudzbenica-${documentMeta.date}-${time}.pdf`
+      await storeOrderPdf({ id: `${documentMeta.date}-${now.getTime()}`, fileName, blob, documentNumber: documentMeta.documentNumber, createdAt: now.toISOString() })
+      await renderOrderPdfArchive()
+      status.innerHTML = `PDF <b>${fileName}</b> je sačuvan u Tasker.`
+    } catch {
+      status.textContent = 'PDF nije sačuvan. Pokušajte ponovo.'
+    } finally {
+      button.disabled = false
+      button.textContent = 'Sačuvaj PDF narudžbenicu'
+    }
+  })
+
+  document.querySelector('#order-pdf-list').addEventListener('click', async (event) => {
+    const shareId = event.target.closest('[data-order-share]')?.dataset.orderShare
+    const openId = event.target.closest('[data-order-open]')?.dataset.orderOpen
+    const deleteId = event.target.closest('[data-order-delete]')?.dataset.orderDelete
+    if (!shareId && !openId && !deleteId) return
+    const entries = await listOrderPdfs()
+    const entry = entries.find((item) => item.id === (shareId || openId || deleteId))
+    if (!entry) return
+    if (shareId) {
+      const file = new File([entry.blob], entry.fileName, { type: 'application/pdf' })
+      try {
+        if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+          await navigator.share({ title: 'Tasker · Narudžbenica', text: `Narudžbenica ${entry.documentNumber}`, files: [file] })
+        } else {
+          const url = URL.createObjectURL(entry.blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = entry.fileName
+          link.click()
+          setTimeout(() => URL.revokeObjectURL(url), 60000)
+          alert('PDF je preuzet. Dodajte ga ručno u mail ili WhatsApp.')
+        }
+      } catch (error) {
+        if (error?.name !== 'AbortError') alert('Slanje nije uspelo.')
+      }
+    }
+    if (openId) {
+      const url = URL.createObjectURL(entry.blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    }
+    if (deleteId && confirm('Obrisati ovu PDF narudžbenicu?')) {
+      await deleteOrderPdf(entry.id)
+      renderOrderPdfArchive()
+    }
   })
 }
 
 function renderOrderLines() {
-  if (!state.orderLines.length) return '<div class="order-empty"><b>Lista je prazna.</b><span>Dodajte materijal i potrebnu koli\u010Dinu iznad.</span></div>'
-
-  return `<div class="order-table"><div class="order-row order-labels"><span>Materijal</span><span>Potrebno</span><span>Na stanju</span><span>Nedostaje</span><span></span></div>${state.orderLines.map((line) => {
-    const item = materials.find((entry) => entry.id === line.materialId)
-    if (!item) return ''
-    const missing = Math.max(0, line.quantity - item.stock)
-    return `<div class="order-row"><div><b>${item.name}</b><small>${item.standard}</small></div><strong>${new Intl.NumberFormat('sr-RS').format(line.quantity)} ${item.unit}</strong><span>${new Intl.NumberFormat('sr-RS').format(item.stock)} ${item.unit}</span><span class="order-status ${missing ? 'missing' : 'ready'}">${missing ? `Nedostaje ${new Intl.NumberFormat('sr-RS').format(missing)}` : 'Dovoljno na stanju'}</span><button class="remove-order" data-remove-order="${line.id}" aria-label="Ukloni stavku">\u00D7</button></div>`
-  }).join('')}</div>`
+  const lines = normalizeOrderLines()
+  if (!lines.length) return '<div class="order-empty"><b>Lista je prazna.</b><span>Upišite prvu stavku koju treba naručiti.</span></div>'
+  return `<div class="editable-order-table"><div class="editable-order-head"><span>Artikal</span><span>Opis</span><span>Količina</span><span>Jed.</span><span>Napomena</span><span></span></div>${lines.map((line) => `<div class="editable-order-row" data-order-id="${line.id}"><input data-order-field="name" value="${esc(line.name)}" aria-label="Naziv artikla"><input data-order-field="description" value="${esc(line.description)}" aria-label="Opis"><input data-order-field="quantity" type="number" min="0.01" step="any" value="${line.quantity}" aria-label="Količina"><input data-order-field="unit" value="${esc(line.unit)}" aria-label="Jedinica"><input data-order-field="note" value="${esc(line.note || '')}" aria-label="Napomena"><button class="remove-order" data-remove-order="${line.id}" aria-label="Ukloni stavku">×</button></div>`).join('')}</div>`
 }
 
 function reportsPage() {
