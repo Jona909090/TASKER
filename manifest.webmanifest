@@ -1,0 +1,31 @@
+{
+  "name": "TASKER – Tvoj posao. Tvoja kontrola.",
+  "short_name": "TASKER",
+  "description": "Sistem za upravljanje materijalom, zaposlenima, narudžbinama, dokumentima i radovima.",
+  "id": "./",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07111e",
+  "theme_color": "#0b1220",
+  "lang": "sr-Latn",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "./icon-192.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
