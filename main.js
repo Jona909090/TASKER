@@ -1781,6 +1781,20 @@ function openProfilePoster() {
   modal.hidden = false
 }
 
+const profileNameStyle = document.createElement('style')
+profileNameStyle.textContent = `
+  #profile-name{cursor:pointer;color:#eaf6ff;transition:color .18s,text-shadow .18s}
+  #profile-name:hover{color:#80dcff;text-shadow:0 0 9px rgba(80,205,255,.55)}
+`
+document.head.appendChild(profileNameStyle)
+document.addEventListener('click', (event) => {
+  const name = event.target.closest('#profile-name')
+  if (!name) return
+  event.preventDefault()
+  event.stopImmediatePropagation()
+  openProfilePoster()
+}, true)
+
 /* Profil meni u gornjem desnom uglu. */
 (() => {
   const profileButton = document.querySelector('.profile')
