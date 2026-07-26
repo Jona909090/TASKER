@@ -123,7 +123,8 @@ const navOrganizerButton = document.createElement('button')
 navOrganizerButton.type = 'button'
 navOrganizerButton.className = 'nav-organizer-toggle'
 navOrganizerButton.innerHTML = '<span>↕</span> Rasporedi meni'
-mainNav.insertAdjacentElement('afterend', navOrganizerButton)
+const sidebarFooter = document.querySelector('.sidebar-footer')
+sidebarFooter.insertBefore(navOrganizerButton, sidebarFooter.querySelector('[data-page="settings"]'))
 const navOrganizer = document.createElement('section')
 navOrganizer.className = 'nav-organizer'
 navOrganizer.hidden = true
@@ -131,8 +132,12 @@ navOrganizer.innerHTML = '<header><b>Redosled menija</b><button type="button" ar
 navOrganizerButton.insertAdjacentElement('afterend', navOrganizer)
 const navOrganizerStyle = document.createElement('style')
 navOrganizerStyle.textContent = `
-  .nav-organizer-toggle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;padding:10px;border:1px dashed #36536f;border-radius:9px;background:#13243a;color:#8fb2d0;font-size:11px;font-weight:800;cursor:pointer}
-  .nav-organizer-toggle:hover,.nav-organizer-toggle.active{border-color:#58c9ef;color:#83ddff;background:#17314b}
+  .sidebar nav .nav-link{border:1px solid rgba(220,168,53,.22);background:linear-gradient(105deg,rgba(92,67,18,.18),rgba(24,37,58,.08));color:#d8c489;box-shadow:inset 2px 0 0 rgba(235,184,65,.42),0 0 9px rgba(184,127,24,.06);transition:color .18s,border-color .18s,background .18s,box-shadow .18s,transform .18s}
+  .sidebar nav .nav-link:hover{border-color:#5dff8b;background:linear-gradient(105deg,rgba(31,112,57,.38),rgba(18,48,39,.3));color:#9dffb9;box-shadow:inset 3px 0 0 #58ff87,0 0 13px rgba(73,255,126,.28),0 0 24px rgba(73,255,126,.1);transform:translateX(2px);text-shadow:0 0 8px rgba(80,255,130,.45)}
+  .sidebar nav .nav-link.active{border-color:#d5a83c;background:linear-gradient(105deg,rgba(119,81,15,.38),rgba(38,48,57,.24));color:#ffe09a;box-shadow:inset 3px 0 0 #f0ba43,0 0 12px rgba(226,169,53,.18)}
+  .sidebar nav .nav-link.active:hover{border-color:#65ff91;color:#adffc2;box-shadow:inset 3px 0 0 #58ff87,0 0 15px rgba(73,255,126,.34)}
+  .nav-organizer-toggle{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 24px);margin:0 12px 8px;padding:11px;border:1px solid #4cff7d;border-radius:10px;background:linear-gradient(120deg,#123c2a,#155436);color:#9dffba;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 0 12px rgba(73,255,126,.27),inset 0 0 10px rgba(73,255,126,.08);text-shadow:0 0 7px rgba(73,255,126,.55)}
+  .nav-organizer-toggle:hover,.nav-organizer-toggle.active{border-color:#8dffa9;color:#e2ffea;background:linear-gradient(120deg,#17623d,#197346);box-shadow:0 0 17px rgba(73,255,126,.43),inset 0 0 12px rgba(73,255,126,.12)}
   .nav-organizer{position:absolute;z-index:40;left:12px;right:12px;top:82px;max-height:calc(100vh - 105px);overflow:auto;padding:12px;border:1px solid #3d617f;border-radius:13px;background:#101d30;box-shadow:0 18px 45px rgba(0,0,0,.48)}
   .nav-organizer[hidden]{display:none}
   .nav-organizer header{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;color:#ecf7ff;font-size:13px}
