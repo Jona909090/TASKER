@@ -4,10 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b1220" />
-    <link rel="stylesheet" href="./style-v30.css" />
+    <meta name="application-name" content="TASKER" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TASKER" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon-192.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icon-512.svg" />
+    <link rel="stylesheet" href="./style-v31.css" />
     <title>Tasker | Upravljanje materijalom</title>
   </head>
   <body>
+    <div id="pwa-splash" aria-hidden="true"><div class="pwa-splash-inner"><span class="pwa-splash-logo"><i></i><b>T</b><i></i></span><strong>TASKER</strong><small>SVE POD KONTROLOM</small></div></div>
     <div id="app"></div>
     <script src="./profile-chunk-v23-0.js"></script>
     <script src="./profile-chunk-v23-1.js"></script>
@@ -19,6 +27,10 @@
     <script src="./profile-chunk-v23-7.js"></script>
     <script src="./profile-chunk-v23-8.js"></script>
     <script src="./profile-chunk-v23-9.js"></script>
-    <script type="module" src="./main-v30.js"></script>
+    <script type="module" src="./main-v31.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+      window.addEventListener('load', () => setTimeout(() => document.querySelector('#pwa-splash')?.classList.add('splash-hidden'), 850));
+    </script>
   </body>
 </html>
