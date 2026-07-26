@@ -468,98 +468,70 @@ async function renderOrderPdfArchive() {
 }
 
 async function createOrderPdf(meta, lines) {
-  const jsPDF = await loadPdfLibrary()
+  const [jsPDF, html2canvas] = await Promise.all([loadPdfLibrary(), loadHtml2Canvas()])
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
   const rowsPerPage = 14
   const pages = Math.max(1, Math.ceil(lines.length / rowsPerPage))
-  const drawLogo = () => {
-    pdf.setFillColor(240, 82, 82)
-    pdf.roundedRect(17, 10, 18, 3.8, 1.7, 1.7, 'F')
-    pdf.setFillColor(59, 130, 246)
-    pdf.roundedRect(13.5, 15.5, 25, 18, 5, 5, 'F')
-    pdf.setTextColor(255, 255, 255)
-    pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(15)
-    pdf.text('T', 26, 27.3, { align: 'center' })
-    pdf.setFillColor(180, 190, 202)
-    pdf.roundedRect(17, 35.3, 18, 3.8, 1.7, 1.7, 'F')
-  }
-  const drawPage = (pageIndex) => {
-    pdf.setFillColor(248, 250, 252)
-    pdf.rect(0, 0, 210, 297, 'F')
-    drawLogo()
-    pdf.setFont('helvetica', 'bold')
-    pdf.setTextColor(22, 52, 84)
-    pdf.setFontSize(21)
-    pdf.text('NARUDŽBENICA', 105, 24, { align: 'center' })
-    pdf.setFont('helvetica', 'normal')
-    pdf.setFontSize(10)
-    pdf.setTextColor(55, 70, 88)
-    pdf.text(`Datum: ${meta.date.split('-').reverse().join('.')}`, 194, 17, { align: 'right' })
-    pdf.text(`Broj dokumenta: ${meta.documentNumber}`, 194, 23, { align: 'right' })
-    pdf.setFontSize(9)
-    pdf.text(`Strana: ${Number(meta.pageNumber) + pageIndex}`, 194, 29, { align: 'right' })
 
-    const x = [15, 27, 112, 141, 161, 195]
-    const tableTop = 48
-    const rowHeight = 15
-    pdf.setFillColor(22, 52, 84)
-    pdf.roundedRect(15, tableTop, 180, 10, 2, 2, 'F')
-    pdf.setTextColor(255, 255, 255)
-    pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(9)
-    pdf.text('R.br.', 17, tableTop + 6.5)
-    pdf.text('Artikal / opis', 29, tableTop + 6.5)
-    pdf.text('Količina', 114, tableTop + 6.5)
-    pdf.text('Jed.', 143, tableTop + 6.5)
-    pdf.text('Napomena', 163, tableTop + 6.5)
-
+  for (let pageIndex = 0; pageIndex < pages; pageIndex += 1) {
     const pageRows = lines.slice(pageIndex * rowsPerPage, (pageIndex + 1) * rowsPerPage)
-    pageRows.forEach((line, index) => {
-      const y = tableTop + 10 + (index * rowHeight)
-      pdf.setFillColor(index % 2 ? 248 : 239, index % 2 ? 250 : 245, index % 2 ? 252 : 249)
-      pdf.rect(15, y, 180, rowHeight, 'F')
-      pdf.setDrawColor(190, 202, 216)
-      pdf.setLineWidth(.25)
-      pdf.line(15, y + rowHeight, 195, y + rowHeight)
-      x.slice(1, -1).forEach((lineX) => pdf.line(lineX, y, lineX, y + rowHeight))
-      pdf.setTextColor(24, 37, 53)
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(9)
-      pdf.text(String((pageIndex * rowsPerPage) + index + 1), 21, y + 8.5, { align: 'center' })
-      pdf.setFont('helvetica', 'bold')
-      pdf.text(pdf.splitTextToSize(line.name, 78).slice(0, 1), 30, y + 5.5)
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(7.5)
-      pdf.setTextColor(92, 105, 120)
-      if (line.description) pdf.text(pdf.splitTextToSize(line.description, 78).slice(0, 1), 30, y + 11)
-      pdf.setTextColor(24, 37, 53)
-      pdf.setFontSize(9)
-      pdf.text(String(line.quantity), 126.5, y + 8.5, { align: 'center' })
-      pdf.text(String(line.unit), 151, y + 8.5, { align: 'center' })
-      pdf.setFontSize(7.5)
-      pdf.text(pdf.splitTextToSize(line.note || '', 30).slice(0, 2), 163, y + 5.5)
-    })
+    const rows = Array.from({ length: rowsPerPage }, (_, index) => {
+      const line = pageRows[index]
+      if (!line) return `<div class="pdf-order-row empty"><span>${(pageIndex * rowsPerPage) + index + 1}</span><div></div><b></b><em></em><small></small></div>`
+      return `<div class="pdf-order-row"><span>${(pageIndex * rowsPerPage) + index + 1}</span><div><b>${esc(line.name)}</b><small>${esc(line.description || '')}</small></div><b>${esc(line.quantity)}</b><em>${esc(line.unit)}</em><small>${esc(line.note || '')}</small></div>`
+    }).join('')
 
-    pdf.setDrawColor(190, 202, 216)
-    for (let index = pageRows.length; index < rowsPerPage; index += 1) {
-      const y = tableTop + 10 + (index * rowHeight)
-      pdf.rect(15, y, 180, rowHeight)
-      x.slice(1, -1).forEach((lineX) => pdf.line(lineX, y, lineX, y + rowHeight))
+    const sheet = document.createElement('section')
+    sheet.className = 'order-pdf-render-sheet'
+    sheet.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;height:1123px;box-sizing:border-box;overflow:hidden;background:#0b1220;color:#edf6ff;font-family:Arial,sans-serif;'
+    sheet.innerHTML = `<header class="pdf-order-header">
+      <div class="pdf-tasker-mark"><i></i><b>T</b><i></i></div>
+      <h1>NARUDŽBENICA</h1>
+      <p class="pdf-order-date">Datum: ${esc(meta.date.split('-').reverse().join('.'))}</p>
+      <p class="pdf-order-number">Broj dokumenta: <b>${esc(meta.documentNumber)}</b></p>
+    </header>
+    <main class="pdf-order-main">
+      <div class="pdf-order-columns"><span>R.br.</span><span>Artikal / opis</span><span>Količina</span><span>Jed.</span><span>Napomena</span></div>
+      <div class="pdf-order-rows">${rows}</div>
+    </main>
+    <footer><span>TASKER · Narudžbenica</span><span>Pripremio: ${esc(meta.preparedBy)} &nbsp;·&nbsp; Stranica ${Number(meta.pageNumber) + pageIndex}</span></footer>
+    <style>
+      .order-pdf-render-sheet *{box-sizing:border-box}
+      .pdf-order-header{position:relative;height:188px;padding-top:42px;background:linear-gradient(135deg,#101f34,#0d192a);border-bottom:1px solid #29445f}
+      .pdf-tasker-mark{position:absolute;left:54px;top:28px;display:flex;flex-direction:column;align-items:center;gap:3px}
+      .pdf-tasker-mark i{display:block;width:20px;height:7px;border-radius:8px;background:#f05252}
+      .pdf-tasker-mark i:last-child{background:#f5f7fa}
+      .pdf-tasker-mark b{display:grid;place-items:center;width:31px;height:31px;border-radius:11px;background:#3b82f6;color:white;font-size:19px}
+      .pdf-order-header h1{margin:0;text-align:center;color:#f3f9ff;font-size:31px;letter-spacing:1.5px}
+      .pdf-order-date{position:absolute;right:54px;top:35px;margin:0;color:#b9cce0;font-size:15px}
+      .pdf-order-number{position:absolute;right:54px;bottom:12px;margin:0;color:#a9bfd5;font-size:13px}
+      .pdf-order-number b{color:#7ee6ff;font-size:14px}
+      .pdf-order-main{padding:0 48px}
+      .pdf-order-columns,.pdf-order-row{display:grid;grid-template-columns:52px minmax(0,1fr) 96px 72px 145px;align-items:center}
+      .pdf-order-columns{height:46px;padding:0 10px;border:1px solid #315272;border-radius:10px 10px 0 0;background:#173a5c;color:#f5fbff;font-size:12px;font-weight:900}
+      .pdf-order-columns span:nth-child(3),.pdf-order-columns span:nth-child(4){text-align:center}
+      .pdf-order-row{height:55px;padding:0 10px;border:1px solid #29445f;border-top:0;background:#101f33;color:#eaf4ff}
+      .pdf-order-row:nth-child(even){background:#13263d}
+      .pdf-order-row>span{text-align:center;color:#91a8be;font-size:12px}
+      .pdf-order-row>div{display:grid;gap:4px;min-width:0;padding-right:10px}
+      .pdf-order-row>div b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f5f9ff;font-size:13px}
+      .pdf-order-row>div small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#91a9bf;font-size:10px}
+      .pdf-order-row>b,.pdf-order-row>em{text-align:center;color:#dcecff;font-size:13px;font-style:normal}
+      .pdf-order-row>small{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;padding-left:8px;color:#b8cce0;font-size:10px;line-height:14px}
+      .pdf-order-row.empty{color:#53697f}
+      .order-pdf-render-sheet footer{position:absolute;left:48px;right:48px;bottom:28px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #29445f;color:#8299af;font-size:11px}
+    </style>`
+    document.body.appendChild(sheet)
+    try {
+      const canvas = await html2canvas(sheet, { scale: 2, backgroundColor: '#0b1220', useCORS: true })
+      if (pageIndex) pdf.addPage()
+      pdf.addImage(canvas.toDataURL('image/jpeg', .94), 'JPEG', 0, 0, 210, 297)
+    } finally {
+      sheet.remove()
     }
-    pdf.setFont('helvetica', 'normal')
-    pdf.setFontSize(8.5)
-    pdf.setTextColor(105, 120, 137)
-    pdf.text('TASKER · Narudžbenica', 15, 288)
-    pdf.text(`Pripremio: ${meta.preparedBy}  ·  Strana ${Number(meta.pageNumber) + pageIndex}`, 195, 288, { align: 'right' })
-  }
-  for (let page = 0; page < pages; page += 1) {
-    if (page) pdf.addPage()
-    drawPage(page)
   }
   return pdf.output('blob')
 }
-
 function ordersPage() {
   const today = todayInputValue()
   let savedMeta = {}
