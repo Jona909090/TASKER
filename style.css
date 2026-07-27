@@ -593,3 +593,14 @@ html[data-theme="graphite"] .settings-form input,html[data-theme="midnight"] .se
 
 /* Receipt issue time and fast search v47 */
 .receipt-filter{display:grid;grid-template-columns:auto minmax(220px,1fr) 180px auto;align-items:center;gap:10px;margin-bottom:13px;padding:12px;border:1px solid #315573;border-radius:14px;background:#13243a}.receipt-filter>span{color:#5fe0ff;font-size:23px}.receipt-filter input{height:42px;padding:0 12px;border:1px solid #345978;border-radius:9px;background:#0e1d31;color:#edf7ff}.receipt-filter button{height:42px;padding:0 13px;border:1px solid #3a607d;border-radius:9px;background:#172d46;color:#bfeeff;font-weight:800}.receipt-table-row>span:first-child{display:grid;gap:3px}.receipt-table-row>span:first-child small{color:#65dcff;font-weight:800}@media(max-width:700px){.receipt-filter{grid-template-columns:auto 1fr}.receipt-filter input[type=date],.receipt-filter button{grid-column:2}.receipt-table>header,.receipt-table-row{grid-template-columns:125px 1.2fr 120px 1fr 150px}}
+
+
+/* Receipts portal card uses the VERTIV cover template in neon green v48 */
+.project-receipts .receipt-card-cover{background:linear-gradient(105deg,rgba(25,174,88,.48),rgba(4,34,25,.18)),repeating-linear-gradient(90deg,transparent 0 32px,rgba(91,255,145,.15) 33px 34px),repeating-linear-gradient(0deg,transparent 0 22px,rgba(91,255,145,.12) 23px 24px)}
+.project-receipts .receipt-card-cover:after{background:linear-gradient(180deg,transparent 20%,#112d2a 100%)}
+.project-receipts .receipt-card-cover i{border-color:rgba(104,255,156,.52)}
+.project-receipts .project-card-top{margin-top:84px}
+.project-receipts .project-label{margin-top:15px}
+.project-receipts .project-card-glow{background:radial-gradient(circle,rgba(81,255,131,.34),rgba(81,255,131,.09) 39%,transparent 68%)}
+.project-receipts:before{background:linear-gradient(90deg,transparent,#51ff83,transparent)}
+.project-receipts:hover{border-color:#66ff96!important;box-shadow:0 25px 46px rgba(0,0,0,.32),0 0 30px rgba(81,255,131,.18)!important}
