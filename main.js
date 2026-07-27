@@ -712,6 +712,59 @@ async function deleteOrderPdf(id) {
   })
 }
 
+
+function downloadTaskerPdf(entry) {
+  const url = URL.createObjectURL(entry.blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = entry.fileName || 'tasker-dokument.pdf'
+  link.style.display = 'none'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 60000)
+}
+
+async function shareTaskerPdf(entry, title, text) {
+  const file = new File([entry.blob], entry.fileName || 'tasker-dokument.pdf', { type: 'application/pdf' })
+  try {
+    if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+      await navigator.share({ title, text, files: [file] })
+      return
+    }
+    downloadTaskerPdf(entry)
+    alert('PDF je preuzet. Dodajte ga ručno u mail ili WhatsApp poruku.')
+  } catch (error) {
+    if (error?.name !== 'AbortError') {
+      downloadTaskerPdf(entry)
+      alert('Direktno slanje nije dostupno, zato je PDF preuzet na uređaj.')
+    }
+  }
+}
+
+function openTaskerPdfViewer(entry, title = 'TASKER PDF dokument') {
+  document.querySelector('#tasker-pdf-viewer')?.remove()
+  const url = URL.createObjectURL(entry.blob)
+  const viewer = document.createElement('div')
+  viewer.id = 'tasker-pdf-viewer'
+  viewer.className = 'tasker-pdf-viewer'
+  viewer.innerHTML = `<section class="tasker-pdf-viewer-dialog" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    <header><div><b>${esc(title)}</b><small>${esc(entry.fileName || '')}</small></div><button type="button" data-pdf-close aria-label="Zatvori">×</button></header>
+    <div class="tasker-pdf-frame"><object data="${url}" type="application/pdf"><p>Pregled PDF-a nije podržan na ovom uređaju. Koristite dugme „Preuzmi PDF“.</p></object></div>
+    <footer><button type="button" data-pdf-download>↓ Preuzmi PDF</button><button type="button" class="primary-btn" data-pdf-share>↗ Pošalji</button></footer>
+  </section>`
+  const close = () => {
+    URL.revokeObjectURL(url)
+    viewer.remove()
+  }
+  viewer.addEventListener('click', async (event) => {
+    if (event.target === viewer || event.target.closest('[data-pdf-close]')) close()
+    else if (event.target.closest('[data-pdf-download]')) downloadTaskerPdf(entry)
+    else if (event.target.closest('[data-pdf-share]')) await shareTaskerPdf(entry, title, entry.fileName || title)
+  })
+  document.body.appendChild(viewer)
+}
+
 async function renderOrderPdfArchive() {
   const list = document.querySelector('#order-pdf-list')
   if (!list) return
@@ -964,11 +1017,7 @@ function ordersPage() {
         if (error?.name !== 'AbortError') alert('Slanje nije uspelo.')
       }
     }
-    if (openId) {
-      const url = URL.createObjectURL(entry.blob)
-      window.open(url, '_blank')
-      setTimeout(() => URL.revokeObjectURL(url), 60000)
-    }
+    if (openId) openTaskerPdfViewer(entry, 'Tasker · Narudžbenica')
     if (deleteId && confirm('Obrisati ovu PDF narudžbenicu?')) {
       await deleteOrderPdf(entry.id)
       renderOrderPdfArchive()
@@ -1702,9 +1751,7 @@ function workDiaryPage(selectedDate = todayInputValue()) {
     if (openId) {
       const entry = (await listWorkDiaryPdfs()).find((item) => item.id === openId)
       if (!entry) return
-      const url = URL.createObjectURL(entry.blob)
-      window.open(url, '_blank')
-      setTimeout(() => URL.revokeObjectURL(url), 60000)
+      openTaskerPdfViewer(entry, 'Tasker · Dnevnik rada')
     }
     if (deleteId && confirm('Obrisati ovaj PDF dnevnik iz Taskera?')) {
       await deleteWorkDiaryPdf(deleteId)
@@ -1940,15 +1987,31 @@ document.querySelector('#back-to-projects').addEventListener('click', projectsHo
 
 projectsHome()
 
-function openProfilePoster() {
+
+let taskerProfileLoadPromise
+function loadTaskerProfilePoster() {
+  if (window.__taskerProfileChunks?.length >= 10) return Promise.resolve(window.__taskerProfileChunks.join(''))
+  if (!taskerProfileLoadPromise) {
+    taskerProfileLoadPromise = Promise.all(Array.from({ length: 10 }, (_, index) => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = `./profile-chunk-v23-${index}.js`
+      script.async = true
+      script.onload = resolve
+      script.onerror = reject
+      document.head.appendChild(script)
+    }))).then(() => window.__taskerProfileChunks?.join('') || '')
+  }
+  return taskerProfileLoadPromise
+}
+
+async function openProfilePoster() {
   let modal = document.querySelector('#profile-poster-modal')
   if (!modal) {
     modal = document.createElement('div')
     modal.id = 'profile-poster-modal'
     modal.className = 'profile-poster-modal'
     modal.hidden = true
-    const posterData = window.__taskerProfileChunks?.join('') || ''
-    const posterSource = posterData ? `data:image/jpeg;base64,${posterData}` : './profile-stefan.svg'
+    const posterSource = './profile-stefan.svg'
     modal.innerHTML = `<div class="profile-poster-dialog" role="dialog" aria-modal="true" aria-label="Tasker profil Stefana Jonića"><button type="button" class="profile-poster-close" aria-label="Zatvori">&times;</button><section class="profile-poster-message"><p>Svaki uspešan posao počinje jasnim planom. Kada su zadaci evidentirani, materijal pod kontrolom i dokumentacija uredno sačuvana, nema nepotrebnog čekanja i iznenađenja.</p><p>TASKER je napravljen da svakog dana znaš šta je završeno, šta još treba uraditi i koji je sledeći korak. Jer dobra organizacija ne znači više administracije — ona znači manje problema, sigurniji rad i više vremena za posao koji je zaista važan.</p><strong>Planiraj jasno.<br>Prati precizno.<br>Završi sigurno.</strong></section><section class="profile-poster-visual"><img src="${posterSource}" alt="Tasker profil Stefana Jonića"><footer><b>Stefan Jonić</b><span>TASKER · Sve pod kontrolom.</span></footer></section></div>`
     document.body.appendChild(modal)
     const style = document.createElement('style')
@@ -1979,6 +2042,19 @@ function openProfilePoster() {
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closePoster() })
   }
   modal.hidden = false
+  const posterImage = modal.querySelector('.profile-poster-visual img')
+  if (posterImage && !posterImage.dataset.fullLoaded) {
+    posterImage.dataset.fullLoaded = 'loading'
+    try {
+      const posterData = await loadTaskerProfilePoster()
+      if (posterData) {
+        posterImage.src = `data:image/jpeg;base64,${posterData}`
+        posterImage.dataset.fullLoaded = 'true'
+      }
+    } catch {
+      posterImage.dataset.fullLoaded = 'fallback'
+    }
+  }
 }
 
 const profileNameStyle = document.createElement('style')
