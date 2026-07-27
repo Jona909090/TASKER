@@ -11,16 +11,16 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon-192.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon-512.svg" />
-    <link rel="stylesheet" href="./style-v45.css?build=45" />
+    <link rel="stylesheet" href="./style-v46.css?build=46" />
     <title>Tasker | Upravljanje materijalom</title>
       <style id="tasker-layout-emergency">.dashboard-card-tools,.dashboard-section-tools{display:none!important}</style>
   </head>
   <body>
     <div id="pwa-splash" aria-hidden="true"><div class="pwa-splash-inner"><span class="pwa-splash-logo"><i></i><b>T</b><i></i></span><strong>TASKER</strong><small>SVE POD KONTROLOM</small></div></div>
     <div id="app"></div>
-    <script type="module" src="./main-v45.js?build=45"></script>
+    <script type="module" src="./main-v46.js?build=46"></script>
     <script>
-      if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js?v=45', { updateViaCache: 'none' }).then((registration) => registration.update()); navigator.serviceWorker.addEventListener('controllerchange', () => { if (!sessionStorage.getItem('tasker-v45-reloaded')) { sessionStorage.setItem('tasker-v45-reloaded', '1'); location.reload(); } }); });
+      if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js?v=46', { updateViaCache: 'none' }).then((registration) => registration.update()); navigator.serviceWorker.addEventListener('controllerchange', () => { if (!sessionStorage.getItem('tasker-v46-reloaded')) { sessionStorage.setItem('tasker-v46-reloaded', '1'); location.reload(); } }); });
       window.addEventListener('load', () => setTimeout(() => document.querySelector('#pwa-splash')?.classList.add('splash-hidden'), 850));
     </script>
   </body>
