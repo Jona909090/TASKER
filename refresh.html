@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="sr-Latn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1220">
+  <title>TASKER osvežavanje</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#07101e;color:#eef7ff;font-family:Arial,sans-serif}
+    main{width:min(92vw,460px);padding:30px;border:1px solid #3bff75;border-radius:22px;background:#10223a;text-align:center;box-shadow:0 0 35px rgba(59,255,117,.2)}
+    .logo{display:grid;place-items:center;width:68px;height:68px;margin:0 auto 18px;border-radius:18px;background:#347ff0;font-size:38px;font-weight:900}
+    h1{margin:0 0 10px}p{color:#9eb2c7;line-height:1.5}.bar{height:8px;margin-top:22px;overflow:hidden;border-radius:99px;background:#091525}.bar i{display:block;width:45%;height:100%;border-radius:inherit;background:#4cff7e;box-shadow:0 0 14px #4cff7e;animation:move 1s infinite alternate}
+    @keyframes move{to{transform:translateX(120%)}}
+  </style>
+</head>
+<body><main><div class="logo">T</div><h1>Osvežavam TASKER</h1><p>Briše se samo stara verzija aplikacije. Vaši zaposleni, materijal i dokumenti ostaju sačuvani.</p><div class="bar"><i></i></div></main>
+<script>
+(async()=>{
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations=await navigator.serviceWorker.getRegistrations()
+      await Promise.all(registrations.map((registration)=>registration.unregister()))
+    }
+    if ('caches' in window) {
+      const names=await caches.keys()
+      await Promise.all(names.filter((name)=>name.startsWith('tasker-')).map((name)=>caches.delete(name)))
+    }
+  } catch {}
+  location.replace('./index.html?v=41&fresh='+Date.now())
+})()
+</script></body></html>
