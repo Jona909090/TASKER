@@ -310,7 +310,7 @@ const receiptStores = () => {
   return Array.from(map.values()).sort((a,b)=>b.total-a.total)
 }
 function receiptProjectCard() {
-  return `<button type="button" class="project-card project-receipts" id="open-receipts-project"><span class="empty-project-number">02</span><span class="project-card-glow"></span><div class="project-card-top"><span class="project-symbol">€</span><span class="project-status"><i></i> Evidencija troškova</span></div><p class="project-label">PROJEKAT</p><h2>RAČUNI I TROŠKOVI</h2><p class="project-description">Fotografisanje računa, pregled prodavnica i automatsko sabiranje ukupnih troškova.</p><div class="project-card-footer"><span>RAČUNI · TROŠKOVI · DRIVE</span><strong>Otvori projekat →</strong></div></button>`
+  return `<button type="button" class="project-card project-receipts" id="open-receipts-project"><span class="empty-project-number">02</span><span class="project-card-glow"></span><span class="project-card-cover receipt-card-cover" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div class="project-card-top"><span class="project-symbol">€</span><span class="project-status"><i></i> Evidencija troškova</span></div><p class="project-label">PROJEKAT</p><h2>RAČUNI I TROŠKOVI</h2><p class="project-description">Fotografisanje računa, pregled prodavnica i automatsko sabiranje ukupnih troškova.</p><div class="project-card-footer"><span>RAČUNI · TROŠKOVI · DRIVE</span><strong>Otvori projekat →</strong></div></button>`
 }
 function receiptProjectShell(active='overview') {
   const tabs=[['overview','⌂','Pregled'],['new','＋','Novi račun'],['stores','▦','Prodavnice'],['table','▤','Zbirna tabela'],['drive','☁','Google Drive']]
