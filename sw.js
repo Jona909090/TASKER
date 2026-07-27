@@ -1,10 +1,10 @@
-const CACHE = 'tasker-v43'
+const CACHE = 'tasker-v44'
 const CORE = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './style-v43.css?build=43',
-  './main-v43.js?build=43',
+  './style-v44.css?build=44',
+  './main-v44.js?build=44',
   './materials.js',
   './icon-192.svg',
   './icon-512.svg',
