@@ -1960,6 +1960,78 @@ content.addEventListener('click', (event) => {
 })
 
 
+
+function renderExpandedControlCenter() {
+  const todayKey = dateKeyFor()
+  const activeEmployees = state.employees.filter((employee) => employee.active !== false)
+  const todayAttendance = state.attendance[todayKey] || {}
+  const monthPrefix = todayKey.slice(0, 7)
+  const monthDays = Object.entries(state.attendance).filter(([key]) => key.startsWith(monthPrefix))
+  const lowItems = materials.filter((item) => Number(item.stock) > 0 && Number(item.stock) <= Number(item.minStock || 0))
+  const emptyItems = materials.filter((item) => Number(item.stock) <= 0)
+  const requestItems = [...emptyItems, ...lowItems]
+  const orders = normalizeOrderLines()
+  const allUnits = moduleTypes.flatMap((type) => {
+    const count = Number(moduleData(type).count) || 0
+    return Array.from({ length: count }, (_, index) => ({ type, unit: moduleUnit(type, index + 1) }))
+  })
+  const minutesNow = new Date().getHours() * 60 + new Date().getMinutes()
+  const todoStatus = (todo) => todo.done ? 'done' : (todo.time && notificationMinutes(todo.time) <= minutesNow ? 'expired' : 'active')
+  const categoryName = (item) => categories.find((entry) => entry.id === item.category)?.name || item.category || '—'
+  const root = document.createElement('section')
+  root.className = 'control-details'
+  root.innerHTML = `
+    <article class="control-detail-section material-detail-section">
+      <header><div><span>▦</span><div><p class="eyebrow">KOMPLETNO STANJE</p><h2>Sav materijal na stanju</h2><small>Svaki artikal, količina, minimum i lokacija.</small></div></div><b>${materials.length} artikala</b></header>
+      <div class="control-detail-table"><div class="control-table-head"><span>Materijal</span><span>Kategorija / standard</span><span>Lokacija</span><span>Minimum</span><span>Na stanju</span><span>Status</span></div>
+      ${materials.length ? materials.map((item) => {
+        const status = Number(item.stock) <= 0 ? ['NEMA','bad'] : Number(item.stock) <= Number(item.minStock || 0) ? ['PRI KRAJU','warn'] : ['DOVOLJNO','good']
+        return `<div class="control-table-row"><div><b>${esc(item.name)}</b><small>${esc(item.unit || '')}</small></div><div><span>${esc(categoryName(item))}</span><small>${esc(item.standard || '—')}</small></div><span>${esc(item.location || '—')}</span><span>${new Intl.NumberFormat('sr-RS').format(item.minStock || 0)}</span><strong>${new Intl.NumberFormat('sr-RS').format(item.stock || 0)} ${esc(item.unit || '')}</strong><em class="${status[1]}">${status[0]}</em></div>`
+      }).join('') : '<p class="control-empty">Nema unetog materijala.</p>'}</div>
+    </article>
+
+    <article class="control-detail-section requests-detail-section">
+      <header><div><span>!</span><div><p class="eyebrow">ZAHTEVI I NABAVKA</p><h2>Svi zahtevi</h2><small>Materijal za proveru i sve stavke narudžbenice.</small></div></div><b>${requestItems.length + orders.length} zahteva</b></header>
+      <div class="control-request-groups">
+        <section><h3>Materijal za proveru <b>${requestItems.length}</b></h3><div>${requestItems.length ? requestItems.map((item) => `<article class="${Number(item.stock)<=0?'urgent':''}"><span>${Number(item.stock)<=0?'×':'!'}</span><div><b>${esc(item.name)}</b><small>Trenutno ${item.stock || 0} ${esc(item.unit || '')} · minimum ${item.minStock || 0}</small></div><em>${Number(item.stock)<=0?'Nabaviti':'Proveriti'}</em></article>`).join('') : '<p class="control-empty">Nema zahteva za proveru.</p>'}</div></section>
+        <section><h3>Stavke za naručivanje <b>${orders.length}</b></h3><div>${orders.length ? orders.map((line,index) => `<article><span>${index+1}</span><div><b>${esc(line.name)}</b><small>${esc(line.description || line.note || 'Bez napomene')}</small></div><strong>${line.quantity} ${esc(line.unit)}</strong></article>`).join('') : '<p class="control-empty">Narudžbenica je prazna.</p>'}</div></section>
+      </div>
+    </article>
+
+    <article class="control-detail-section people-detail-section">
+      <header><div><span>●</span><div><p class="eyebrow">PRISUTNOST I LJUDI</p><h2>Kompletno brojno stanje</h2><small>Ko je prisutan, ko nije i mesečni izostanci.</small></div></div><b>${activeEmployees.filter((employee)=>todayAttendance[employee.id]!==false).length}/${activeEmployees.length} prisutno</b></header>
+      <div class="control-people-full">${state.employees.map((employee) => {
+        const enabled=employee.active!==false, present=enabled && todayAttendance[employee.id]!==false
+        const absences=monthDays.filter(([,day])=>day[employee.id]===false).length
+        return `<article class="${!enabled?'inactive':present?'present':'absent'}"><span>${employee.name.split(' ').map((part)=>part[0]).slice(0,2).join('').toUpperCase()}</span><div><b>${esc(employee.name)}</b><small>${esc(employee.role || 'Zaposleni')}</small></div><em>${!enabled?'NEAKTIVAN':present?'PRISUTAN':'ODSUTAN'}</em><p>Izostanci ovog meseca <b>${absences}</b></p></article>`
+      }).join('') || '<p class="control-empty">Nema zaposlenih.</p>'}</div>
+    </article>
+
+    <article class="control-detail-section modules-detail-section">
+      <header><div><span>◉</span><div><p class="eyebrow">SVAKI MODUL</p><h2>Detaljan napredak modula</h2><small>Napredak, završene faze i trenutno aktivan rad.</small></div></div><b>${allUnits.length} modula</b></header>
+      <div class="control-module-groups">${moduleTypes.map((type) => {
+        const units=allUnits.filter((entry)=>entry.type.id===type.id)
+        return `<section style="--module-color:${type.color}"><header><div><i></i><h3>${esc(type.label)}</h3><span>${units.length} modula</span></div><b>${typeProgress(type)}% ukupno</b></header><div>${units.length ? units.map(({unit}) => {
+          const stages=unit.stages||[], done=stages.filter((stage)=>stage.status==='zavrseno').length
+          const running=stages.filter((stage)=>stage.status==='u-toku').map((stage)=>stage.title)
+          return `<button data-control-module-type="${type.id}" data-control-module-unit="${unit.id}"><b>${esc(unit.id)}</b><div class="module-line-progress"><i><em style="width:${Number(unit.progress)||0}%"></em></i><strong>${Number(unit.progress)||0}%</strong></div><span><b>${done}/${stages.length}</b> faza</span><span class="module-running">${running.length?esc(running.join(', ')):Number(unit.progress)>=100?'Modul završen':'Nema faze u toku'}</span><small>${unit.work?esc(unit.work):'Nema upisane aktivnosti'}</small></button>`
+        }).join('') : '<p class="control-empty">Nema modula u ovoj grupi.</p>'}</div></section>`
+      }).join('')}</div>
+    </article>
+
+    <article class="control-detail-section tasks-detail-section">
+      <header><div><span>✓</span><div><p class="eyebrow">SVE OBAVEZE</p><h2>Aktivne, istekle i završene</h2><small>Sve dnevne obaveze odmah na jednom mestu.</small></div></div><b>${state.todos.length} obaveza</b></header>
+      <div class="control-task-summary"><span>Aktivne <b>${state.todos.filter((todo)=>todoStatus(todo)==='active').length}</b></span><span>Istekle <b>${state.todos.filter((todo)=>todoStatus(todo)==='expired').length}</b></span><span>Završene <b>${state.todos.filter((todo)=>todoStatus(todo)==='done').length}</b></span></div>
+      <div class="control-task-full">${state.todos.length ? state.todos.slice().sort((a,b)=>['expired','active','done'].indexOf(todoStatus(a))-['expired','active','done'].indexOf(todoStatus(b))).map((todo) => {
+        const status=todoStatus(todo)
+        return `<article class="${status}"><span>${status==='done'?'✓':status==='expired'?'!':'○'}</span><div><b>${esc(todo.text || todo.title || 'Obaveza')}</b><small>${todo.time?`Vreme ${esc(todo.time)}`:'Bez određenog vremena'}</small></div><em>${status==='done'?'ZAVRŠENO':status==='expired'?'ISTEKLO':'AKTIVNO'}</em></article>`
+      }).join('') : '<p class="control-empty">Nema obaveza.</p>'}</div>
+    </article>`
+  const before = document.querySelector('.control-lower-grid')
+  if (before) before.insertAdjacentElement('beforebegin', root)
+  root.querySelectorAll('[data-control-module-unit]').forEach((button) => button.addEventListener('click', () => moduleUnitPage(button.dataset.controlModuleType, button.dataset.controlModuleUnit)))
+}
+
 function controlCenterPage() {
   const todayKey = dateKeyFor()
   const activeEmployees = state.employees.filter((employee) => employee.active !== false)
@@ -2008,6 +2080,7 @@ function controlCenterPage() {
     </section>
     <section class="control-documents"><div><span>▣</span><div><b>Sačuvani PDF dokumenti</b><small>Narudžbenice i dnevnici rada sa ovog uređaja</small></div></div><div><button data-control-go="orders">Narudžbenice <b id="control-order-pdfs">…</b></button><button data-control-go="work-diary">Dnevnici <b id="control-diary-pdfs">…</b></button></div></section>
   </section>`
+  renderExpandedControlCenter()
   content.querySelectorAll('[data-control-go]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.controlGo)))
   content.querySelector('#clear-control-activity')?.addEventListener('click', () => { localStorage.removeItem(controlActivityStorage); controlCenterPage() })
   Promise.all([listOrderPdfs().catch(() => []), listWorkDiaryPdfs().catch(() => [])]).then(([orders, diaries]) => {
