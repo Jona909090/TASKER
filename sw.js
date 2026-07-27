@@ -1,1 +1,58 @@
-const CACHE='tasker-v36';const CORE=['./','./index.html','./manifest.webmanifest','./style-v36.css?build=36','./main-v36.js?build=36','./materials.js','./icon-192.svg','./icon-512.svg','./profile-stefan.svg','./profile-chunk-v23-0.js','./profile-chunk-v23-1.js','./profile-chunk-v23-2.js','./profile-chunk-v23-3.js','./profile-chunk-v23-4.js','./profile-chunk-v23-5.js','./profile-chunk-v23-6.js','./profile-chunk-v23-7.js','./profile-chunk-v23-8.js','./profile-chunk-v23-9.js'];self.addEventListener('install',(event)=>{event.waitUntil(caches.open(CACHE).then((cache)=>cache.addAll(CORE)).then(()=>self.skipWaiting()))});self.addEventListener('activate',(event)=>{event.waitUntil(caches.keys().then((keys)=>Promise.all(keys.filter((key)=>key!==CACHE).map((key)=>caches.delete(key)))).then(()=>self.clients.claim()))});self.addEventListener('fetch',(event)=>{if(event.request.method!=='GET')return;event.respondWith(fetch(event.request).then((response)=>{const copy=response.clone();caches.open(CACHE).then((cache)=>cache.put(event.request,copy));return response}).catch(()=>caches.match(event.request).then((cached)=>cached||caches.match('./index.html'))))});
+const CACHE = 'tasker-v37'
+const CORE = [
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './style-v37.css?build=37',
+  './main-v37.js?build=37',
+  './materials.js',
+  './icon-192.svg',
+  './icon-512.svg',
+  './profile-stefan.svg'
+]
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((cache) => Promise.all(CORE.map((url) => cache.add(url).catch(() => null))))
+      .then(() => self.skipWaiting())
+  )
+})
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
+  )
+})
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request
+  if (request.method !== 'GET') return
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) caches.open(CACHE).then((cache) => cache.put('./index.html', response.clone()))
+          return response
+        })
+        .catch(() => caches.match('./index.html'))
+    )
+    return
+  }
+
+  event.respondWith(
+    caches.match(request).then((cached) =>
+      fetch(request)
+        .then((response) => {
+          if (response.ok && new URL(request.url).origin === self.location.origin) {
+            caches.open(CACHE).then((cache) => cache.put(request, response.clone()))
+          }
+          return response
+        })
+        .catch(() => cached || Response.error())
+    )
+  )
+})
