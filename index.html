@@ -11,16 +11,16 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon-192.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon-512.svg" />
-    <link rel="stylesheet" href="./style-v40.css?build=40" />
+    <link rel="stylesheet" href="./style-v41.css?build=41" />
     <title>Tasker | Upravljanje materijalom</title>
       <style id="tasker-layout-emergency">.dashboard-card-tools,.dashboard-section-tools{display:none!important}</style>
   </head>
   <body>
     <div id="pwa-splash" aria-hidden="true"><div class="pwa-splash-inner"><span class="pwa-splash-logo"><i></i><b>T</b><i></i></span><strong>TASKER</strong><small>SVE POD KONTROLOM</small></div></div>
     <div id="app"></div>
-    <script type="module" src="./main-v40.js?build=40"></script>
+    <script type="module" src="./main-v41.js?build=41"></script>
     <script>
-      if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=40', { updateViaCache: 'none' }).then((registration) => registration.update()));
+      if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js?v=41', { updateViaCache: 'none' }).then((registration) => registration.update()); navigator.serviceWorker.addEventListener('controllerchange', () => { if (!sessionStorage.getItem('tasker-v41-reloaded')) { sessionStorage.setItem('tasker-v41-reloaded', '1'); location.reload(); } }); });
       window.addEventListener('load', () => setTimeout(() => document.querySelector('#pwa-splash')?.classList.add('splash-hidden'), 850));
     </script>
   </body>
