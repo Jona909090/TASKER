@@ -141,7 +141,14 @@ const loadNavOrder = () => {
   try {
     const saved = JSON.parse(localStorage.getItem(navOrderStorage) || '[]')
     const available = currentNavPages()
-    return [...saved.filter((page) => available.includes(page)), ...available.filter((page) => !saved.includes(page))]
+    const merged = [...saved.filter((page) => available.includes(page)), ...available.filter((page) => !saved.includes(page))]
+    if (!saved.includes('control-center')) {
+      const currentIndex = merged.indexOf('control-center')
+      if (currentIndex >= 0) merged.splice(currentIndex, 1)
+      const dashboardIndex = merged.indexOf('dashboard')
+      merged.splice(dashboardIndex >= 0 ? dashboardIndex + 1 : 0, 0, 'control-center')
+    }
+    return merged
   } catch {
     return currentNavPages()
   }
