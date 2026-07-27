@@ -1,10 +1,15 @@
 import { categories, materials, renderCategory, renderItems, renderMaterials } from './materials.js'
 
+const controlActivityStorage = 'tasker.control-activity';
+const controlActivityLabels = { material: 'Materijal', employees: 'Zaposleni', attendance: 'Prisutnost', orders: 'Narudžbine', tasks: 'Obaveze', modules: 'Moduli', hours: 'Radni sati', plans: 'Plan rada' }
+function readControlActivities() { try { const list = JSON.parse(localStorage.getItem(controlActivityStorage) || '[]'); return Array.isArray(list) ? list : [] } catch { return [] } }
+function recordControlActivity(kind, title) { const list = readControlActivities(); const now = Date.now(); if (list[0]?.kind === kind && list[0]?.title === title && now - Number(list[0].time) < 2000) return; list.unshift({ id: `${now}-${Math.random().toString(16).slice(2)}`, kind, title, time: now }); localStorage.setItem(controlActivityStorage, JSON.stringify(list.slice(0, 60))) }
+
 const storage = 'tasker.todos'; const filterStorage = 'tasker.filter'; const inventoryStorage = 'tasker.inventory'; const categoryStorage = 'tasker.categories'; const orderStorage = 'tasker.order-lines'; const moduleStorage = 'tasker.module-progress'; const moduleDetailStorage = 'tasker.module-details'; const employeeStorage = 'tasker.employees'; const attendanceStorage = 'tasker.daily-attendance'; const workHoursStorage = 'tasker.work-hours'; const workPlanStorage = 'tasker.work-plans'; const diaryStorage = 'tasker.work-diary'; const settingsStorage = 'tasker.settings'; const projectStorage = 'tasker.projects'
 try { const savedCategories = JSON.parse(localStorage.getItem(categoryStorage) || 'null'); if (Array.isArray(savedCategories)) categories.splice(0, categories.length, ...savedCategories) } catch {}
 const saveCategories = () => localStorage.setItem(categoryStorage, JSON.stringify(categories))
 try { const savedInventory = JSON.parse(localStorage.getItem(inventoryStorage) || 'null'); if (Array.isArray(savedInventory)) materials.splice(0, materials.length, ...savedInventory) } catch {}
-const saveInventory = () => localStorage.setItem(inventoryStorage, JSON.stringify(materials))
+const saveInventory = () => { localStorage.setItem(inventoryStorage, JSON.stringify(materials)); recordControlActivity('material', 'Stanje materijala je izmenjeno') }
 const defaultSettings = { userName: 'Stefan Jonić', companyName: 'TASKER', defaultMinStock: 0, theme: 'dark' }
 let savedSettings = {}
 try { savedSettings = JSON.parse(localStorage.getItem(settingsStorage) || '{}') || {}; if (savedSettings.theme === 'light') savedSettings.theme = 'dark' } catch {}
@@ -19,21 +24,21 @@ const grantProjectAccess = (key) => sessionStorage.setItem(projectAccessKey(key)
 const state = { todos: JSON.parse(localStorage.getItem(storage) || '[]'), filter: localStorage.getItem(filterStorage) || 'all', currentCategory: null, orderLines: JSON.parse(localStorage.getItem(orderStorage) || '[]'), moduleProgress: JSON.parse(localStorage.getItem(moduleStorage) || '{"mv":0,"mvs":0,"rpp":0}'), moduleDetails: JSON.parse(localStorage.getItem(moduleDetailStorage) || '{}'), attendance: JSON.parse(localStorage.getItem(attendanceStorage) || '{}'), workHours: JSON.parse(localStorage.getItem(workHoursStorage) || '{}'), workPlans: JSON.parse(localStorage.getItem(workPlanStorage) || '{}'), settings: { ...defaultSettings, ...savedSettings } }
 const defaultEmployees = [{ id: 1, name: 'Stefan Jonic', role: 'Vodja gradilista', phone: '---', active: true }, { id: 2, name: 'Marko Petrovic', role: 'Nadzor', phone: '---', active: true }, { id: 3, name: 'Nikola Ilic', role: 'Radnik', phone: '---', active: true }, { id: 4, name: 'Milan Jovanovic', role: 'Radnik', phone: '---', active: true }, { id: 5, name: 'Dejan Markovic', role: 'Radnik', phone: '---', active: true }, { id: 6, name: 'Aleksandar Nikolic', role: 'Pomocni radnik', phone: '---', active: true }]
 try { const savedEmployees = JSON.parse(localStorage.getItem(employeeStorage) || 'null'); state.employees = Array.isArray(savedEmployees) ? savedEmployees : defaultEmployees } catch { state.employees = defaultEmployees }
-const saveEmployees = () => localStorage.setItem(employeeStorage, JSON.stringify(state.employees))
-const saveAttendance = () => localStorage.setItem(attendanceStorage, JSON.stringify(state.attendance))
-const saveWorkHours = () => localStorage.setItem(workHoursStorage, JSON.stringify(state.workHours))
-const saveWorkPlans = () => localStorage.setItem(workPlanStorage, JSON.stringify(state.workPlans))
+const saveEmployees = () => { localStorage.setItem(employeeStorage, JSON.stringify(state.employees)); recordControlActivity('employees', 'Podaci zaposlenih su izmenjeni') }
+const saveAttendance = () => { localStorage.setItem(attendanceStorage, JSON.stringify(state.attendance)); recordControlActivity('attendance', 'Evidencija prisutnosti je izmenjena') }
+const saveWorkHours = () => { localStorage.setItem(workHoursStorage, JSON.stringify(state.workHours)); recordControlActivity('hours', 'Radni sati su sačuvani') }
+const saveWorkPlans = () => { localStorage.setItem(workPlanStorage, JSON.stringify(state.workPlans)); recordControlActivity('plans', 'Plan rada je izmenjen') }
 const saveSettings = () => localStorage.setItem(settingsStorage, JSON.stringify(state.settings))
 const applyTheme = () => document.documentElement.dataset.theme = state.settings.theme
 applyTheme()
 const app = document.querySelector('#app'); let projectOpen = false; let newProjectSlot = null; const low = materials.filter((item) => item.stock > 0 && item.stock <= item.minStock).length; const noStock = materials.filter((item) => item.stock <= 0).length
 const esc = (text) => String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
-const save = () => { localStorage.setItem(storage, JSON.stringify(state.todos)); localStorage.setItem(filterStorage, state.filter) }
-const saveOrder = () => localStorage.setItem(orderStorage, JSON.stringify(state.orderLines))
-const saveModuleProgress = () => localStorage.setItem(moduleStorage, JSON.stringify(state.moduleProgress))
-const saveModuleDetails = () => localStorage.setItem(moduleDetailStorage, JSON.stringify(state.moduleDetails))
+const save = () => { localStorage.setItem(storage, JSON.stringify(state.todos)); localStorage.setItem(filterStorage, state.filter); recordControlActivity('tasks', 'Dnevne obaveze su izmenjene') }
+const saveOrder = () => { localStorage.setItem(orderStorage, JSON.stringify(state.orderLines)); recordControlActivity('orders', 'Narudžbenica je izmenjena') }
+const saveModuleProgress = () => { localStorage.setItem(moduleStorage, JSON.stringify(state.moduleProgress)); recordControlActivity('modules', 'Napredak modula je izmenjen') }
+const saveModuleDetails = () => { localStorage.setItem(moduleDetailStorage, JSON.stringify(state.moduleDetails)); recordControlActivity('modules', 'Detalji modula su izmenjeni') }
 
-app.innerHTML = `<div class="shell project-home"><aside class="sidebar"><a class="brand" href="#"><span class="brand-mark"><i></i><b>T</b><i></i></span><span><strong id="brand-company">${esc(state.settings.companyName)}</strong></span></a><button class="back-to-projects" id="back-to-projects" type="button">\u2190 Projekti</button><nav><button class="nav-link active" data-page="dashboard"><span>\u2302</span> Po\u010Detna</button><button class="nav-link" data-page="materials"><span>\u25A6</span> Materijal <b>${materials.length}</b></button><button class="nav-link" data-page="employees"><span>\u263B</span> Zaposleni</button><button class="nav-link" data-page="orders"><span>\u25A4</span> Narud\u017Ebine</button><button class="nav-link" data-page="reports"><span>\u25A5</span> Izve\u0161taji</button></nav><div class="sidebar-footer"><button class="nav-link" data-page="settings"><span>\u2699</span> Pode\u0161avanja</button><p>Tasker v2.0</p></div></aside><div class="workspace"><header class="topbar"><div class="topbar-time-area"><span id="breadcrumb" hidden>Po\u010Detna</span></div><div class="topbar-profile-actions"><a class="radio-tvornica" href="https://www.radiotvornica.hr/" target="_blank" rel="noopener noreferrer" aria-label="Otvori Radio Tvornicu" title="Radio Tvornica">&#128251;</a><button type="button" class="profile" aria-label="Otvori profil" style="border:0;background:transparent;color:inherit;cursor:pointer;"><span id="profile-initials">SJ</span><b id="profile-name">${esc(state.settings.userName)}</b></button></div></header><main id="content" class="content"></main></div></div>`
+app.innerHTML = `<div class="shell project-home"><aside class="sidebar"><a class="brand" href="#"><span class="brand-mark"><i></i><b>T</b><i></i></span><span><strong id="brand-company">${esc(state.settings.companyName)}</strong></span></a><button class="back-to-projects" id="back-to-projects" type="button">\u2190 Projekti</button><nav><button class="nav-link active" data-page="dashboard"><span>\u2302</span> Po\u010Detna</button><button class="nav-link" data-page="control-center"><span>◉</span> Kontrolni centar</button><button class="nav-link" data-page="materials"><span>\u25A6</span> Materijal <b>${materials.length}</b></button><button class="nav-link" data-page="employees"><span>\u263B</span> Zaposleni</button><button class="nav-link" data-page="orders"><span>\u25A4</span> Narud\u017Ebine</button><button class="nav-link" data-page="reports"><span>\u25A5</span> Izve\u0161taji</button></nav><div class="sidebar-footer"><button class="nav-link" data-page="settings"><span>\u2699</span> Pode\u0161avanja</button><p>Tasker v2.0</p></div></aside><div class="workspace"><header class="topbar"><div class="topbar-time-area"><span id="breadcrumb" hidden>Po\u010Detna</span></div><div class="topbar-profile-actions"><a class="radio-tvornica" href="https://www.radiotvornica.hr/" target="_blank" rel="noopener noreferrer" aria-label="Otvori Radio Tvornicu" title="Radio Tvornica">&#128251;</a><button type="button" class="profile" aria-label="Otvori profil" style="border:0;background:transparent;color:inherit;cursor:pointer;"><span id="profile-initials">SJ</span><b id="profile-name">${esc(state.settings.userName)}</b></button></div></header><main id="content" class="content"></main></div></div>`
 
 
 /* TASKER instalacija na telefon i tablet. */
@@ -116,6 +121,7 @@ document.querySelector('nav').insertBefore(photosLink, documentsLink)
 const navOrderStorage = 'tasker.nav-order'
 const navLabels = {
   dashboard: 'Početna',
+  'control-center': 'Kontrolni centar',
   materials: 'Materijal',
   employees: 'Zaposleni',
   orders: 'Narudžbine',
@@ -1946,16 +1952,76 @@ content.addEventListener('click', (event) => {
   }
 })
 
+
+function controlCenterPage() {
+  const todayKey = dateKeyFor()
+  const activeEmployees = state.employees.filter((employee) => employee.active !== false)
+  const todayAttendance = state.attendance[todayKey] || {}
+  const presentToday = activeEmployees.filter((employee) => todayAttendance[employee.id] !== false)
+  const absentToday = activeEmployees.filter((employee) => todayAttendance[employee.id] === false)
+  const lowMaterials = materials.filter((item) => Number(item.stock) > 0 && Number(item.stock) <= Number(item.minStock || 0))
+  const emptyMaterials = materials.filter((item) => Number(item.stock) <= 0)
+  const totalStock = materials.reduce((sum, item) => sum + (Number(item.stock) || 0), 0)
+  const openTasks = state.todos.filter((todo) => !todo.done)
+  const completedTasks = state.todos.filter((todo) => todo.done)
+  const totalModules = moduleTypes.reduce((sum, type) => sum + (Number(moduleData(type).count) || 0), 0)
+  const overallProgress = totalModules ? Math.round(moduleTypes.reduce((sum, type) => sum + typeProgress(type) * (Number(moduleData(type).count) || 0), 0) / totalModules) : 0
+  const monthPrefix = todayKey.slice(0, 7)
+  const monthAttendance = Object.entries(state.attendance).filter(([key]) => key.startsWith(monthPrefix))
+  const monthPresent = monthAttendance.reduce((sum, [, day]) => sum + activeEmployees.filter((employee) => day[employee.id] !== false).length, 0)
+  const monthAbsent = monthAttendance.reduce((sum, [, day]) => sum + activeEmployees.filter((employee) => day[employee.id] === false).length, 0)
+  const weekDays = Array.from({ length: 7 }, (_, offset) => { const date = new Date(); date.setDate(date.getDate() - (6 - offset)); const key = dateKeyFor(date); const day = state.attendance[key]; return { key, label: new Intl.DateTimeFormat('sr-Latn-RS', { weekday: 'short' }).format(date).replace('.', ''), value: day ? activeEmployees.filter((employee) => day[employee.id] !== false).length : null } })
+  const maxPeople = Math.max(1, activeEmployees.length)
+  const activities = readControlActivities().slice(0, 10)
+  const alerts = [
+    ...emptyMaterials.slice(0, 5).map((item) => ({ level: 'danger', icon: '×', title: item.name, text: 'Nema na stanju', page: 'materials' })),
+    ...lowMaterials.slice(0, 5).map((item) => ({ level: 'warning', icon: '!', title: item.name, text: `${new Intl.NumberFormat('sr-RS').format(item.stock)} ${item.unit || 'kom'} · minimum ${new Intl.NumberFormat('sr-RS').format(item.minStock || 0)}`, page: 'materials' })),
+    ...absentToday.map((employee) => ({ level: 'people', icon: '●', title: employee.name, text: 'Nije prisutan danas', page: 'daily-report' })),
+    ...openTasks.slice(0, 4).map((todo) => ({ level: 'task', icon: '✓', title: todo.text || todo.title || 'Dnevna obaveza', text: todo.time ? `Rok ${todo.time}` : 'Čeka završetak', page: 'dashboard' }))
+  ]
+  const moduleRings = moduleTypes.map((type) => `<article><div class="control-ring" style="--value:${typeProgress(type)};--ring:${type.color}"><span><b>${typeProgress(type)}%</b><small>${esc(type.label)}</small></span></div><p>${Number(moduleData(type).count) || 0} modula</p></article>`).join('')
+  content.innerHTML = `<section class="control-center">
+    <header class="control-heading"><div><p class="eyebrow">ŽIVI PREGLED CELE APLIKACIJE</p><h1>Kontrolni centar</h1><p>Svi podaci se automatski preuzimaju iz ostalih TASKER kartica.</p></div><div class="control-live"><i></i><span>Podaci uživo</span><b>${new Intl.DateTimeFormat('sr-Latn-RS', { hour: '2-digit', minute: '2-digit' }).format(new Date())}</b></div></header>
+    <section class="control-kpis">
+      <button data-control-go="materials" class="cyan"><span>▦</span><p>Materijal na stanju</p><strong>${new Intl.NumberFormat('sr-RS').format(totalStock)}</strong><small>${materials.length} artikala</small></button>
+      <button data-control-go="materials" class="red"><span>!</span><p>Zahteva pažnju</p><strong>${lowMaterials.length + emptyMaterials.length}</strong><small>${emptyMaterials.length} bez stanja</small></button>
+      <button data-control-go="daily-report" class="green"><span>●</span><p>Prisutni danas</p><strong>${presentToday.length}</strong><small>${absentToday.length} odsutnih</small></button>
+      <button data-control-go="modules" class="blue"><span>◉</span><p>Napredak modula</p><strong>${overallProgress}%</strong><small>${totalModules} ukupno</small></button>
+      <button data-control-go="orders" class="yellow"><span>▤</span><p>Stavke za naručiti</p><strong>${state.orderLines.length}</strong><small>trenutna narudžbenica</small></button>
+      <button data-control-go="dashboard" class="pink"><span>✓</span><p>Aktivne obaveze</p><strong>${openTasks.length}</strong><small>${completedTasks.length} završeno</small></button>
+    </section>
+    <section class="control-main-grid">
+      <article class="control-panel control-modules"><header><div><p class="eyebrow">PROIZVODNJA</p><h2>Napredak modula</h2></div><b>${overallProgress}%</b></header><div class="control-rings">${moduleRings}</div><button data-control-go="modules">Otvori module →</button></article>
+      <article class="control-panel control-material"><header><div><p class="eyebrow">MAGACIN</p><h2>Stanje materijala</h2></div><b>${materials.length}</b></header><div class="control-material-bars"><div><span>Na stanju</span><i><em style="width:${materials.length ? Math.max(4,(materials.length-lowMaterials.length-emptyMaterials.length)/materials.length*100) : 0}%"></em></i><b>${Math.max(0,materials.length-lowMaterials.length-emptyMaterials.length)}</b></div><div class="warn"><span>Pri kraju</span><i><em style="width:${materials.length ? Math.max(lowMaterials.length?4:0,lowMaterials.length/materials.length*100) : 0}%"></em></i><b>${lowMaterials.length}</b></div><div class="bad"><span>Nema</span><i><em style="width:${materials.length ? Math.max(emptyMaterials.length?4:0,emptyMaterials.length/materials.length*100) : 0}%"></em></i><b>${emptyMaterials.length}</b></div></div><button data-control-go="materials">Otvori materijal →</button></article>
+      <article class="control-panel control-people"><header><div><p class="eyebrow">LJUDI</p><h2>Prisutnost 7 dana</h2></div><b>${presentToday.length}/${activeEmployees.length}</b></header><div class="control-week">${weekDays.map((day) => `<div><b>${day.value ?? '—'}</b><span><i style="height:${day.value == null ? 4 : Math.max(8,day.value/maxPeople*100)}%"></i></span><small>${day.label}</small></div>`).join('')}</div><footer><span>Ovaj mesec: <b>${monthPresent}</b> prisustva</span><span>Izostanci: <b>${monthAbsent}</b></span></footer><button data-control-go="daily-report">Otvori evidenciju →</button></article>
+    </section>
+    <section class="control-lower-grid">
+      <article class="control-panel control-alerts"><header><div><p class="eyebrow">ZAHTEVA PAŽNJU</p><h2>Upozorenja</h2></div><b>${alerts.length}</b></header><div class="control-alert-list">${alerts.length ? alerts.slice(0,10).map((item) => `<button data-control-go="${item.page}" class="${item.level}"><span>${item.icon}</span><div><b>${esc(item.title)}</b><small>${esc(item.text)}</small></div><em>→</em></button>`).join('') : '<p class="control-empty">✓ Sve je pod kontrolom. Nema aktivnih upozorenja.</p>'}</div></article>
+      <article class="control-panel control-activity"><header><div><p class="eyebrow">HRONOLOŠKI PREGLED</p><h2>Poslednje aktivnosti</h2></div><button id="clear-control-activity" type="button">Obriši</button></header><div class="control-activity-list">${activities.length ? activities.map((item) => `<article><span class="${item.kind}">•</span><div><b>${esc(controlActivityLabels[item.kind] || 'TASKER')}</b><p>${esc(item.title)}</p></div><time>${new Intl.DateTimeFormat('sr-Latn-RS', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(item.time))}</time></article>`).join('') : '<p class="control-empty">Ovde će se pojavljivati sve nove promene u aplikaciji.</p>'}</div></article>
+    </section>
+    <section class="control-documents"><div><span>▣</span><div><b>Sačuvani PDF dokumenti</b><small>Narudžbenice i dnevnici rada sa ovog uređaja</small></div></div><div><button data-control-go="orders">Narudžbenice <b id="control-order-pdfs">…</b></button><button data-control-go="work-diary">Dnevnici <b id="control-diary-pdfs">…</b></button></div></section>
+  </section>`
+  content.querySelectorAll('[data-control-go]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.controlGo)))
+  content.querySelector('#clear-control-activity')?.addEventListener('click', () => { localStorage.removeItem(controlActivityStorage); controlCenterPage() })
+  Promise.all([listOrderPdfs().catch(() => []), listWorkDiaryPdfs().catch(() => [])]).then(([orders, diaries]) => {
+    const orderCount = document.querySelector('#control-order-pdfs')
+    const diaryCount = document.querySelector('#control-diary-pdfs')
+    if (orderCount) orderCount.textContent = orders.length
+    if (diaryCount) diaryCount.textContent = diaries.length
+  })
+}
+
 function placeholder(title) {
   content.innerHTML = `<section class="empty-page"><p class="eyebrow">U pripremi</p><h1>${title}</h1><p>Ovaj deo sistema bi\u0107e dodat u narednom koraku.</p></section>`
 }
 
 function navigate(page) {
-  const labels = { dashboard: 'Po\u010Detna', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', 'work-diary': 'Dnevnik rada', 'work-hours': 'Radni sati', 'monthly-hours': 'Mesecni sati', 'work-plan': 'Plan rada', documents: 'Dokumentacija', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
+  const labels = { dashboard: 'Po\u010Detna', 'control-center': 'Kontrolni centar', materials: 'Materijal', employees: 'Zaposleni', orders: 'Narud\u017Ebine', modules: 'Modul', 'daily-report': 'Dnevni izve\u0161taj rada', 'work-diary': 'Dnevnik rada', 'work-hours': 'Radni sati', 'monthly-hours': 'Mesecni sati', 'work-plan': 'Plan rada', documents: 'Dokumentacija', reports: 'Izve\u0161taji', settings: 'Pode\u0161avanja' }
   document.querySelector('#breadcrumb').textContent = labels[page]
   document.querySelectorAll('.nav-link[data-page]').forEach((button) => button.classList.toggle('active', button.dataset.page === page))
 
   if (page === 'dashboard') dashboard()
+  else if (page === 'control-center') controlCenterPage()
   else if (page === 'materials') materialsPage()
   else if (page === 'employees') employeesPage()
   else if (page === 'orders') ordersPage()
