@@ -1,11 +1,11 @@
-const CACHE = 'tasker-v52'
+const CACHE = 'tasker-v53'
 const CORE = [
   './',
   './index.html',
   './manifest.webmanifest',
   './style-v51.css?build=51',
-  './drive-endpoint-v52.js?build=52',
-  './main-v51.js?build=52',
+  './drive-endpoint-v52.js?build=53',
+  './main-v51.js?build=53',
   './materials.js',
   './icon-192.svg',
   './icon-512.svg',
