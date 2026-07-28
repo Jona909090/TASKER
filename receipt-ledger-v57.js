@@ -1,4 +1,4 @@
-// TASKER v57: redni pregled svih računa u kontrolnom panelu.
+// TASKER v58: redni pregled svih računa bez stare Drive trake.
 (() => {
   const money = (value) => new Intl.NumberFormat('hr-HR', { style: 'currency', currency: 'EUR' }).format(Number(value) || 0)
   const safe = (value) => String(value || '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character])
@@ -15,6 +15,7 @@
 
   const style = document.createElement('style')
   style.textContent = `
+    .receipt-project .receipt-drive-banner{display:none!important}
     .receipt-control-ledger{margin-top:20px;padding-top:19px;border-top:1px solid #29435f}
     .receipt-control-ledger>header{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:12px}.receipt-control-ledger>header p{margin:0 0 4px;color:#55ff88;font-size:9px;font-weight:900;letter-spacing:.15em}.receipt-control-ledger>header h3{margin:0;color:#f3f8ff;font-size:18px}.receipt-control-ledger>header span{color:#7795b1;font-size:11px}
     .receipt-ledger-list{display:grid;gap:8px;max-height:520px;overflow:auto;padding-right:4px}.receipt-ledger-row{display:grid;grid-template-columns:42px minmax(150px,1.4fr) minmax(105px,.55fr) minmax(125px,.65fr);align-items:center;gap:13px;padding:12px 14px;border:1px solid #29445f;border-radius:12px;background:linear-gradient(100deg,#11243a,#0e1e32);transition:.16s}.receipt-ledger-row:hover{border-color:#3e7898;transform:translateX(2px);box-shadow:0 7px 17px rgba(0,0,0,.15)}.receipt-ledger-row>span:first-child{display:grid;place-items:center;width:31px;height:31px;border-radius:9px;background:#173b54;color:#65ddff;font-size:11px;font-weight:900}.receipt-ledger-store{display:grid;gap:3px;min-width:0}.receipt-ledger-store b{overflow:hidden;color:#f1f7ff;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.receipt-ledger-store small{color:#708daa;font-size:10px}.receipt-ledger-row>strong{color:#5bff8c;font-size:15px;text-align:right;text-shadow:0 0 9px rgba(69,255,127,.22)}.receipt-ledger-date{display:grid;gap:3px;text-align:right}.receipt-ledger-date b{color:#cbdced;font-size:12px}.receipt-ledger-date small{color:#55cfff;font-size:10px}.receipt-ledger-empty{margin:0;padding:22px;border:1px dashed #31516c;border-radius:12px;color:#7593ad;text-align:center}
