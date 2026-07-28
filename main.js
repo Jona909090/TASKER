@@ -314,8 +314,8 @@ function parseReceiptOcr(text){
  let store=known?.[0]||'';if(!store){const candidate=lines.slice(0,8).find(line=>/[A-ZČĆŠŽĐ]{3}/.test(line)&&!/(račun|racun|datum|vrijeme|vreme|oib|pdv|tel|www\.)/i.test(line));store=candidate?.replace(/[^A-Za-zČĆŠŽĐčćšžđ0-9 .&-]/g,'').trim().slice(0,45)||''}
  const dateMatch=joined.match(/\b(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})\b/);const isoMatch=joined.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/)
  const date=isoMatch?`${isoMatch[1]}-${String(isoMatch[2]).padStart(2,'0')}-${String(isoMatch[3]).padStart(2,'0')}`:dateMatch?receiptIsoDate(dateMatch[1],dateMatch[2],dateMatch[3]):''
- const timeMatch=joined.match(/(?:vrijeme|vreme|time)?\s*[:.]?\s*\b([01]?\d|2[0-3])[:.]([0-5]\d)(?::[0-5]\d)?\b/i);const time=timeMatch?`${String(timeMatch[1]).padStart(2,'0')}:${timeMatch[2]}`:''
- const amountFrom=(line)=>Array.from(line.matchAll(/(?:EUR|€)?\s*(\d{1,6}(?:[.,]\d{2}))\s*(?:EUR|€)?/gi)).map(match=>Number(match[1].replace(/\./g,'').replace(',','.'))).filter(value=>value>0&&value<100000)
+ const timeMatch=joined.match(/(?:vrijeme|vreme|time)?\s*:?\s*\b([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?\b/i);const time=timeMatch?`${String(timeMatch[1]).padStart(2,'0')}:${timeMatch[2]}`:''
+ const amountFrom=(line)=>Array.from(line.matchAll(/(?:EUR|€)?\s*(\d{1,6}(?:[.,]\d{2}))\s*(?:EUR|€)?/gi)).map(match=>{const token=match[1];return Number(token.includes(',')?token.replace(/\./g,'').replace(',','.'):token)}).filter(value=>value>0&&value<100000)
  const totalLines=lines.filter(line=>/(ukupno|za platiti|svega|total|iznos za pla[ćc]anje|kartica)/i.test(line)&&!/(pdv|porez|osnovica|popust)/i.test(line));let amounts=totalLines.flatMap(amountFrom);if(!amounts.length)amounts=lines.flatMap(amountFrom);const amount=amounts.length?Math.max(...amounts):0
  const numberLine=lines.find(line=>/(broj|br\.?|račun|racun|invoice)[^\n]{0,35}/i.test(line));const numberMatch=numberLine?.match(/(?:broj|br\.?|račun|racun|invoice)\s*[:#-]?\s*([A-Z0-9][A-Z0-9\/-]{3,})/i)
  return {store,amount,date,time,receiptNumber:numberMatch?.[1]||'',text:clean,confidence:{store:!!known,amount:totalLines.length>0,date:!!date,time:!!time}}
