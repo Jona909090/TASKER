@@ -18,10 +18,11 @@
   <body>
     <div id="pwa-splash" aria-hidden="true"><div class="pwa-splash-inner"><span class="pwa-splash-logo"><i></i><b>T</b><i></i></span><strong>TASKER</strong><small>SVE POD KONTROLOM</small></div></div>
     <div id="app"></div>
-    <script src="./drive-endpoint-v52.js?build=56"></script>
-    <script type="module" src="./main-v51.js?build=56"></script>
+    <script src="./drive-endpoint-v52.js?build=57"></script>
+    <script src="./receipt-ledger-v57.js?build=57"></script>
+    <script type="module" src="./main-v51.js?build=57"></script>
     <script>
-      if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js?v=56', { updateViaCache: 'none' }).then((registration) => registration.update()); navigator.serviceWorker.addEventListener('controllerchange', () => { if (!sessionStorage.getItem('tasker-v56-reloaded')) { sessionStorage.setItem('tasker-v56-reloaded', '1'); location.reload(); } }); });
+      if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js?v=57', { updateViaCache: 'none' }).then((registration) => registration.update()); navigator.serviceWorker.addEventListener('controllerchange', () => { if (!sessionStorage.getItem('tasker-v57-reloaded')) { sessionStorage.setItem('tasker-v57-reloaded', '1'); location.reload(); } }); });
       window.addEventListener('load', () => setTimeout(() => document.querySelector('#pwa-splash')?.classList.add('splash-hidden'), 850));
     </script>
   </body>
