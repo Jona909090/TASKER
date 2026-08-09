@@ -37,11 +37,16 @@
     if(!supervisor.dataset.v69){supervisor.dataset.v69=workers.dataset.v69='1';supervisor.addEventListener('input',update);workers.addEventListener('input',update)}
     update()
   }
+  let retry
   const upgrade=()=>{
-    const page=$('.project-diary-page');if(!page||!page.dataset.v68||page.dataset.v69)return
+    const page=$('.project-diary-page');
+    if(!page){clearTimeout(retry);retry=setTimeout(upgrade,120);return}
+    if(page.dataset.v69)return
+    if(!$('.project-meta-check',page)||!$('.project-shift-time',page)){clearTimeout(retry);retry=setTimeout(upgrade,80);return}
     page.dataset.v69='1';fixDate(page);fixTimes(page);autoWorkers(page)
   }
   new MutationObserver(upgrade).observe(document.body,{childList:true,subtree:true})
-  window.addEventListener('load',upgrade);upgrade()
+  document.addEventListener('click',e=>{if(e.target.closest('[data-diary-template="project"]'))setTimeout(upgrade,100)})
+  window.addEventListener('load',()=>setTimeout(upgrade,100));upgrade()
 })()
 
