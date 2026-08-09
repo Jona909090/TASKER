@@ -67,7 +67,7 @@
 
   const frozenClone=()=>{
     const source=document.querySelector('#project-diary-sheet'),clone=source.cloneNode(true);clone.removeAttribute('id');clone.classList.add('pdf-mode')
-    clone.querySelectorAll('input,textarea').forEach(el=>{const box=document.createElement(el.tagName==='TEXTAREA'?'div':'span');box.textContent=el.value;box.style.cssText=el.tagName==='TEXTAREA'?'display:block;white-space:pre-wrap;padding:9px 11px;line-height:29px;':'display:block;width:100%;text-align:center;';el.replaceWith(box)})
+    clone.querySelectorAll('input,textarea').forEach(el=>{const box=document.createElement(el.tagName==='TEXTAREA'?'div':'span');box.textContent=el.value;box.className=el.className;box.style.cssText=el.tagName==='TEXTAREA'?'display:block;white-space:pre-wrap;padding:9px 11px;line-height:29px;':'display:block;width:100%;text-align:center;';el.replaceWith(box)})
     clone.style.cssText+='position:fixed;left:-10000px;top:0;';document.body.appendChild(clone);return clone
   }
   const saveProjectPdf=async(e)=>{
