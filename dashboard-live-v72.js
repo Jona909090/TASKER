@@ -13,17 +13,17 @@
     .tasker-weather-chip{display:flex;align-items:center;gap:9px;margin-left:14px;padding:7px 12px;border:1px solid rgba(57,200,255,.28);border-radius:12px;background:linear-gradient(145deg,rgba(18,45,72,.94),rgba(10,29,49,.94));color:#dff8ff;box-shadow:0 8px 24px rgba(0,0,0,.18);white-space:nowrap;cursor:pointer}
     .tasker-weather-chip:hover{border-color:#39c8ff;box-shadow:0 0 18px rgba(57,200,255,.18)}
     .tasker-weather-chip>span{font-size:20px}.tasker-weather-chip div{display:grid;gap:1px;text-align:left}.tasker-weather-chip b{font-size:12px;color:#fff}.tasker-weather-chip small{font-size:9px;color:#79d9ff;text-transform:uppercase;letter-spacing:.08em}
-    .tasker-live-panel{position:fixed;z-index:5;right:24px;top:76px;bottom:24px;width:300px;overflow:auto;padding:18px;border:1px solid rgba(57,200,255,.35);border-radius:22px;background:linear-gradient(160deg,rgba(16,40,65,.94),rgba(6,19,34,.97));box-shadow:0 24px 60px rgba(0,0,0,.35),inset 0 1px rgba(255,255,255,.035);scrollbar-width:thin;scrollbar-color:#214f71 transparent}
+    .tasker-live-panel{position:fixed;z-index:5;right:24px;top:76px;bottom:24px;width:300px;overflow:auto;display:flex;flex-direction:column;padding:18px;border:1px solid rgba(57,200,255,.35);border-radius:22px;background:linear-gradient(160deg,rgba(16,40,65,.94),rgba(6,19,34,.97));box-shadow:0 24px 60px rgba(0,0,0,.35),inset 0 1px rgba(255,255,255,.035);scrollbar-width:thin;scrollbar-color:#214f71 transparent}
     .tasker-live-panel header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(57,200,255,.22)}
     .tasker-live-panel header div{display:grid;gap:3px}.tasker-live-panel header small{color:#52d5ff;font-size:9px;font-weight:800;letter-spacing:.18em}.tasker-live-panel header strong{font-size:19px;color:#fff}.tasker-live-panel header i{width:9px;height:9px;border-radius:50%;background:#49ff7e;box-shadow:0 0 12px #49ff7e}
     .tasker-live-card{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;margin:10px 0;padding:12px;border:1px solid rgba(99,153,194,.22);border-radius:14px;background:linear-gradient(145deg,rgba(25,52,82,.88),rgba(15,36,60,.88))}
     .tasker-live-card>span{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:#123554;color:#63d9ff;font-size:17px;box-shadow:inset 0 0 14px rgba(57,200,255,.08)}
     .tasker-live-card.warn>span{background:#4a3715;color:#ffd64d}.tasker-live-card.people>span{background:#124630;color:#5cff8a}.tasker-live-card.pdf>span{background:#3b234a;color:#ff73d1}
     .tasker-live-card div{min-width:0;display:grid;gap:3px}.tasker-live-card small{color:#7896b3;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.tasker-live-card b{overflow:hidden;color:#f5fbff;font-size:12px;white-space:nowrap;text-overflow:ellipsis}.tasker-live-card em{color:#80a9c8;font-size:10px;font-style:normal;line-height:1.35}
-    .tasker-live-brand{display:grid;place-items:center;min-height:84px;margin-top:16px;border-top:1px solid rgba(57,200,255,.18);font-size:30px;font-weight:950;letter-spacing:.24em;color:#49ff7e;animation:tasker-calm-pulse 5.8s ease-in-out infinite}
+    .tasker-live-brand{display:grid;place-items:center;min-height:84px;margin-top:auto;padding-top:16px;border-top:1px solid rgba(57,200,255,.18);font-size:30px;font-weight:950;letter-spacing:.24em;color:#49ff7e;animation:tasker-calm-pulse 5.8s ease-in-out infinite}
     @keyframes tasker-calm-pulse{0%,100%{opacity:.25;text-shadow:0 0 2px rgba(73,255,126,.2)}50%{opacity:1;text-shadow:0 0 8px #49ff7e,0 0 22px rgba(73,255,126,.58)}}
-    @media(min-width:1500px){body.tasker-dashboard-live #content{margin-right:332px;max-width:none}.tasker-live-panel{display:block}}
-    @media(max-width:1499px){.tasker-live-panel{position:relative;inset:auto;width:auto;margin:26px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tasker-live-panel header,.tasker-live-brand{grid-column:1/-1}.tasker-live-card{margin:0}.tasker-live-brand{min-height:68px}body::before{inset:58px 0 0 0}}
+    @media(min-width:1900px){.tasker-live-panel{display:flex}}
+    @media(max-width:1899px){.tasker-live-panel{position:relative;inset:auto;width:auto;margin:26px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tasker-live-panel header,.tasker-live-brand{grid-column:1/-1}.tasker-live-card{margin:0}.tasker-live-brand{min-height:68px;margin-top:0;padding-top:12px}body::before{inset:58px 0 0 0}}
     @media(max-width:720px){.tasker-weather-chip{margin-left:6px;padding:6px 8px}.tasker-weather-chip small{display:none}.tasker-live-panel{grid-template-columns:1fr;padding:14px}.tasker-live-panel header,.tasker-live-brand{grid-column:auto}.tasker-live-brand{font-size:24px}.topbar{flex-wrap:wrap}}
     @media(prefers-reduced-motion:reduce){.tasker-live-brand{animation-duration:9s}}
   `
@@ -122,10 +122,10 @@
         panel.id = PANEL_ID
         panel.className = 'tasker-live-panel'
         panel.setAttribute('aria-label', 'Danas uživo')
-        if (matchMedia('(min-width:1500px)').matches) document.body.appendChild(panel)
+        if (matchMedia('(min-width:1900px)').matches) document.body.appendChild(panel)
         else document.querySelector('#content')?.appendChild(panel)
-      } else if (matchMedia('(min-width:1500px)').matches && panel.parentElement !== document.body) document.body.appendChild(panel)
-      else if (!matchMedia('(min-width:1500px)').matches && panel.parentElement !== document.querySelector('#content')) document.querySelector('#content')?.appendChild(panel)
+      } else if (matchMedia('(min-width:1900px)').matches && panel.parentElement !== document.body) document.body.appendChild(panel)
+      else if (!matchMedia('(min-width:1900px)').matches && panel.parentElement !== document.querySelector('#content')) document.querySelector('#content')?.appendChild(panel)
       panel.innerHTML = await panelMarkup()
       lastDashboard = true
     } finally { updating = false }
