@@ -8,7 +8,6 @@
   let lastDashboard = false
 
   const css = `
-    body::before{content:"";position:fixed;inset:58px 0 0 200px;pointer-events:none;z-index:0;opacity:.085;background-image:linear-gradient(rgba(49,201,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(49,201,255,.12) 1px,transparent 1px),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='760' height='520' viewBox='0 0 760 520'%3E%3Cg fill='none' stroke='%2339c8ff' stroke-width='1.4' opacity='.42'%3E%3Cpath d='M85 460V180h26v280M98 180l92-78h355M190 102l-70 54h360M197 102l62 62M258 102l60 62M318 102l61 62M379 102l60 62M439 102l60 62M499 102l42 42M541 102v112M530 214h22l-4 38h-14zM80 460h46M605 465V300h20v165M615 300l54-48h64M669 252l-40 34M673 252l45 47M585 465h60'/%3E%3C/g%3E%3C/svg%3E");background-size:42px 42px,42px 42px,760px 520px;background-position:center,center,92% 93%;background-repeat:repeat,repeat,no-repeat}
     .workspace,.content,.topbar{position:relative;z-index:1}
     .tasker-weather-chip{display:flex;align-items:center;gap:9px;margin-left:14px;padding:7px 12px;border:1px solid rgba(57,200,255,.28);border-radius:12px;background:linear-gradient(145deg,rgba(18,45,72,.94),rgba(10,29,49,.94));color:#dff8ff;box-shadow:0 8px 24px rgba(0,0,0,.18);white-space:nowrap;cursor:pointer}
     .tasker-weather-chip:hover{border-color:#39c8ff;box-shadow:0 0 18px rgba(57,200,255,.18)}
@@ -23,7 +22,7 @@
     .tasker-live-brand{display:grid;place-items:center;min-height:84px;margin-top:auto;padding-top:16px;border-top:1px solid rgba(57,200,255,.18);font-size:30px;font-weight:950;letter-spacing:.24em;color:#49ff7e;animation:tasker-calm-pulse 5.8s ease-in-out infinite}
     @keyframes tasker-calm-pulse{0%,100%{opacity:.25;text-shadow:0 0 2px rgba(73,255,126,.2)}50%{opacity:1;text-shadow:0 0 8px #49ff7e,0 0 22px rgba(73,255,126,.58)}}
     @media(min-width:1900px){.tasker-live-panel{display:flex}}
-    @media(max-width:1899px){.tasker-live-panel{position:relative;inset:auto;width:auto;margin:26px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tasker-live-panel header,.tasker-live-brand{grid-column:1/-1}.tasker-live-card{margin:0}.tasker-live-brand{min-height:68px;margin-top:0;padding-top:12px}body::before{inset:58px 0 0 0}}
+    @media(max-width:1899px){.tasker-live-panel{position:relative;inset:auto;width:auto;margin:26px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tasker-live-panel header,.tasker-live-brand{grid-column:1/-1}.tasker-live-card{margin:0}.tasker-live-brand{min-height:68px;margin-top:0;padding-top:12px}}
     @media(max-width:720px){.tasker-weather-chip{margin-left:6px;padding:6px 8px}.tasker-weather-chip small{display:none}.tasker-live-panel{grid-template-columns:1fr;padding:14px}.tasker-live-panel header,.tasker-live-brand{grid-column:auto}.tasker-live-brand{font-size:24px}.topbar{flex-wrap:wrap}}
     @media(prefers-reduced-motion:reduce){.tasker-live-brand{animation-duration:9s}}
   `
