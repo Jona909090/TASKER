@@ -23,7 +23,8 @@
     const area=document.getElementById('reports-output-content')
     const draft=JSON.parse(localStorage.getItem('tasker.reports-project-draft') || '{}')
     const lines=[...area.children].flatMap(el => el.tagName==='UL' ? [...el.children].map(li=>({kind:'work',text:li.textContent})) : [{kind:el.tagName==='H3'?'module':'info',text:el.textContent}])
-    return {id:activeId || crypto.randomUUID(), date:draft.date || new Date().toLocaleDateString('sv-SE'), location:draft.location || 'Dnevni izvještaj', draft, lines, updatedAt:new Date().toISOString()}
+    const date=draft.date || new Date().toLocaleDateString('sv-SE')
+    return {id:activeId && current?.date===date ? activeId : crypto.randomUUID(), date, location:draft.location || 'Dnevni izvještaj', draft, lines, updatedAt:new Date().toISOString()}
   }
   const textOf = r => r.lines.map(l=>(l.kind==='module'?'\n':'')+(l.kind==='work'?'- ':'')+l.text).join('\n')
   const filename = (r, ext) => `Izvjestaj-${r.date}-${r.location.replace(/[^\p{L}\p{N}-]+/gu,'-').slice(0,70)}.${ext}`
@@ -43,7 +44,7 @@
   async function list () {
     const target=document.getElementById('ra-list'); if(!target) return
     const rows=await storage('getAll')
-    rows.sort((a,b)=>b.date.localeCompare(a.date)||b.updatedAt.localeCompare(a.updatedAt))
+    rows.sort((a,b)=>a.date.localeCompare(b.date)||a.updatedAt.localeCompare(b.updatedAt)||a.id.localeCompare(b.id))
     target.innerHTML=rows.length?rows.map(r=>`<article class="ra-item"><div><strong>${esc(r.date.split('-').reverse().join('.'))}.</strong><span>${esc(r.location)}</span><small>${r.pdf?'PDF sačuvan · ':''}${r.lines.filter(l=>l.kind==='module').length} modula</small></div><div><button data-ra-open="${esc(r.id)}">Otvori</button><button data-ra-edit="${esc(r.id)}">Uredi</button><button data-ra-delete="${esc(r.id)}">Obriši</button></div></article>`).join(''):'<p>Arhiva je prazna. Generirajte prvi izvještaj.</p>'
   }
   function show (r) {
@@ -101,7 +102,7 @@
   function install () {
     const page=document.getElementById('reports-project-content');if(!page||page.querySelector('#ra-folder'))return
     const folder=document.createElement('details');folder.id='ra-folder'
-    folder.innerHTML='<summary>▣ Arhiva dnevnih izvještaja</summary><p>Sačuvano na ovom uređaju. Preuzmite tekst ili PDF za kopiju izvan aplikacije.</p><button id="ra-new">+ Novi izvještaj</button><div id="ra-list"></div>'
+    folder.innerHTML='<summary>▣ Arhiva dnevnih izvještaja</summary><p>Poredano po datumu izvještaja, od ranijeg prema kasnijem.</p><p>Sačuvano na ovom uređaju. Preuzmite tekst ili PDF za kopiju izvan aplikacije.</p><button id="ra-new">+ Novi izvještaj</button><div id="ra-list"></div>'
     page.querySelector('.reports-project-header').after(folder)
     const bar=document.createElement('div');bar.className='ra-actions'
     bar.innerHTML='<button data-ra-action="save">Sačuvaj izvještaj</button><button data-ra-action="whatsapp">WhatsApp</button><button data-ra-action="text">Preuzmi tekst</button><button data-ra-action="pdf">Napravi / preuzmi PDF</button><p id="ra-message" role="status"></p>'
