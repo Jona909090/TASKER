@@ -1,7 +1,8 @@
-const CACHE = 'tasker-v88'
+const CACHE = 'tasker-v89'
 const CORE = [
   './employee-hours-model-v86.js?build=86',
-  './employee-hours-v88.js?build=88',
+  './employee-hours-export-v89.js?build=89',
+  './employee-hours-v89.js?build=89',
   './',
   './index.html',
   './manifest.webmanifest',
