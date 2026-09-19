@@ -23,6 +23,7 @@
   }
   function parsePlace(value){const [kind,id,positionId]=value.split(':');return kind==='hall'?{kind,hallId:id,positionId}:{kind,locationId:id}}
   function open(){
+    console.info('MS open',!!el('content'))
     try{read();error=''}catch(e){error=e.message}
     const content=el('content');if(!content)return
     document.querySelector('.shell')?.classList.remove('project-home')
@@ -77,6 +78,7 @@
   }
   window.addEventListener('click',event=>{
     const t=event.target
+    if(t.closest('#module-status-card')) console.info('MS card click')
     if(t.closest('#open-module-status')||t.closest('#module-status-card')){event.preventDefault();event.stopImmediatePropagation();open();return}
     if(!t.closest('#module-status'))return
     let b
