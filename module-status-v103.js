@@ -75,7 +75,7 @@
     d.innerHTML=`<h2>Potvrdi radnju</h2><p>${esc(message)}</p><p class="ms-error" role="alert"></p><div class="ms-actions"><button class="ms-button" data-ms-cancel>Odustani</button><button class="ms-button primary" data-ms-confirm>Potvrdi</button></div>`
     d.showModal()
   }
-  document.addEventListener('click',event=>{
+  window.addEventListener('click',event=>{
     const t=event.target
     if(t.closest('#open-module-status')||t.closest('#module-status-card')){event.preventDefault();event.stopImmediatePropagation();open();return}
     if(!t.closest('#module-status'))return
