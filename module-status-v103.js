@@ -31,6 +31,8 @@
     if(error){content.innerHTML=`<section id="module-status"><h1>Status modula</h1><p role="alert">Spremište nije moguće otvoriti. Postojeći podaci nisu prepisani. ${esc(error)}</p></section>`;return}
     content.innerHTML=`<section id="module-status"><header class="ms-header"><div><p class="ms-eyebrow">TASKER / PROIZVODNJA</p><h1>Status modula</h1><p>Raspored hale, proizvodne faze i kretanje svakog modula.</p></div><div class="ms-actions"><button class="ms-button" data-ms-action="location">+ Dodaj lokaciju</button><button class="ms-button primary" data-ms-action="add">+ Dodaj modul</button></div></header><p id="ms-toast" role="status">Podaci se čuvaju na ovom uređaju. Statusi su ručni; napredak se računa iz završenih faza.</p><div id="ms-stats" class="ms-stats"></div><div class="ms-workspace"><div class="ms-map-column"><div class="ms-map-head"><h2>Proizvodna hala</h2><span>POGLED ODOZGO</span></div><p class="ms-hint">Klikni modul za detalje ili slobodnu poziciju za dodavanje. Na računalu možeš povući modul na slobodnu poziciju; na tabletu koristi Premjesti.</p><div id="ms-halls"></div><div class="ms-legend">${Object.entries(M.statuses).map(([k,s])=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div><section class="ms-panel"><h2>Lokacije van hale</h2><div id="ms-locations" class="ms-locations"></div><div id="ms-location-list"></div></section></div><aside id="ms-detail" class="ms-detail ms-panel" aria-label="Detalji modula"></aside></div><dialog id="ms-dialog" class="ms-dialog"></dialog><input id="ms-photo-file" type="file" accept="image/*" hidden></section>`
     refresh()
+    el('module-status').insertAdjacentHTML('afterbegin','<button type="button" class="ms-button ms-back" data-ms-back>← Projekti</button>')
+    window.scrollTo({top:0,behavior:'instant'})
   }
   function refresh(){
     if(!el('ms-stats'))return
@@ -79,6 +81,7 @@
     const t=event.target
     if(t.closest('#open-module-status')||t.closest('#module-status-card')){event.preventDefault();event.stopImmediatePropagation();open();return}
     if(!t.closest('#module-status'))return
+    if(t.closest('[data-ms-back]')){event.preventDefault();event.stopImmediatePropagation();el('back-to-projects')?.click();return}
     let b
     if(t.closest('[data-ms-cancel]')){el('ms-dialog').close();return}
     if(t.closest('[data-ms-confirm]')){if(pendingAction&&commit(pendingAction)){if(pendingAction.type==='finish')locationFilter='finished';pendingAction=null;el('ms-dialog').close();refresh()}return}
