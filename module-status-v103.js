@@ -4,7 +4,14 @@
   const el=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
   const date=s=>s?s.split('-').reverse().join('.')+'.':'—',time=s=>new Date(s).toLocaleString('hr-HR'),uid=()=>crypto.randomUUID()
   let state,raw=null,error='',selected='',locationFilter='',dragged=''
-  function read(){const text=localStorage.getItem(KEY);const next=text?M.validate(JSON.parse(text)):M.create();state=next;raw=text}
+  function read(){
+    const text=localStorage.getItem(KEY),result=text?M.migrate(JSON.parse(text)):{state:M.create(),changed:false}
+    if(result.changed){
+      if(!localStorage.getItem(KEY+'.before-dupliko-merge'))localStorage.setItem(KEY+'.before-dupliko-merge',text)
+      const updated=JSON.stringify(result.state);localStorage.setItem(KEY,updated);raw=updated
+    }else raw=text
+    state=result.state
+  }
   try{read()}catch(e){error=e.message}
   function notice(message){const target=document.querySelector('#ms-dialog[open] .ms-error')||el('ms-toast');if(target)target.textContent=message}
   function commit(action){
@@ -29,7 +36,7 @@
     document.querySelectorAll('.nav-link').forEach(b=>b.classList.toggle('active',b.id==='open-module-status'))
     if(el('breadcrumb'))el('breadcrumb').textContent='Status modula'
     if(error){content.innerHTML=`<section id="module-status"><h1>Status modula</h1><p role="alert">Spremište nije moguće otvoriti. Postojeći podaci nisu prepisani. ${esc(error)}</p></section>`;return}
-    content.innerHTML=`<section id="module-status"><header class="ms-header"><div><p class="ms-eyebrow">TASKER / PROIZVODNJA</p><h1>Status modula</h1><p>Raspored hale, proizvodne faze i kretanje svakog modula.</p></div><div class="ms-actions"><button class="ms-button" data-ms-action="location">+ Dodaj lokaciju</button><button class="ms-button primary" data-ms-action="add">+ Dodaj modul</button></div></header><p id="ms-toast" role="status">Podaci se čuvaju na ovom uređaju. Statusi su ručni; napredak se računa iz završenih faza.</p><div id="ms-stats" class="ms-stats"></div><div class="ms-workspace"><div class="ms-map-column"><div class="ms-map-head"><h2>Proizvodna hala</h2><span>POGLED ODOZGO</span></div><p class="ms-hint">Klikni modul za detalje ili slobodnu poziciju za dodavanje. Na računalu možeš povući modul na slobodnu poziciju; na tabletu koristi Premjesti.</p><div id="ms-halls"></div><div class="ms-legend">${Object.entries(M.statuses).map(([k,s])=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div><section class="ms-panel"><h2>Lokacije van hale</h2><div id="ms-locations" class="ms-locations"></div><div id="ms-location-list"></div></section></div><aside id="ms-detail" class="ms-detail ms-panel" aria-label="Detalji modula"></aside></div><dialog id="ms-dialog" class="ms-dialog"></dialog><input id="ms-photo-file" type="file" accept="image/*" hidden></section>`
+    content.innerHTML=`<section id="module-status"><header class="ms-header"><div><p class="ms-eyebrow">TASKER / PROIZVODNJA</p><h1>Status modula</h1><p>Raspored hale, proizvodne faze i kretanje svakog modula.</p></div><div class="ms-actions"><button class="ms-button" data-ms-action="location">+ Dodaj lokaciju</button><button class="ms-button primary" data-ms-action="add">+ Dodaj modul</button></div></header><p id="ms-toast" role="status">Podaci se čuvaju na ovom uređaju. Statusi su ručni; napredak se računa iz završenih faza.</p><div id="ms-stats" class="ms-stats"></div><div class="ms-workspace"><div class="ms-map-column"><div class="ms-map-head"><h2>Proizvodna hala</h2><span>POGLED ODOZGO</span></div><p class="ms-hint">Klikni modul za detalje ili slobodnu poziciju za dodavanje. Na računalu možeš povući modul na slobodnu poziciju; na tabletu koristi Premjesti.</p><div id="ms-halls"></div><div class="ms-legend">${Object.entries(M.statuses).map(([k,s])=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div><section class="ms-panel"><h2>DUPLIKO</h2><div id="ms-locations" class="ms-locations"></div><div id="ms-location-list"></div></section></div><aside id="ms-detail" class="ms-detail ms-panel" aria-label="Detalji modula"></aside></div><dialog id="ms-overview" class="ms-dialog ms-overview" aria-label="Pregled modula bez izmjena"></dialog><dialog id="ms-dialog" class="ms-dialog"></dialog><input id="ms-photo-file" type="file" accept="image/*" hidden></section>`
     refresh()
     el('module-status').insertAdjacentHTML('afterbegin','<button type="button" class="ms-button ms-back" data-ms-back>← Projekti</button>')
     window.scrollTo({top:0,behavior:'instant'})
@@ -51,11 +58,39 @@
     el('ms-location-list').innerHTML=loc?`<h3>${esc(loc.name)}</h3>${list.map(m=>`<button class="ms-list-module ${selected===m.id?'selected':''}" data-ms-module="${esc(m.id)}"><strong>${esc(m.name)}</strong>${badge(m)}<span>${M.progress(m)}%</span></button>`).join('')||'<p class="ms-hint">Nema modula na ovoj lokaciji.</p>'}`:''
     renderDetail()
   }
+  function remainingHTML(m){
+    const pending=M.unfinished(m),handoffs=m.handoffs||[]
+    return '<section class="ms-remaining"><h3>Preostalo za odraditi · '+pending.length+'</h3>'+
+      (pending.length?'<ul>'+pending.map(p=>'<li><b>'+esc(p.name)+'</b><span>'+esc(M.statuses[p.status].label)+'</span></li>').join('')+'</ul>':'<p>Sve faze su završene.</p>')+
+      (handoffs.length?'<h3>Zapis preostalih radova pri odlasku u DUPLIKO</h3><p class="ms-hint">Zapis pri premještanju ostaje sačuvan. Gornja lista prikazuje trenutno nezavršene faze.</p>'+[...handoffs].reverse().map(h=>'<article class="ms-handoff"><time>'+time(h.at)+'</time><p><b>Šta je ostalo:</b> '+esc(h.work)+'</p><p><b>Koliko / obim:</b> '+esc(h.quantity)+'</p></article>').join(''):'')+'</section>'
+  }
+  function overview(){
+    const m=state.modules.find(m=>m.id===selected);if(!m)return
+    const d=el('ms-overview')
+    d.innerHTML='<header class="ms-detail-title"><div><small>SAMO PREGLED · BEZ IZMJENA</small><h2>'+esc(m.name)+'</h2></div><button class="ms-icon-button" data-ms-overview-close aria-label="Zatvori pregled">×</button></header>'+badge(m)+
+      (m.photo?'<img class="ms-overview-photo" src="'+m.photo+'" alt="Fotografija modula">':'')+
+      '<dl class="ms-data"><div><dt>Trenutna lokacija / pozicija</dt><dd>'+esc(M.locationName(state,m.place))+'</dd></div><div><dt>Tip</dt><dd>'+m.type+'</dd></div><div><dt>Dimenzije D × Š × V</dt><dd>'+m.length+' × '+m.width+' × '+m.height+' m</dd></div><div><dt>Datum ulaska</dt><dd>'+date(m.arrival)+'</dd></div><div><dt>Planirana otprema</dt><dd>'+date(m.dispatch)+'</dd></div><div><dt>Napredak</dt><dd>'+M.progress(m)+'%</dd></div></dl>'+
+      (m.note?'<p class="ms-note">'+esc(m.note)+'</p>':'')+remainingHTML(m)+
+      '<h3>Sve proizvodne faze</h3><ol class="ms-read-phases">'+m.phases.map(p=>'<li><b>'+esc(p.name)+'</b><span>'+esc(p.status==='done'?'Završeno':M.statuses[p.status].label)+'</span>'+(p.completedAt?'<small>'+time(p.completedAt)+'</small>':'')+'</li>').join('')+'</ol>'+
+      '<h3>Istorija modula</h3><ol class="ms-read-history">'+[...m.history].reverse().map(h=>'<li><time>'+time(h.at)+'</time><p>'+esc(h.text)+'</p></li>').join('')+'</ol><button class="ms-button" data-ms-overview-close>Zatvori pregled</button>'
+    d.showModal()
+  }
+  function transferFields(){
+    const f=el('ms-edit-form');if(!f)return
+    const target=f.querySelector('[name="place"]'),group=f.querySelector('.ms-transfer-fields')
+    if(!target||!group)return
+    const needed=target.value==='external:dupliko'
+    group.hidden=!needed
+    const m=state.modules.find(m=>m.id===f.dataset.id)
+    const required=needed&&(!m||M.unfinished(m).length>0)
+    group.querySelectorAll('textarea,input').forEach(input=>{input.disabled=!needed;input.required=required})
+  }
   function renderDetail(){
     const box=el('ms-detail'),m=state.modules.find(m=>m.id===selected)
     if(!m){box.innerHTML='<div class="ms-empty"><span>◫</span><h2>Detalji modula</h2><p>Odaberi modul na mapi ili u lokacijama van hale.</p><button class="ms-button primary" data-ms-action="add">+ Dodaj prvi modul</button></div>';return}
     const old=box.querySelector('.ms-phases')?.scrollTop||0,historyOpen=box.querySelector('.ms-history')?.open||false,progress=M.progress(m)
     box.innerHTML=`<header class="ms-detail-title"><div><small>ODABRANI MODUL</small><h2>${esc(m.name)}</h2></div><button class="ms-icon-button" data-ms-action="close" aria-label="Zatvori detalje">×</button></header>${badge(m)}<div class="ms-photo">${m.photo?`<img src="${m.photo}" alt="Fotografija ${esc(m.name)}">`:'<div class="ms-steel-preview" aria-hidden="true"><i></i><i></i><i></i></div><small>Nema fotografije modula</small>'}</div><div class="ms-actions"><button class="ms-link" data-ms-action="photo">${m.photo?'Zamijeni':'Dodaj'} fotografiju</button>${m.photo?'<button class="ms-link" data-ms-action="remove-photo">Ukloni fotografiju</button>':''}</div><dl class="ms-data"><div><dt>Tip</dt><dd>${m.type}</dd></div><div><dt>Pozicija u hali</dt><dd>${m.place.kind==='hall'?esc(state.halls.find(h=>h.id===m.place.hallId).positions.find(p=>p.id===m.place.positionId).label):'—'}</dd></div><div><dt>Datum ulaska</dt><dd>${date(m.arrival)}</dd></div><div><dt>Planirana otprema</dt><dd>${date(m.dispatch)}</dd></div><div><dt>Trenutna lokacija</dt><dd>${esc(M.locationName(state,m.place))}</dd></div><div><dt>Dimenzije D × Š × V</dt><dd>${m.length} × ${m.width} × ${m.height} m</dd></div></dl><label class="ms-status-label">Status modula<select data-ms-status="${esc(m.id)}">${options(m.status)}</select></label><div class="ms-progress-label"><b>Ukupan napredak</b><strong>${progress}%</strong></div><div class="ms-progress" role="progressbar" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100" aria-label="Napredak modula"><i style="width:${progress}%"></i></div><p class="ms-hint">${m.phases.filter(p=>p.status==='done').length} / ${m.phases.length} završenih faza</p>${m.note?`<p class="ms-note">${esc(m.note)}</p>`:''}<h3>Faze izrade</h3><div class="ms-phases">${m.phases.map((p,i)=>`<div class="ms-phase"><span class="ms-phase-number">${i+1}</span><div><b>${esc(p.name)}</b><select aria-label="Status faze ${esc(p.name)}" data-ms-phase="${esc(p.id)}">${options(p.status,true)}</select>${p.completedAt?`<small>✓ ${time(p.completedAt)}</small>`:''}</div><div class="ms-phase-tools"><button data-ms-phase-up="${esc(p.id)}" ${i===0?'disabled':''} aria-label="Pomakni fazu gore">↑</button><button data-ms-phase-down="${esc(p.id)}" ${i===m.phases.length-1?'disabled':''} aria-label="Pomakni fazu dolje">↓</button><button data-ms-phase-delete="${esc(p.id)}" aria-label="Obriši fazu ${esc(p.name)}">×</button></div></div>`).join('')||'<p>Nema faza. Dodaj prvu fazu ispod.</p>'}</div><form id="ms-phase-form" class="ms-actions"><input name="phase" placeholder="Nova faza…" aria-label="Naziv nove faze" required maxlength="120"><button class="ms-button" type="submit">+ Dodaj</button></form><div class="ms-detail-actions"><button class="ms-button" data-ms-action="edit">Uredi</button><button class="ms-button" data-ms-action="move">Premjesti</button><button class="ms-button primary" data-ms-action="finish" ${m.status==='done'&&m.place.kind==='external'&&m.place.locationId==='finished'?'disabled':''}>✓ Završi modul</button></div><details class="ms-history" ${historyOpen?'open':''}><summary>Istorija modula · ${m.history.length} događaja</summary><ol>${[...m.history].reverse().map(e=>`<li><time>${time(e.at)}</time><span>${esc(e.text)}</span></li>`).join('')}</ol></details>`
+    box.querySelector('h3').insertAdjacentHTML('beforebegin','<button class="ms-button" data-ms-action="overview">Pregled bez izmjena</button>'+remainingHTML(m))
     box.querySelector('.ms-phases').scrollTop=old
   }
   function dialog(kind,place){
@@ -66,9 +101,10 @@
       body=`<h2>${editing?'Uredi modul':'Dodaj modul'}</h2><div class="ms-form-grid"><label>Naziv modula<input name="name" required maxlength="120" placeholder="MV-12" value="${esc(editing?m.name:'')}"></label><label>Tip<select name="type"><option value="MV">MV</option><option value="MVS" ${editing&&m.type==='MVS'?'selected':''}>MVS</option></select></label>${[['length','Dužina',12],['width','Širina',3],['height','Visina',3.2]].map(([key,label,value])=>`<label>${label} (m)<input name="${key}" type="number" min="0.1" max="100" step="0.01" required value="${editing?m[key]:value}"></label>`).join('')}<label>Status<select name="status">${options(editing?m.status:'new')}</select></label><label>Datum ulaska<input type="date" name="arrival" required value="${editing?m.arrival:M.today()}"></label><label>Planirana otprema<input type="date" name="dispatch" value="${editing?m.dispatch:''}"></label>${editing?'':`<label class="ms-span">Pozicija / lokacija<select name="place" required>${places(null)}</select></label>`}<label class="ms-span">Napomena<textarea name="note" rows="3" maxlength="4000">${esc(editing?m.note:'')}</textarea></label></div>`
     }else if(kind==='move'){if(!m)return;body=`<h2>Premjesti ${esc(m.name)}</h2><p>Trenutno: ${esc(M.locationName(state,m.place))}</p><label>Nova pozicija / lokacija<select name="place" required>${places(m)}</select></label><p>Stara pozicija se oslobađa. Faze, fotografija i istorija ostaju sačuvane.</p>`}
     else body='<h2>Dodaj lokaciju</h2><label>Naziv lokacije<input name="name" required maxlength="120" placeholder="Naziv nove lokacije"></label>'
+    if(kind==='add'||kind==='move')body+='<div class="ms-transfer-fields" hidden><h3>Preostali radovi za DUPLIKO</h3><p>Nezavršen modul može napustiti halu. Obavezno zapišite šta i koliko je ostalo; faze se neće označiti kao završene.</p><label>Šta je ostalo da se odradi<textarea name="remainingWork" rows="3" maxlength="4000" placeholder="npr. Unutarnji opšavi, silikoniranje…"></textarea></label><label>Koliko / količina / obim<input name="remainingQuantity" maxlength="1000" placeholder="npr. 6 opšava i 12 m spojeva"></label></div>'
     d.innerHTML=`<form id="ms-edit-form" data-kind="${kind}" data-id="${editing||kind==='move'?esc(m.id):''}">${body}<p class="ms-error" role="alert"></p><div class="ms-actions"><button type="button" class="ms-button" data-ms-cancel>Odustani</button><button class="ms-button primary" type="submit">${kind==='move'?'Premjesti':'Sačuvaj'}</button></div></form>`
     if(place&&d.querySelector('[name="place"]'))d.querySelector('[name="place"]').value='hall:'+place.hallId+':'+place.positionId
-    d.showModal();d.querySelector('input,select')?.focus()
+    transferFields();d.showModal();d.querySelector('input,select')?.focus()
   }
   let pendingAction=null
   function ask(message,action){
@@ -83,9 +119,10 @@
     if(!t.closest('#module-status'))return
     if(t.closest('[data-ms-back]')){event.preventDefault();event.stopImmediatePropagation();el('back-to-projects')?.click();return}
     let b
+    if(t.closest('[data-ms-overview-close]')){el('ms-overview').close();return}
     if(t.closest('[data-ms-cancel]')){el('ms-dialog').close();return}
     if(t.closest('[data-ms-confirm]')){if(pendingAction&&commit(pendingAction)){if(pendingAction.type==='finish')locationFilter='finished';pendingAction=null;el('ms-dialog').close();refresh()}return}
-    if((b=t.closest('[data-ms-module]'))){selected=b.dataset.msModule;refresh();if(matchMedia('(max-width:1100px)').matches)el('ms-detail').scrollIntoView({behavior:'smooth',block:'start'});return}
+    if((b=t.closest('[data-ms-module]'))){selected=b.dataset.msModule;refresh();overview();return}
     if((b=t.closest('[data-ms-add-position]'))){dialog('add',{hallId:b.dataset.msHall,positionId:b.dataset.msAddPosition});return}
     if((b=t.closest('[data-ms-location]'))){locationFilter=b.dataset.msLocation;refresh();return}
     if((b=t.closest('[data-ms-phase-up]')))commit({type:'reorder-phase',id:selected,phaseId:b.dataset.msPhaseUp,delta:-1})
@@ -93,6 +130,7 @@
     if((b=t.closest('[data-ms-phase-delete]'))){const p=state.modules.find(m=>m.id===selected)?.phases.find(p=>p.id===b.dataset.msPhaseDelete);if(p)ask('Obrisati fazu „'+p.name+'”? Napredak će se ponovno izračunati.',{type:'delete-phase',id:selected,phaseId:p.id});return}
     if((b=t.closest('[data-ms-action]'))){const action=b.dataset.msAction
       if(['add','edit','move','location'].includes(action))dialog(action)
+      if(action==='overview')overview()
       if(action==='close'){selected='';refresh()}
       if(action==='finish')ask('Završiti modul, označiti sve njegove faze završenima i premjestiti ga u Završeni? Pozicija u hali bit će slobodna.',{type:'finish',id:selected})
       if(action==='photo'){el('ms-photo-file').dataset.moduleId=selected;el('ms-photo-file').click()}
@@ -107,12 +145,13 @@
     const kind=form.dataset.kind,id=form.dataset.id||uid()
     let action
     if(kind==='location')action={type:'add-location',locationId:uid(),name:values.name}
-    else if(kind==='move')action={type:'move',id,place:parsePlace(values.place)}
+    else if(kind==='move')action={type:'move',id,place:parsePlace(values.place),remainingWork:values.remainingWork,remainingQuantity:values.remainingQuantity}
     else action={type:kind==='edit'?'edit':'create',id,data:{...values,...(kind==='add'?{place:parsePlace(values.place)}:{})}}
-    if(commit(action)){if(kind==='add')selected=id;el('ms-dialog').close();refresh()}
+    if(commit(action)){if(kind==='add')selected=id;el('ms-dialog').close();refresh();if(kind==='add')overview()}
   })
   document.addEventListener('change',event=>{
     const t=event.target;if(!t.closest('#module-status'))return
+    if(t.matches('#ms-edit-form [name="place"]'))transferFields()
     if(t.dataset.msStatus)commit({type:'status',id:t.dataset.msStatus,value:t.value})
     if(t.dataset.msPhase)commit({type:'phase',id:selected,phaseId:t.dataset.msPhase,value:t.value})
     if(t.id==='ms-photo-file'&&t.files?.[0]){
