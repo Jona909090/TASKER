@@ -1,13 +1,15 @@
 (function(root){
   'use strict'
   const statuses={new:{label:'Nije započeto',color:'#738394',icon:'○'},active:{label:'U radu',color:'#1681ff',icon:'⚙'},waiting:{label:'Čeka materijal',color:'#f49a22',icon:'◷'},blocked:{label:'Blokiran',color:'#ee5367',icon:'!'},ready:{label:'Spreman za otpremu',color:'#a16bff',icon:'➜'},done:{label:'Završen',color:'#27bf83',icon:'✓'}}
-  const phaseNames=['Cetris ploče','Vuna u podu','Plywood','Podni lim','Vuna u zidovima i stropu','Zidni paneli','Stropni paneli','Promat','Panel holderi','Prodori','Unutarnji opšavi','Vanjski opšavi','Lajsne','Silikoniranje','Završna kontrola','Spreman za otpremu']
+  const phaseNames=['Parna brana ispod poda','Podni lim','Vuna u podu','Plywood','Cetris ploče','Vuna u zidovima i stropu','Vuna u stropu','Stropni paneli','Panel holderi','Promat oko vrata','Zidni paneli','Prodori','Pregradni zid','Demontažni zid unutarnji','Lajsne','Unutarnji opšavi','Vanjski opšavi']
+  const legacyPhaseNames=['Cetris ploče','Vuna u podu','Plywood','Podni lim','Vuna u zidovima i stropu','Zidni paneli','Stropni paneli','Promat','Panel holderi','Prodori','Unutarnji opšavi','Vanjski opšavi','Lajsne','Silikoniranje','Završna kontrola','Spreman za otpremu']
+  const phaseAliases={'Promat oko vrata':['Promat']}
   const clone=x=>JSON.parse(JSON.stringify(x))
   const today=(d=new Date())=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)
   const date=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s
   const clean=(v,max=120)=>String(v??'').trim().slice(0,max)
   const progress=m=>m.phases.length?Math.round(100*m.phases.filter(p=>p.status==='done').length/m.phases.length):0
-  function create(){return {version:1,revision:0,halls:[{id:'main',name:'Proizvodna hala',positions:Array.from({length:10},(_,i)=>({id:'p'+(i+1),label:String(i+1),side:i<5?'left':'right',order:i%5+1}))}],locations:[{id:'dupliko',name:'DUPLIKO'},{id:'shipped',name:'Otpremljeni'},{id:'finished',name:'Završeni'}],modules:[]}}
+  function create(){return {version:1,phaseTemplateVersion:1,revision:0,halls:[{id:'main',name:'Proizvodna hala',positions:Array.from({length:10},(_,i)=>({id:'p'+(i+1),label:String(i+1),side:i<5?'left':'right',order:i%5+1}))}],locations:[{id:'dupliko',name:'DUPLIKO'},{id:'shipped',name:'Otpremljeni'},{id:'finished',name:'Završeni'}],modules:[]}}
   function migrate(source,time=new Date().toISOString()){
     validate(source)
     const s=clone(source),aliases=s.locations.filter(l=>l.id==='kalinovica'||/^kalinovica$/i.test(l.name.trim())).map(l=>l.id)
@@ -21,6 +23,28 @@
       changed=true
     }
     if(aliases.length){s.locations=s.locations.filter(l=>!aliases.includes(l.id));changed=true}
+    if(s.phaseTemplateVersion!==1){
+      const legacyDefaults=new Set(legacyPhaseNames)
+      for(const m of s.modules){
+        const before=JSON.stringify(m.phases),used=new Set(),ids=new Set(m.phases.map(p=>p.id))
+        const next=phaseNames.map((name,i)=>{
+          let p=m.phases.find(p=>!used.has(p.id)&&p.name===name)
+          if(!p)for(const alias of phaseAliases[name]||[]){p=m.phases.find(x=>!used.has(x.id)&&x.name===alias);if(p)break}
+          if(p){used.add(p.id);return {...p,name}}
+          let id=m.id+'-phase-standard-'+i
+          while(ids.has(id))id+='-x'
+          ids.add(id)
+          return {id,name,status:'new',completedAt:null}
+        })
+        for(const p of m.phases){
+          if(used.has(p.id)||legacyDefaults.has(p.name))continue
+          next.push(p)
+        }
+        if(JSON.stringify(next)!==before){m.phases=next;changed=true}
+      }
+      s.phaseTemplateVersion=1
+      changed=true
+    }
     if(changed)s.revision++
     return {state:validate(s),changed}
   }
