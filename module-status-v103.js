@@ -23,7 +23,6 @@
   }
   function parsePlace(value){const [kind,id,positionId]=value.split(':');return kind==='hall'?{kind,hallId:id,positionId}:{kind,locationId:id}}
   function open(){
-    console.info('MS open',!!el('content'))
     try{read();error=''}catch(e){error=e.message}
     const content=el('content');if(!content)return
     document.querySelector('.shell')?.classList.remove('project-home')
@@ -78,7 +77,6 @@
   }
   window.addEventListener('click',event=>{
     const t=event.target
-    if(t.closest('#module-status-card')) console.info('MS card click')
     if(t.closest('#open-module-status')||t.closest('#module-status-card')){event.preventDefault();event.stopImmediatePropagation();open();return}
     if(!t.closest('#module-status'))return
     let b
@@ -127,6 +125,7 @@
   document.addEventListener('dragend',()=>{dragged=''})
   window.addEventListener('storage',event=>{if(event.key!==KEY)return;try{read();if(!el('ms-dialog')?.open)refresh();notice('Evidencija je osvježena iz druge kartice.')}catch(e){notice(e.message)}})
   function install(){
+    for(const node of document.querySelectorAll('#open-module-status,#module-status-card'))node.onclick=event=>{event.preventDefault();event.stopImmediatePropagation();open()}
     const nav=document.querySelector('.sidebar nav')
     if(nav&&!el('open-module-status')){const b=document.createElement('button');b.id='open-module-status';b.className='nav-link';b.type='button';b.dataset.page='module-status';b.innerHTML='<span>◫</span> Status modula';nav.append(b)}
     const grid=document.querySelector('#content .project-grid')
