@@ -85,7 +85,7 @@
     for(const l of s.locations)if(!l.name)throw Error('Neispravna lokacija.')
     const names=new Set()
     for(const m of s.modules){
-      if(!m.name||names.has(m.name.toLowerCase())||!['MV','MVS'].includes(m.type)||!statuses[m.status]||!date(m.arrival)||m.dispatch&&!date(m.dispatch)||!Array.isArray(m.phases)||!Array.isArray(m.history))throw Error('Neispravan modul ili ponovljen naziv.')
+      if(!m.name||names.has(m.name.toLowerCase())||!['MV','MVS'].includes(m.type)||!statuses[m.status]||!date(m.arrival)||m.dispatch&&!date(m.dispatch)||m.departure&&!date(m.departure)||!Array.isArray(m.phases)||!Array.isArray(m.history))throw Error('Neispravan modul ili ponovljen naziv.')
       names.add(m.name.toLowerCase());checkPlace(s,m.place,m.id);unique(m.phases)
       for(const dim of ['length','width','height'])if(!Number.isFinite(m[dim])||m[dim]<=0||m[dim]>100)throw Error('Dimenzije moraju biti između 0 i 100 metara.')
       for(const p of m.phases)if(!p.name||!['new','active','waiting','blocked','done'].includes(p.status)||(p.status==='done'&&!p.completedAt))throw Error('Neispravna faza.')
@@ -114,7 +114,7 @@
         checkPlace(s,mod.place,mod.id);if(mod.place.kind==='external'&&mod.place.locationId==='dupliko')recordRemaining(mod,data,time);log(mod,'created','Kreiran modul '+mod.name);log(mod,mod.place.kind==='hall'?'entered':'move','Početna lokacija: '+locationName(s,mod.place));if(mod.status==='done'){mod.completedAt=time;log(mod,'completed','Modul kreiran kao završen')}
         s.modules.push(mod);break
       }
-      case 'edit':{requireModule();const data=a.data||{};const before=JSON.stringify(m);for(const k of ['name','note'])if(data[k]!==undefined)m[k]=clean(data[k],k==='note'?4000:120);for(const k of ['type','arrival','dispatch'])if(data[k]!==undefined)m[k]=data[k];for(const k of ['length','width','height'])if(data[k]!==undefined)m[k]=Number(data[k]);if(data.status)setStatus(m,data.status);if(JSON.stringify(m)!==before)log(m,'edited','Izmijenjeni podaci modula');break}
+      case 'edit':{requireModule();const data=a.data||{};const before=JSON.stringify(m);for(const k of ['name','note'])if(data[k]!==undefined)m[k]=clean(data[k],k==='note'?4000:120);for(const k of ['type','arrival','departure','dispatch'])if(data[k]!==undefined)m[k]=data[k];for(const k of ['length','width','height'])if(data[k]!==undefined)m[k]=Number(data[k]);if(data.status)setStatus(m,data.status);if(JSON.stringify(m)!==before)log(m,'edited','Izmijenjeni podaci modula');break}
       case 'hall-name':{
         const hall=s.halls.find(h=>h.id===a.hallId),name=clean(a.name)
         if(!hall||!name)throw Error('Upišite naziv hale.')
