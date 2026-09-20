@@ -1,11 +1,11 @@
-const CACHE = 'tasker-v1052'
+const CACHE = 'tasker-v1053'
 const CORE = [
-  './tasker-sync-v105.js?build=1052',
-  './module-status-snapshot-v104.js?build=1052',
+  './tasker-sync-v105.js?build=1053',
+  './module-status-snapshot-v104.js?build=1053',
   './vendor/html2canvas-1.4.1.min.js',
-  './module-status-model-v103.js?build=1052',
-  './module-status-v103.js?build=1052',
-  './module-status-v103.css?build=1052',
+  './module-status-model-v103.js?build=1053',
+  './module-status-v103.js?build=1053',
+  './module-status-v103.css?build=1053',
   './employee-hours-archive-v102.js?build=102',
   './employee-hours-books-v97.js?build=97',
   './employee-hours-model-v94.js?build=94',
