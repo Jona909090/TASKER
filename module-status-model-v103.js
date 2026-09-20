@@ -97,6 +97,12 @@
         s.modules.push(mod);break
       }
       case 'edit':{requireModule();const data=a.data||{};const before=JSON.stringify(m);for(const k of ['name','note'])if(data[k]!==undefined)m[k]=clean(data[k],k==='note'?4000:120);for(const k of ['type','arrival','dispatch'])if(data[k]!==undefined)m[k]=data[k];for(const k of ['length','width','height'])if(data[k]!==undefined)m[k]=Number(data[k]);if(data.status)setStatus(m,data.status);if(JSON.stringify(m)!==before)log(m,'edited','Izmijenjeni podaci modula');break}
+      case 'hall-name':{
+        const hall=s.halls.find(h=>h.id===a.hallId),name=clean(a.name)
+        if(!hall||!name)throw Error('Upišite naziv hale.')
+        hall.name=name
+        break
+      }
       case 'dates':{
         requireModule()
         for(const key of ['arrival','departure','dispatch']){
@@ -146,3 +152,4 @@
   const api={statuses,phaseNames,create,validate,change,progress,stats,locationName,today,migrate,unfinished}
   if(typeof module==='object'&&module.exports)module.exports=api;else root.TaskerModuleStatusModel=api
 })(typeof window==='object'?window:globalThis)
+
