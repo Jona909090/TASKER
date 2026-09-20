@@ -22,3 +22,12 @@
 #module-status .ms-transfer-fields{border:1px solid #926c32;background:#30291d;border-radius:8px;padding:14px;margin-top:16px}
 #module-status .ms-transfer-fields label{margin-top:12px}
 @media(max-width:800px){#module-status .ms-overview{margin:16px auto}}
+#module-status .ms-shot-tools{margin-bottom:16px}
+#module-status .ms-snapshot{width:min(960px,calc(100vw - 24px));margin:12px auto;max-height:calc(100vh - 24px)}
+#module-status .ms-shot-stage{max-height:58vh;overflow:auto;border:1px solid #42627b;margin:12px 0;background:#0b1c2e}
+#module-status .ms-shot-wrap{position:relative;width:100%}
+#module-status .ms-shot-selection{position:absolute;border:3px solid #39dcff;background:#39dcff19;pointer-events:none}
+#module-status .ms-shot-selection[hidden]{display:none}
+#module-status .ms-phase-date{display:grid;gap:5px;font-size:10px;color:#abc4d6;margin-top:7px}
+#module-status .ms-history label{display:grid;gap:5px;margin-bottom:6px;font-size:11px}
+#module-status #ms-dates-form>label{margin:12px 0}
