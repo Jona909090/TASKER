@@ -31,3 +31,9 @@
 #module-status .ms-phase-date{display:grid;gap:5px;font-size:10px;color:#abc4d6;margin-top:7px}
 #module-status .ms-history label{display:grid;gap:5px;margin-bottom:6px;font-size:11px}
 #module-status #ms-dates-form>label{margin:12px 0}
+#module-status .ms-title-line{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin:6px 0 12px}
+#module-status .ms-title-line h1{margin:0}
+#module-status #ms-hall-name-form{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+#module-status #ms-hall-name-form label{display:grid;gap:5px;font-size:11px;color:#90b7ce}
+#module-status #ms-hall-name-form input{width:280px;font-size:15px;font-weight:700}
+
