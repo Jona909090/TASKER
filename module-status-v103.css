@@ -43,3 +43,26 @@
 #module-status select[data-ms-phase]:has(option[value="waiting"]:checked){background:#e99a30;border-color:#ffc976;color:#211507}
 #module-status select[data-ms-phase] option{background:#10273b;color:#fff}
 
+/* Decorative material delivery: contained in the central aisle, never captures clicks. */
+#module-status .ms-forklift-route{position:absolute;inset:44px 0;pointer-events:none;z-index:2}
+#module-status .ms-forklift{position:absolute;width:46px;height:77px;left:28%;top:94%;filter:drop-shadow(3px 4px 3px #0006);transform:translate(-50%,-50%) rotate(0deg);animation:ms-forklift-delivery 44s linear infinite;pointer-events:none}
+#module-status .ms-forklift-beacon{animation:ms-forklift-light 1s ease-in-out infinite alternate}
+@keyframes ms-forklift-delivery{
+0%{left:28%;top:94%;transform:translate(-50%,-50%) rotate(0deg)}
+10%{left:28%;top:74%}
+20%{left:28%;top:54%}
+30%{left:28%;top:34%}
+40%{left:28%;top:6%;transform:translate(-50%,-50%) rotate(0deg)}
+43%{left:28%;top:6%;transform:translate(-50%,-50%) rotate(90deg)}
+47%{left:72%;top:6%;transform:translate(-50%,-50%) rotate(90deg)}
+50%{left:72%;top:6%;transform:translate(-50%,-50%) rotate(180deg)}
+60%{left:72%;top:26%}
+70%{left:72%;top:46%}
+80%{left:72%;top:66%}
+90%{left:72%;top:94%;transform:translate(-50%,-50%) rotate(180deg)}
+93%{left:72%;top:94%;transform:translate(-50%,-50%) rotate(270deg)}
+97%{left:28%;top:94%;transform:translate(-50%,-50%) rotate(270deg)}
+100%{left:28%;top:94%;transform:translate(-50%,-50%) rotate(360deg)}
+}
+@keyframes ms-forklift-light{from{opacity:.55}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){#module-status .ms-forklift,#module-status .ms-forklift-beacon{animation:none}}
