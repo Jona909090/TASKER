@@ -152,6 +152,29 @@
         requireModule();for(const p of m.phases)if(p.status!=='done'){p.status='done';p.completedAt=time;delete p.completedOn;log(m,'phase-done','Završena faza: '+p.name)}
         setStatus(m,'done');move(m,{kind:'external',locationId:'finished'});break
       }
+      case 'remaining-edit':{
+        requireModule()
+        const edits=a.phases||[]
+        for(const edit of edits){
+          const p=m.phases.find(p=>p.id===edit.id),name=clean(edit.name)
+          if(!p||p.status==='done'||!name)throw Error('Upišite naziv nezavršene faze.')
+          if(p.name!==name){log(m,'phase-renamed','Preostali rad: '+p.name+' → '+name);p.name=name}
+        }
+        for(const item of a.additions||[]){
+          const name=clean(item.name)
+          if(!name||!item.id||m.phases.some(p=>p.id===item.id))throw Error('Neispravan novi rad.')
+          m.phases.push({id:item.id,name,status:'new',completedAt:null});log(m,'phase-added','Dodan preostali rad: '+name)
+          if(m.status==='done')setStatus(m,'active')
+        }
+        const work=clean(a.work,4000),quantity=clean(a.quantity,1000)
+        if(m.remainingNotes?.work!==work||m.remainingNotes?.quantity!==quantity){
+          const previous=m.remainingNotes?clone(m.remainingNotes):null
+          ;(m.remainingRevisions||=[]).push({at:time,previous,work,quantity})
+          m.remainingNotes={work,quantity,at:time}
+          log(m,'remaining-edited','Ažurirani preostali radovi: '+(work||'—')+' · Obim: '+(quantity||'—'))
+        }
+        break
+      }
       case 'phase':{
         requireModule();const p=m.phases.find(p=>p.id===a.phaseId);if(!p||!['new','active','waiting','blocked','done'].includes(a.value))throw Error('Neispravna faza ili status.')
         if(p.status!==a.value){p.status=a.value;p.completedAt=a.value==='done'?time:null;delete p.completedOn;log(m,a.value==='done'?'phase-done':a.value==='waiting'?'waiting':'phase','Faza '+p.name+': '+(a.value==='done'?'Završeno':statuses[a.value].label));if(m.status==='done'&&a.value!=='done')setStatus(m,'active')}
