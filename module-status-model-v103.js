@@ -88,7 +88,7 @@
     const log=(mod,type,text)=>mod.history.push({at:time,type,text})
     const requireModule=()=>{if(!m)throw Error('Modul nije pronađen.')}
     const setStatus=(mod,value)=>{if(!statuses[value])throw Error('Odaberite status.');if(mod.status===value)return;log(mod,value==='waiting'?'waiting':'status','Status: '+statuses[mod.status].label+' → '+statuses[value].label);mod.status=value;if(value==='done'){mod.completedAt=time;log(mod,'completed','Modul završen')}else delete mod.completedAt}
-    const move=(mod,place)=>{checkPlace(s,place,mod.id);if(JSON.stringify(mod.place)===JSON.stringify(place))return;const from=locationName(s,mod.place);mod.place=clone(place);log(mod,place.kind==='hall'?'position':place.locationId==='shipped'?'shipped':'move',from+' → '+locationName(s,place))}
+    const move=(mod,place)=>{checkPlace(s,place,mod.id);if(JSON.stringify(mod.place)===JSON.stringify(place))return;const from=locationName(s,mod.place);if(mod.place.kind==='hall'&&place.kind==='external')mod.departure=today(new Date(time));mod.place=clone(place);log(mod,place.kind==='hall'?'position':place.locationId==='shipped'?'shipped':'move',from+' → '+locationName(s,place))}
     switch(a.type){
       case 'create':{
         if(!a.id||m)throw Error('Modul već postoji.')
@@ -97,15 +97,40 @@
         s.modules.push(mod);break
       }
       case 'edit':{requireModule();const data=a.data||{};const before=JSON.stringify(m);for(const k of ['name','note'])if(data[k]!==undefined)m[k]=clean(data[k],k==='note'?4000:120);for(const k of ['type','arrival','dispatch'])if(data[k]!==undefined)m[k]=data[k];for(const k of ['length','width','height'])if(data[k]!==undefined)m[k]=Number(data[k]);if(data.status)setStatus(m,data.status);if(JSON.stringify(m)!==before)log(m,'edited','Izmijenjeni podaci modula');break}
+      case 'dates':{
+        requireModule()
+        for(const key of ['arrival','departure','dispatch']){
+          if(a[key]===undefined)continue
+          const value=a[key]
+          if((key==='arrival'||value)&&!date(value))throw Error('Upišite ispravan datum.')
+          const before=m[key]||''
+          if(before!==value){m[key]=value;log(m,'date-correction',({arrival:'Datum dolaska',departure:'Datum odlaska',dispatch:'Planirana otprema'})[key]+': '+(before||'—')+' → '+(value||'—'))}
+        }
+        break
+      }
+      case 'phase-date':{
+        requireModule();const p=m.phases.find(p=>p.id===a.phaseId)
+        if(!p||p.status!=='done'||!date(a.value))throw Error('Datum se može mijenjati samo za završenu fazu.')
+        const before=p.completedOn||today(new Date(p.completedAt))
+        if(before!==a.value){p.completedOn=a.value;log(m,'date-correction','Datum završetka faze '+p.name+': '+before+' → '+a.value)}
+        break
+      }
+      case 'event-date':{
+        requireModule();const e=m.history[a.index]
+        if(!Number.isInteger(a.index)||!e||!date(a.value))throw Error('Neispravan događaj ili datum.')
+        const before=e.occurredOn||today(new Date(e.at))
+        if(before!==a.value){e.occurredOn=a.value;log(m,'date-correction','Datum događaja „'+e.text+'”: '+before+' → '+a.value)}
+        break
+      }
       case 'status':requireModule();setStatus(m,a.value);break
       case 'move':requireModule();if(a.place?.kind==='external'&&a.place.locationId==='dupliko')recordRemaining(m,a,time);move(m,a.place);break
       case 'finish':{
-        requireModule();for(const p of m.phases)if(p.status!=='done'){p.status='done';p.completedAt=time;log(m,'phase-done','Završena faza: '+p.name)}
+        requireModule();for(const p of m.phases)if(p.status!=='done'){p.status='done';p.completedAt=time;delete p.completedOn;log(m,'phase-done','Završena faza: '+p.name)}
         setStatus(m,'done');move(m,{kind:'external',locationId:'finished'});break
       }
       case 'phase':{
         requireModule();const p=m.phases.find(p=>p.id===a.phaseId);if(!p||!['new','active','waiting','blocked','done'].includes(a.value))throw Error('Neispravna faza ili status.')
-        if(p.status!==a.value){p.status=a.value;p.completedAt=a.value==='done'?time:null;log(m,a.value==='done'?'phase-done':a.value==='waiting'?'waiting':'phase','Faza '+p.name+': '+(a.value==='done'?'Završeno':statuses[a.value].label));if(m.status==='done'&&a.value!=='done')setStatus(m,'active')}
+        if(p.status!==a.value){p.status=a.value;p.completedAt=a.value==='done'?time:null;delete p.completedOn;log(m,a.value==='done'?'phase-done':a.value==='waiting'?'waiting':'phase','Faza '+p.name+': '+(a.value==='done'?'Završeno':statuses[a.value].label));if(m.status==='done'&&a.value!=='done')setStatus(m,'active')}
         break
       }
       case 'add-phase':requireModule();if(!a.phaseId||!clean(a.name))throw Error('Upišite naziv faze.');m.phases.push({id:a.phaseId,name:clean(a.name),status:'new',completedAt:null});log(m,'phase-added','Dodana faza: '+clean(a.name));if(m.status==='done')setStatus(m,'active');break
