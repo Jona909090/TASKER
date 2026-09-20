@@ -101,6 +101,13 @@
     const setStatus=(mod,value)=>{if(!statuses[value])throw Error('Odaberite status.');if(mod.status===value)return;log(mod,value==='waiting'?'waiting':'status','Status: '+statuses[mod.status].label+' → '+statuses[value].label);mod.status=value;if(value==='done'){mod.completedAt=time;log(mod,'completed','Modul završen')}else delete mod.completedAt}
     const move=(mod,place)=>{checkPlace(s,place,mod.id);if(JSON.stringify(mod.place)===JSON.stringify(place))return;const from=locationName(s,mod.place);if(mod.place.kind==='hall'&&place.kind==='external')mod.departure=today(new Date(time));mod.place=clone(place);log(mod,place.kind==='hall'?'position':place.locationId==='shipped'?'shipped':'move',from+' → '+locationName(s,place))}
     switch(a.type){
+      case 'add-hall':{
+        const name=clean(a.name)
+        if(!name)throw Error('Upišite naziv hale.')
+        if(!a.hallId||s.halls.some(h=>h.id===a.hallId||h.name.toLowerCase()===name.toLowerCase()))throw Error('Hala već postoji.')
+        s.halls.push({id:a.hallId,name,positions:Array.from({length:10},(_,i)=>({id:'p'+(i+1),label:String(i+1),side:i<5?'left':'right',order:i%5+1}))})
+        break
+      }
       case 'create':{
         if(!a.id||m)throw Error('Modul već postoji.')
         const data=a.data||{},mod={id:a.id,name:clean(data.name),type:data.type,length:Number(data.length),width:Number(data.width),height:Number(data.height),arrival:data.arrival,dispatch:data.dispatch||'',note:clean(data.note,4000),status:data.status||'new',place:clone(data.place),phases:phaseNames.map((name,i)=>({id:a.id+'-phase-'+i,name,status:'new',completedAt:null})),history:[]}
