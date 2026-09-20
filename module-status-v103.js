@@ -71,18 +71,16 @@
     renderDetail()
   }
   function remainingHTML(m,editable=false){
-    const pending=M.unfinished(m),handoffs=m.handoffs||[]
-    return '<section class="ms-remaining"><h3>Preostalo za odraditi · '+pending.length+'</h3>'+
-      (editable?'<button type="button" class="ms-button" data-ms-action="remaining">Uredi / dodaj preostale radove</button>':'')+
-      (m.remainingNotes?'<article class="ms-handoff"><h3>Aktuelni zapis preostalih radova</h3><p style="white-space:pre-wrap"><b>Šta je ostalo:</b> '+esc(m.remainingNotes.work||'—')+'</p><p style="white-space:pre-wrap"><b>Koliko / obim:</b> '+esc(m.remainingNotes.quantity||'—')+'</p><time>'+time(m.remainingNotes.at)+'</time></article>':'')+
-      (pending.length?'<ul>'+pending.map(p=>'<li><b>'+esc(p.name)+'</b><span>'+esc(M.statuses[p.status].label)+'</span></li>').join('')+'</ul>':'<p>Sve faze su završene.</p>')+
-      (handoffs.length?'<h3>Zapis preostalih radova pri odlasku u DUPLIKO</h3><p class="ms-hint">Zapis pri premještanju ostaje sačuvan. Gornja lista prikazuje trenutno nezavršene faze.</p>'+[...handoffs].reverse().map(h=>'<article class="ms-handoff"><time>'+time(h.at)+'</time><p><b>Šta je ostalo:</b> '+esc(h.work)+'</p><p><b>Koliko / obim:</b> '+esc(h.quantity)+'</p></article>').join(''):'')+'</section>'
+    const pending=M.unfinished(m)
+    return '<section class="ms-remaining"><h3>Aktuelni zapis preostalih radova</h3>'+
+      (pending.length?'<ol>'+pending.map(p=>'<li><b>'+esc(p.name)+'</b></li>').join('')+'</ol>':'<p>Svi radovi su završeni.</p>')+
+      (editable?'<button type="button" class="ms-button" data-ms-action="remaining">Uredi / dodaj preostale radove</button>':'')+'</section>'
   }
   const phaseDate=p=>p.completedOn||M.today(new Date(p.completedAt))
   function remainingDialog(){
     const m=state.modules.find(m=>m.id===selected);if(!m)return
-    const notes=m.remainingNotes||m.handoffs?.[m.handoffs.length-1]||{},d=el('ms-dialog')
-    d.innerHTML=`<form id="ms-remaining-form" data-id="${esc(m.id)}"><h2>Preostali radovi · ${esc(m.name)}</h2><p>Možete promeniti nazive nezavršenih faza i dodati nove radove. Statusi i datumi postojećih faza ostaju sačuvani.</p>${M.unfinished(m).map(p=>`<label style="display:grid;margin:10px 0">Naziv rada<input data-remaining-phase="${esc(p.id)}" required maxlength="120" value="${esc(p.name)}"></label>`).join('')}<label style="display:grid;margin:12px 0">Dodaj nove radove — svaki u novom redu<textarea name="newWorks" rows="3" placeholder="Novi rad…"></textarea></label><label style="display:grid;margin:12px 0">Šta je ostalo<textarea name="work" rows="5" maxlength="4000">${esc(notes.work||'')}</textarea></label><label style="display:grid;margin:12px 0">Koliko / obim<textarea name="quantity" rows="3" maxlength="1000">${esc(notes.quantity||'')}</textarea></label><p>Originalni zapis pri odlasku u DUPLIKO ostaje sačuvan. Dopune se prikazuju kao aktuelni zapis.</p><p class="ms-error" role="alert"></p><div class="ms-actions"><button type="button" class="ms-button" data-ms-cancel>Odustani</button><button type="submit" class="ms-button primary">Sačuvaj radove</button></div></form>`
+    const d=el('ms-dialog')
+    d.innerHTML=`<form id="ms-remaining-form" data-id="${esc(m.id)}"><h2>Preostali radovi · ${esc(m.name)}</h2><p>Svaki novi rad postaje faza. Kada ga dole označite kao Završeno, automatski nestaje iz preostalih radova.</p>${M.unfinished(m).map(p=>`<label style="display:grid;margin:10px 0">Naziv rada<input data-remaining-phase="${esc(p.id)}" required maxlength="120" value="${esc(p.name)}"></label>`).join('')}<label style="display:grid;margin:12px 0">Dodaj nove radove — svaki u novom redu<textarea name="newWorks" rows="4" placeholder="Novi rad…"></textarea></label><p class="ms-error" role="alert"></p><div class="ms-actions"><button type="button" class="ms-button" data-ms-cancel>Odustani</button><button type="submit" class="ms-button primary">Sačuvaj radove</button></div></form>`
     d.showModal()
   }
   const eventDate=e=>e.occurredOn||M.today(new Date(e.at))
@@ -191,7 +189,8 @@
     if(form.id==='ms-remaining-form'){
       const phases=[...form.querySelectorAll('[data-remaining-phase]')].map(n=>({id:n.dataset.remainingPhase,name:n.value}))
       const additions=values.newWorks.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).map(name=>({id:uid(),name}))
-      if(commit({type:'remaining-edit',id:form.dataset.id,phases,additions,work:values.work,quantity:values.quantity}))el('ms-dialog').close()
+      const notes=state.modules.find(m=>m.id===form.dataset.id)?.remainingNotes||{}
+      if(commit({type:'remaining-edit',id:form.dataset.id,phases,additions,work:notes.work||'',quantity:notes.quantity||''}))el('ms-dialog').close()
       return
     }
     if(form.id==='ms-add-hall-form'){const hallId=uid();if(commit({type:'add-hall',hallId,name:values.name})){activeHall=hallId;selected='';locationFilter='';el('ms-dialog').close();refresh()}return}
