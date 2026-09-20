@@ -1,7 +1,7 @@
 (function(root){
   'use strict'
   const statuses={new:{label:'Nije započeto',color:'#738394',icon:'○'},active:{label:'U radu',color:'#1681ff',icon:'⚙'},waiting:{label:'Čeka materijal',color:'#f49a22',icon:'◷'},blocked:{label:'Blokiran',color:'#ee5367',icon:'!'},ready:{label:'Spreman za otpremu',color:'#a16bff',icon:'➜'},done:{label:'Završen',color:'#27bf83',icon:'✓'}}
-  const phaseNames=['Parna brana u podu','Podni lim','Vuna u pod 200 mm','Postavljanje plywooda','Postavljanje Cetris ploča','Postavljanje vune u strop 80/100 mm','Postavljanje parne brane','Postavljanje stropnih panela','Postavljanje panel holdera','Postavljanje zidnih panela','Postavljanje konstrukcije za pregradni zid','Postavljanje panela na pregradni zid','Postavljanje konstrukcije za unutarnji demontažni zid','Postavljanje panela na unutarnji demontažni zid','Postavljanje unutarnje kutne lajsne','Postavljanje fiksnih i demontažnih Omega lajsni','Postavljanje konstrukcije za vanjski demontažni zid','Postavljanje panela na vanjski demontažni zid','Postavljanje L lajsni na vanjski demontažni zid','Postavljanje okapnih lajsni','Probijanje vanjskih prodora','Probijanje unutarnjih prodora','Postavljanje vanjskih opšava na prodorima','Oblaganje Promatom kutije u podu','Postavljanje metalnih kutija u podu','Postavljanje panela 60 mm sa opšavama','Silikoniranje modula','Oblaganje okvira vrata Promatom','Postavljanje bakrene trake na pod','Zaštita prodora za transport']
+  const phaseNames=['Parna brana u podu','Podni lim','Vuna u pod 200 mm','Postavljanje plywooda','Postavljanje Cetris ploča','Postavljanje vune u strop 80/100 mm','Postavljanje parne brane','Postavljanje stropnih panela','Postavljanje panel holdera','Oblaganje okvira vrata Promatom','Postavljanje zidnih panela','Postavljanje konstrukcije za pregradni zid','Postavljanje panela na pregradni zid','Postavljanje konstrukcije za unutarnji demontažni zid','Postavljanje panela na unutarnji demontažni zid','Postavljanje unutarnje kutne lajsne','Postavljanje fiksnih i demontažnih Omega lajsni','Postavljanje konstrukcije za vanjski demontažni zid','Postavljanje panela na vanjski demontažni zid','Postavljanje L lajsni na vanjski demontažni zid','Postavljanje okapnih lajsni','Probijanje vanjskih prodora','Probijanje unutarnjih prodora','Postavljanje vanjskih opšava na prodorima','Oblaganje Promatom kutije u podu','Postavljanje metalnih kutija u podu','Postavljanje panela 60 mm sa opšavama','Silikoniranje modula','Postavljanje bakrene trake na pod','Zaštita prodora za transport']
   const legacyPhaseNames=['Parna brana ispod poda','Podni lim','Vuna u podu','Plywood','Cetris ploče','Vuna u zidovima i stropu','Vuna u stropu','Stropni paneli','Panel holderi','Promat oko vrata','Zidni paneli','Prodori','Pregradni zid','Demontažni zid unutarnji','Lajsne','Unutarnji opšavi','Vanjski opšavi','Promat','Silikoniranje','Završna kontrola','Spreman za otpremu']
   const phaseAliases={
     'Parna brana u podu':['Parna brana ispod poda'],
@@ -20,7 +20,7 @@
   const date=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s
   const clean=(v,max=120)=>String(v??'').trim().slice(0,max)
   const progress=m=>m.phases.length?Math.round(100*m.phases.filter(p=>p.status==='done').length/m.phases.length):0
-  function create(){return {version:1,phaseTemplateVersion:2,revision:0,halls:[{id:'main',name:'Proizvodna hala',positions:Array.from({length:10},(_,i)=>({id:'p'+(i+1),label:String(i+1),side:i<5?'left':'right',order:i%5+1}))}],locations:[{id:'dupliko',name:'DUPLIKO'},{id:'shipped',name:'Otpremljeni'},{id:'finished',name:'Završeni'}],modules:[]}}
+  function create(){return {version:1,phaseTemplateVersion:3,revision:0,halls:[{id:'main',name:'Proizvodna hala',positions:Array.from({length:10},(_,i)=>({id:'p'+(i+1),label:String(i+1),side:i<5?'left':'right',order:i%5+1}))}],locations:[{id:'dupliko',name:'DUPLIKO'},{id:'shipped',name:'Otpremljeni'},{id:'finished',name:'Završeni'}],modules:[]}}
   function migrate(source,time=new Date().toISOString()){
     validate(source)
     const s=clone(source),aliases=s.locations.filter(l=>l.id==='kalinovica'||/^kalinovica$/i.test(l.name.trim())).map(l=>l.id)
@@ -34,7 +34,7 @@
       changed=true
     }
     if(aliases.length){s.locations=s.locations.filter(l=>!aliases.includes(l.id));changed=true}
-    if(s.phaseTemplateVersion!==2){
+    if(s.phaseTemplateVersion!==3){
       const legacyDefaults=new Set(legacyPhaseNames)
       for(const m of s.modules){
         const before=JSON.stringify(m.phases),used=new Set(),ids=new Set(m.phases.map(p=>p.id))
@@ -53,7 +53,7 @@
         }
         if(JSON.stringify(next)!==before){m.phases=next;changed=true}
       }
-      s.phaseTemplateVersion=2
+      s.phaseTemplateVersion=3
       changed=true
     }
     if(changed)s.revision++
