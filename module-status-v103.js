@@ -4,6 +4,8 @@
   const el=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
   const date=s=>s?s.split('-').reverse().join('.')+'.':'—',time=s=>new Date(s).toLocaleString('hr-HR'),uid=()=>crypto.randomUUID()
   let state,raw=null,error='',selected='',locationFilter='',dragged=''
+  let activeHall=''
+  const currentHall=()=>state.halls.find(h=>h.id===activeHall)||state.halls[0]
   function read(){
     const text=localStorage.getItem(KEY),result=text?M.migrate(JSON.parse(text)):{state:M.create(),changed:false}
     if(result.changed){
@@ -37,19 +39,25 @@
     if(el('breadcrumb'))el('breadcrumb').textContent='Status modula'
     if(error){content.innerHTML=`<section id="module-status"><h1>Status modula</h1><p role="alert">Spremište nije moguće otvoriti. Postojeći podaci nisu prepisani. ${esc(error)}</p></section>`;return}
     content.innerHTML=`<section id="module-status"><header class="ms-header"><div><p class="ms-eyebrow">TASKER / PROIZVODNJA</p><div class="ms-title-line"><h1>Status modula</h1><form id="ms-hall-name-form" data-hall-id="${esc(state.halls[0].id)}"><label>Naziv hale<input name="hallName" aria-label="Naziv hale" required maxlength="120" placeholder="npr. BAJKMONT / VERTIV" value="${esc(state.halls[0].name)}"></label><button class="ms-button" type="submit">Sačuvaj naziv</button></form></div><p>Raspored hale, proizvodne faze i kretanje svakog modula.</p></div><div class="ms-actions"><button class="ms-button" data-ms-action="location">+ Dodaj lokaciju</button><button class="ms-button primary" data-ms-action="add">+ Dodaj modul</button></div></header><p id="ms-toast" role="status">Podaci se čuvaju na ovom uređaju. Statusi su ručni; napredak se računa iz završenih faza.</p><div id="ms-stats" class="ms-stats"></div><div class="ms-workspace"><div class="ms-map-column"><div class="ms-map-head"><h2>Proizvodna hala</h2><span>POGLED ODOZGO</span></div><p class="ms-hint">Klikni modul za detalje ili slobodnu poziciju za dodavanje. Na računalu možeš povući modul na slobodnu poziciju; na tabletu koristi Premjesti.</p><div id="ms-halls"></div><div class="ms-legend">${Object.entries(M.statuses).map(([k,s])=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div><section class="ms-panel"><h2>DUPLIKO</h2><div id="ms-locations" class="ms-locations"></div><div id="ms-location-list"></div></section></div><aside id="ms-detail" class="ms-detail ms-panel" aria-label="Detalji modula"></aside></div><dialog id="ms-overview" class="ms-dialog ms-overview" aria-label="Pregled modula bez izmjena"></dialog><dialog id="ms-dialog" class="ms-dialog"></dialog><input id="ms-photo-file" type="file" accept="image/*" hidden></section>`
+    el('ms-stats').insertAdjacentHTML('beforebegin','<div class="ms-actions" style="margin:16px 0"><label>Hale <select id="ms-hall-choice" aria-label="Odaberi halu"></select></label><button type="button" class="ms-button primary" data-ms-action="add-hall">+ Dodaj halu</button></div>')
     refresh()
     el('module-status').insertAdjacentHTML('afterbegin','<button type="button" class="ms-button ms-back" data-ms-back>← Projekti</button>')
     window.scrollTo({top:0,behavior:'instant'})
   }
   function refresh(){
     if(!el('ms-stats'))return
-    const s=M.stats(state)
+    const hall=currentHall();activeHall=hall.id
+    const s=M.stats({...state,modules:state.modules.filter(m=>m.place.kind==='hall'&&m.place.hallId===hall.id)})
+    const choice=el('ms-hall-choice')
+    if(choice)choice.innerHTML=state.halls.map(h=>`<option value="${esc(h.id)}" ${h.id===hall.id?'selected':''}>${esc(h.name)}</option>`).join('')
+    const nameForm=el('ms-hall-name-form')
+    if(nameForm){nameForm.dataset.hallId=hall.id;nameForm.elements.hallName.value=hall.name}
     const mapHeading=document.querySelector('#module-status .ms-map-head h2')
-    if(mapHeading)mapHeading.textContent=state.halls[0].name
+    if(mapHeading)mapHeading.textContent=hall.name
     const visibleLocations=state.locations.filter(l=>!['shipped','finished'].includes(l.id)&&!['bajkmontvertiv','vertivbajkmont'].includes(l.name.toLowerCase().replace(/[^a-z]/g,'')))
     if(locationFilter&&!visibleLocations.some(l=>l.id===locationFilter))locationFilter=''
     el('ms-stats').innerHTML=[['hall','◫','Modula u hali'],['active','⚙','U radu'],['waiting','◷','Čekaju materijal'],['ready','➜','Spremna za otpremu'],['completed','✓','Završena danas']].map(([key,icon,label])=>`<article class="ms-stat ms-${key}"><span>${icon}</span><div><b>${s[key]}</b><small>${label}</small></div></article>`).join('')
-    el('ms-halls').innerHTML=state.halls.map(h=>{
+    el('ms-halls').innerHTML=[hall].map(h=>{
       const members=state.modules.filter(m=>m.place.kind==='hall'&&m.place.hallId===h.id),max=Math.max(12,...members.map(m=>m.length))
       const row=side=>h.positions.filter(p=>p.side===side).sort((a,b)=>b.order-a.order).map(p=>{
         const m=members.find(m=>m.place.positionId===p.id)
@@ -114,6 +122,11 @@
     d.innerHTML=`<form id="ms-dimensions-form" data-id="${esc(m.id)}"><h2>Dimenzije · ${esc(m.name)}</h2><p>Unesite dimenzije u metrima.</p><div class="ms-form-grid">${[['length','Dužina'],['width','Širina'],['height','Visina']].map(([key,label])=>`<label>${label} (m)<input name="${key}" type="number" min="0.1" max="100" step="0.01" required value="${m[key]}"></label>`).join('')}</div><p class="ms-error" role="alert"></p><div class="ms-actions"><button type="button" class="ms-button" onclick="this.closest('dialog').close()">Odustani</button><button type="submit" class="ms-button primary">Sačuvaj dimenzije</button></div></form>`
     d.showModal();d.querySelector('input').focus()
   }
+  function addHallDialog(){
+    const d=el('ms-dialog')
+    d.innerHTML='<form id="ms-add-hall-form"><h2>Dodaj novu halu</h2><label>Naziv hale<input name="name" required maxlength="120" placeholder="npr. MONTING / VERTIV"></label><p>Nova hala će biti prazna, sa 10 slobodnih pozicija. Postojeći moduli ostaju u svojoj hali.</p><p class="ms-error" role="alert"></p><div class="ms-actions"><button type="button" class="ms-button" data-ms-cancel>Odustani</button><button type="submit" class="ms-button primary">Dodaj halu</button></div></form>'
+    d.showModal();d.querySelector('input').focus()
+  }
   function dialog(kind,place){
     const d=el('ms-dialog'),m=state.modules.find(m=>m.id===selected),editing=kind==='edit'
     let body=''
@@ -124,6 +137,7 @@
     else body='<h2>Dodaj lokaciju</h2><label>Naziv lokacije<input name="name" required maxlength="120" placeholder="Naziv nove lokacije"></label>'
     if(kind==='add'||kind==='move')body+='<div class="ms-transfer-fields" hidden><h3>Preostali radovi za DUPLIKO</h3><p>Nezavršen modul može napustiti halu. Obavezno zapišite šta i koliko je ostalo; faze se neće označiti kao završene.</p><label>Šta je ostalo da se odradi<textarea name="remainingWork" rows="3" maxlength="4000" placeholder="npr. Unutarnji opšavi, silikoniranje…"></textarea></label><label>Koliko / količina / obim<input name="remainingQuantity" maxlength="1000" placeholder="npr. 6 opšava i 12 m spojeva"></label></div>'
     d.innerHTML=`<form id="ms-edit-form" data-kind="${kind}" data-id="${editing||kind==='move'?esc(m.id):''}">${body}<p class="ms-error" role="alert"></p><div class="ms-actions"><button type="button" class="ms-button" data-ms-cancel>Odustani</button><button class="ms-button primary" type="submit">${kind==='move'?'Premjesti':'Sačuvaj'}</button></div></form>`
+    if(kind==='add'&&!place){const h=currentHall(),p=h.positions.find(p=>!state.modules.some(m=>m.place.kind==='hall'&&m.place.hallId===h.id&&m.place.positionId===p.id));if(p)place={hallId:h.id,positionId:p.id};else d.querySelector('[name="place"]').selectedIndex=-1}
     if(place&&d.querySelector('[name="place"]'))d.querySelector('[name="place"]').value='hall:'+place.hallId+':'+place.positionId
     transferFields();d.showModal();d.querySelector('input,select')?.focus()
   }
@@ -155,6 +169,7 @@
       if(action==='overview')overview()
       if(action==='dates')datesDialog()
       if(action==='dimensions')dimensionsDialog()
+      if(action==='add-hall')addHallDialog()
       if(action==='close'){selected='';refresh()}
       if(action==='finish')ask('Završiti modul, označiti sve njegove faze završenima i premjestiti ga u Završeni? Pozicija u hali bit će slobodna.',{type:'finish',id:selected})
       if(action==='photo'){el('ms-photo-file').dataset.moduleId=selected;el('ms-photo-file').click()}
@@ -164,6 +179,7 @@
   document.addEventListener('submit',event=>{
     const form=event.target;if(!form.closest('#module-status'))return
     event.preventDefault();const values=Object.fromEntries(new FormData(form))
+    if(form.id==='ms-add-hall-form'){const hallId=uid();if(commit({type:'add-hall',hallId,name:values.name})){activeHall=hallId;selected='';locationFilter='';el('ms-dialog').close();refresh()}return}
     if(form.id==='ms-hall-name-form'){commit({type:'hall-name',hallId:form.dataset.hallId,name:values.hallName});return}
     if(form.id==='ms-dates-form'){if(commit({type:'dates',id:form.dataset.id,...values}))el('ms-dialog').close();return}
     if(form.id==='ms-dimensions-form'){if(commit({type:'edit',id:form.dataset.id,data:values}))el('ms-dialog').close();return}
@@ -178,6 +194,7 @@
   })
   document.addEventListener('change',event=>{
     const t=event.target;if(!t.closest('#module-status'))return
+    if(t.id==='ms-hall-choice'){activeHall=t.value;selected='';locationFilter='';refresh();return}
     if(t.matches('#ms-edit-form [name="place"]'))transferFields()
     if(t.dataset.msPhaseDate){commit({type:'phase-date',id:selected,phaseId:t.dataset.msPhaseDate,value:t.value});return}
     if(t.dataset.msEventDate!==undefined){commit({type:'event-date',id:selected,index:Number(t.dataset.msEventDate),value:t.value});return}
