@@ -42,7 +42,6 @@
 #module-status select[data-ms-phase]:has(option[value="blocked"]:checked){background:#a32d3d;border-color:#ff8290}
 #module-status select[data-ms-phase]:has(option[value="waiting"]:checked){background:#e99a30;border-color:#ffc976;color:#211507}
 #module-status select[data-ms-phase] option{background:#10273b;color:#fff}
-
 /* Decorative material delivery: contained in the central aisle, never captures clicks. */
 #module-status .ms-forklift-route{position:absolute;inset:44px 0;pointer-events:none;z-index:2}
 #module-status .ms-forklift{position:absolute;width:46px;height:77px;left:28%;top:94%;filter:drop-shadow(3px 4px 3px #0006);transform:translate(-50%,-50%) rotate(0deg);animation:ms-forklift-delivery 44s linear infinite;pointer-events:none}
@@ -66,10 +65,16 @@
 }
 @keyframes ms-forklift-light{from{opacity:.55}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){#module-status .ms-forklift,#module-status .ms-forklift-beacon{animation:none}}
-
 /* Light travels and turns with the forklift. */
 #module-status .ms-forklift{overflow:visible}
 #module-status .ms-forklift-headlights{pointer-events:none}
+#module-status .ms-floor{position:relative}
+#module-status .ms-delivered-pallet{position:absolute;width:26px;height:30px;transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:3;border:2px solid #775026;border-radius:2px;background:repeating-linear-gradient(0deg,#d0a060 0 6px,#8e602f 6px 8px);box-shadow:2px 4px 5px #0007}
+#module-status .ms-delivered-pallet:after{content:'';position:absolute;inset:3px 5px;border-left:2px solid #f4d090;border-right:2px solid #f4d090}
+#module-status .ms-forklift-cargo{transition:opacity .2s}
+#module-status .ms-forklift-rotor{transform-origin:30px 77px;animation:ms-beacon-rotate 1.2s linear infinite;filter:drop-shadow(0 0 5px #ffb21c)}
+@keyframes ms-beacon-rotate{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#module-status .ms-forklift-rotor{animation:none}}
 #module-status .ms-forklift-beacon{animation:ms-forklift-light .8s ease-in-out infinite alternate}
 @media(prefers-reduced-motion:reduce){#module-status .ms-forklift-beacon{animation:none}}
 
