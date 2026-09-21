@@ -4,7 +4,7 @@
   const el=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
   const date=s=>s?s.split('-').reverse().join('.')+'.':'—',time=s=>new Date(s).toLocaleString('hr-HR'),uid=()=>crypto.randomUUID()
   let state,raw=null,error='',selected='',locationFilter='',dragged=''
-  let activeHall=''
+  let activeHall='',stopDelivery=()=>{}
   const currentHall=()=>state.halls.find(h=>h.id===activeHall)||state.halls[0]
   function read(){
     const text=localStorage.getItem(KEY),result=text?M.migrate(JSON.parse(text)):{state:M.create(),changed:false}
@@ -46,6 +46,7 @@
   }
   function refresh(){
     if(!el('ms-stats'))return
+    stopDelivery()
     const hall=currentHall();activeHall=hall.id
     const s=M.stats({...state,modules:state.modules.filter(m=>m.place.kind==='hall'&&m.place.hallId===hall.id)})
     const choice=el('ms-hall-choice')
@@ -63,12 +64,60 @@
         const m=members.find(m=>m.place.positionId===p.id)
         return `<div class="ms-bay ${side}" data-ms-drop="${esc(p.id)}" data-ms-hall="${esc(h.id)}"><span class="ms-position">${esc(p.label)}</span>${m?`<button type="button" draggable="true" data-ms-module="${esc(m.id)}" class="ms-container ${selected===m.id?'selected':''}" aria-pressed="${selected===m.id}" style="--status:${M.statuses[m.status].color};height:${Math.max(58,Math.round(m.length/max*152))}px" title="${esc(m.name)} · ${m.length} m · ${M.statuses[m.status].label}"><span class="ms-frame" aria-hidden="true"></span><span class="ms-container-icon">${M.statuses[m.status].icon}</span><strong>${esc(m.name)}</strong><small>${M.progress(m)}% · ${m.length} m</small></button>`:`<button class="ms-free" data-ms-add-position="${esc(p.id)}" data-ms-hall="${esc(h.id)}" aria-label="Dodaj modul na poziciju ${esc(p.label)}"><span>+</span>Slobodno</button>`}</div>`
       }).join('')
-      return `<div class="ms-map-scroll"><section class="ms-hall" aria-label="${esc(h.name)}"><div class="ms-gate"><span></span><b>ULAZ ↑</b><span></span></div><div class="ms-floor"><div class="ms-row">${row('left')}</div><div class="ms-safe-zone" aria-label="Radna zona"></div><div class="ms-aisle"><div class="ms-forklift-route" aria-hidden="true"><svg class="ms-forklift" viewBox="0 0 60 100" focusable="false"><defs><linearGradient id="ms-forklift-beam" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff5ae" stop-opacity=".65"/><stop offset="1" stop-color="#fff5ae" stop-opacity="0"/></linearGradient><radialGradient id="ms-forklift-amber"><stop stop-color="#fff7bb" stop-opacity=".95"/><stop offset=".3" stop-color="#ffba35" stop-opacity=".8"/><stop offset="1" stop-color="#ff8a00" stop-opacity="0"/></radialGradient></defs><g class="ms-forklift-headlights"><path d="M17 39L-14 -56H44L23 39Z" fill="url(#ms-forklift-beam)"/><path d="M37 39L16 -56H74L43 39Z" fill="url(#ms-forklift-beam)"/></g><ellipse cx="31" cy="60" rx="25" ry="32" fill="#000" opacity=".28"/><path d="M17 29V3h5v26m16 0V3h5v26" fill="#bbc5cb" stroke="#394550" stroke-width="2"/><rect x="13" y="5" width="34" height="20" rx="2" fill="#b98440" stroke="#543b21" stroke-width="2"/><path d="M15 10h30M15 19h30M22 6v18M38 6v18" stroke="#e7bc72" stroke-width="2"/><g fill="#111c25" stroke="#67717a"><rect x="5" y="34" width="10" height="21" rx="3"/><rect x="45" y="34" width="10" height="21" rx="3"/><rect x="7" y="72" width="9" height="17" rx="3"/><rect x="44" y="72" width="9" height="17" rx="3"/></g><rect x="14" y="30" width="32" height="59" rx="8" fill="#f2b529" stroke="#805714" stroke-width="2"/><path d="M18 76h24v9H18z" fill="#d68b14"/><rect x="15" y="30" width="30" height="7" rx="1" fill="#596771" stroke="#141e26" stroke-width="2"/><rect x="18" y="43" width="24" height="29" rx="3" fill="#183b4d" stroke="#0c1720" stroke-width="3"/><path d="M20 45l19 23M40 45L21 68" stroke="#8baab6" stroke-width="2"/><path d="M19 43v29M41 43v29" stroke="#c1cbd0" stroke-width="3"/><rect x="17" y="37" width="6" height="4" fill="#fff4b0"/><rect x="37" y="37" width="6" height="4" fill="#fff4b0"/><circle class="ms-forklift-beacon" cx="30" cy="77" r="17" fill="url(#ms-forklift-amber)"/><circle cx="30" cy="77" r="4" fill="#ffb329" stroke="#fff3a0" stroke-width="1.5"/></svg></div><span>CENTRALNI PROLAZ</span><i>↑</i><b>${esc(h.name)}</b><i>↓</i></div><div class="ms-safe-zone" aria-label="Radna zona"></div><div class="ms-row">${row('right')}</div></div><div class="ms-gate"><span></span><b>VRATA / IZLAZ ↓</b><span></span></div></section></div>`
+      return `<div class="ms-map-scroll"><section class="ms-hall" aria-label="${esc(h.name)}"><div class="ms-gate"><span></span><b>ULAZ ↑</b><span></span></div><div class="ms-floor"><div class="ms-row">${row('left')}</div><div class="ms-safe-zone" aria-label="Radna zona"></div><div class="ms-aisle"><div class="ms-forklift-route" aria-hidden="true"><svg class="ms-forklift" viewBox="0 0 60 100" focusable="false"><defs><linearGradient id="ms-forklift-beam" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff5ae" stop-opacity=".65"/><stop offset="1" stop-color="#fff5ae" stop-opacity="0"/></linearGradient><radialGradient id="ms-forklift-amber"><stop stop-color="#fff7bb" stop-opacity=".95"/><stop offset=".3" stop-color="#ffba35" stop-opacity=".8"/><stop offset="1" stop-color="#ff8a00" stop-opacity="0"/></radialGradient></defs><g class="ms-forklift-headlights"><path d="M17 39L-14 -56H44L23 39Z" fill="url(#ms-forklift-beam)"/><path d="M37 39L16 -56H74L43 39Z" fill="url(#ms-forklift-beam)"/></g><ellipse cx="31" cy="60" rx="25" ry="32" fill="#000" opacity=".28"/><path d="M17 29V3h5v26m16 0V3h5v26" fill="#bbc5cb" stroke="#394550" stroke-width="2"/><g class="ms-forklift-cargo"><rect x="13" y="5" width="34" height="20" rx="2" fill="#b98440" stroke="#543b21" stroke-width="2"/><path d="M15 10h30M15 19h30M22 6v18M38 6v18" stroke="#e7bc72" stroke-width="2"/></g><g fill="#111c25" stroke="#67717a"><rect x="5" y="34" width="10" height="21" rx="3"/><rect x="45" y="34" width="10" height="21" rx="3"/><rect x="7" y="72" width="9" height="17" rx="3"/><rect x="44" y="72" width="9" height="17" rx="3"/></g><rect x="14" y="30" width="32" height="59" rx="8" fill="#f2b529" stroke="#805714" stroke-width="2"/><path d="M18 76h24v9H18z" fill="#d68b14"/><rect x="15" y="30" width="30" height="7" rx="1" fill="#596771" stroke="#141e26" stroke-width="2"/><rect x="18" y="43" width="24" height="29" rx="3" fill="#183b4d" stroke="#0c1720" stroke-width="3"/><path d="M20 45l19 23M40 45L21 68" stroke="#8baab6" stroke-width="2"/><path d="M19 43v29M41 43v29" stroke="#c1cbd0" stroke-width="3"/><rect x="17" y="37" width="6" height="4" fill="#fff4b0"/><rect x="37" y="37" width="6" height="4" fill="#fff4b0"/><circle class="ms-forklift-beacon" cx="30" cy="77" r="17" fill="url(#ms-forklift-amber)"/><g class="ms-forklift-rotor"><path d="M30 77L-5 65Q-11 77-5 89Z" fill="url(#ms-forklift-amber)"/><path d="M30 77L65 65Q71 77 65 89Z" fill="url(#ms-forklift-amber)"/></g><circle cx="30" cy="77" r="4" fill="#ffb329" stroke="#fff3a0" stroke-width="1.5"/></svg></div><span>CENTRALNI PROLAZ</span><i>↑</i><b>${esc(h.name)}</b><i>↓</i></div><div class="ms-safe-zone" aria-label="Radna zona"></div><div class="ms-row">${row('right')}</div></div><div class="ms-gate"><span></span><b>VRATA / IZLAZ ↓</b><span></span></div></section></div>`
     }).join('')
     el('ms-locations').innerHTML=visibleLocations.map(l=>`<button class="ms-location ${locationFilter===l.id?'selected':''}" data-ms-location="${esc(l.id)}"><span>⌖</span><b>${esc(l.name)}</b><small>${state.modules.filter(m=>m.place.kind==='external'&&m.place.locationId===l.id).length} modula</small></button>`).join('')
     const loc=state.locations.find(l=>l.id===locationFilter),list=state.modules.filter(m=>m.place.kind==='external'&&m.place.locationId===locationFilter)
     el('ms-location-list').innerHTML=loc?`<h3>${esc(loc.name)}</h3>${list.map(m=>`<button class="ms-list-module ${selected===m.id?'selected':''}" data-ms-module="${esc(m.id)}"><strong>${esc(m.name)}</strong>${badge(m)}<span>${M.progress(m)}%</span></button>`).join('')||'<p class="ms-hint">Nema modula na ovoj lokaciji.</p>'}`:''
     renderDetail()
+    startDelivery()
+  }
+  function startDelivery(){
+    const floor=document.querySelector('#ms-halls .ms-floor'),truck=floor?.querySelector('.ms-forklift'),aisle=floor?.querySelector('.ms-aisle')
+    if(!truck||!aisle||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return
+    const bays=[...floor.querySelectorAll('.ms-bay')].filter(b=>b.querySelector('[data-ms-module]'))
+    if(!bays.length)return
+    let stopped=false,current=null,x=aisle.clientWidth/2,y=aisle.clientHeight-48,angle=0
+    const pallets=[]
+    stopDelivery=()=>{stopped=true;current?.cancel();pallets.forEach(p=>p.remove())}
+    truck.style.animation='none'
+    const route=truck.parentElement;route.style.inset='0'
+    const cargo=truck.querySelector('.ms-forklift-cargo')
+    const alive=()=>!stopped&&truck.isConnected
+    const pose=(px,py,a)=>({left:px+'px',top:py+'px',transform:`translate(-50%,-50%) rotate(${a}deg)`})
+    async function travel(nx,ny,na,duration){
+      if(!alive())return
+      const end=pose(nx,ny,na)
+      current=truck.animate([pose(x,y,angle),end],{duration:duration??Math.max(500,Math.hypot(nx-x,ny-y)/85*1000),easing:'ease-in-out',fill:'forwards'})
+      try{await current.finished}catch{return}
+      if(!alive())return
+      Object.assign(truck.style,end);current.cancel();x=nx;y=ny;angle=na
+    }
+    const targets=bays.map(b=>{
+      const pallet=document.createElement('div');pallet.className='ms-delivered-pallet';pallet.setAttribute('aria-hidden','true');floor.append(pallet);pallets.push(pallet)
+      return {bay:b,pallet}
+    })
+    Object.assign(truck.style,pose(x,y,angle))
+    ;(async()=>{
+      while(alive())for(const {bay,pallet} of targets){
+        if(!alive())return
+        const ar=aisle.getBoundingClientRect(),br=bay.getBoundingClientRect(),fr=floor.getBoundingClientRect(),left=bay.classList.contains('left')
+        const ty=br.top+br.height/2-ar.top,lane=ar.width/2,edge=left?25:ar.width-25,turn=left?-90:90
+        if(cargo)cargo.style.opacity='1'
+        await travel(lane,y,0,450);await travel(lane,ty,0);await travel(edge,ty,turn,900)
+        if(!alive())return
+        const px=left?br.right-fr.left-18:br.left-fr.left+18,py=br.top-fr.top+br.height/2
+        pallet.style.left=px+'px';pallet.style.top=py+'px';pallet.style.opacity='1'
+        const dx=ar.left+edge-fr.left-px+(left?-28:28),dy=ar.top+ty-fr.top-py
+        current=pallet.animate([{transform:`translate(-50%,-50%) translate(${dx}px,${dy}px)`,opacity:.4},{transform:'translate(-50%,-50%)',opacity:1}],{duration:850,easing:'ease-out'})
+        if(cargo)cargo.style.opacity='0'
+        try{await current.finished}catch{return}
+        if(!alive())return
+        await travel(lane,ty,turn,800);await travel(lane,ty,180,450)
+        await travel(lane,aisle.clientHeight-48,180);await travel(lane,aisle.clientHeight-48,360,650)
+        angle=0
+      }
+    })().catch(()=>{})
   }
   function remainingHTML(m,editable=false){
     const pending=M.unfinished(m)
