@@ -77,7 +77,7 @@
     if(!truck||!aisle||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return
     const bays=[...floor.querySelectorAll('.ms-bay')].filter(b=>b.querySelector('[data-ms-module]'))
     if(!bays.length)return
-    let stopped=false,current=null,x=aisle.clientWidth/2,y=aisle.clientHeight-48,angle=0
+    let stopped=false,current=null,x=aisle.clientWidth/2,y=-95,angle=180
     const pallets=[]
     stopDelivery=()=>{stopped=true;current?.cancel();pallets.forEach(p=>p.remove())}
     truck.style.animation='none'
@@ -99,23 +99,32 @@
     })
     Object.assign(truck.style,pose(x,y,angle))
     ;(async()=>{
-      while(alive())for(const {bay,pallet} of targets){
+      while(alive())for(const collecting of [false,true])for(const {bay,pallet} of targets){
         if(!alive())return
         const ar=aisle.getBoundingClientRect(),br=bay.getBoundingClientRect(),fr=floor.getBoundingClientRect(),left=bay.classList.contains('left')
-        const ty=br.top+br.height/2-ar.top,lane=ar.width/2,edge=left?25:ar.width-25,turn=left?-90:90
-        if(cargo)cargo.style.opacity='1'
-        await travel(lane,y,0,450);await travel(lane,ty,0);await travel(edge,ty,turn,900)
+        const ty=br.top+br.height/2-ar.top,lane=ar.width/2,edge=left?25:ar.width-25,turn=left?270:90
+        // Each trip begins outside the top entrance, facing the bottom exit.
+        x=lane;y=-95;angle=180;Object.assign(truck.style,pose(x,y,angle));truck.style.opacity='1'
+        if(cargo)cargo.style.opacity=collecting?'0':'1'
+        await travel(lane,ty,180);await travel(lane,ty,turn,450);await travel(edge,ty,turn,900)
         if(!alive())return
         const px=left?br.right-fr.left-18:br.left-fr.left+18,py=br.top-fr.top+br.height/2
         pallet.style.left=px+'px';pallet.style.top=py+'px';pallet.style.opacity='1'
         const dx=ar.left+edge-fr.left-px+(left?-28:28),dy=ar.top+ty-fr.top-py
-        current=pallet.animate([{transform:`translate(-50%,-50%) translate(${dx}px,${dy}px)`,opacity:.4},{transform:'translate(-50%,-50%)',opacity:1}],{duration:850,easing:'ease-out'})
+        const onFork={transform:`translate(-50%,-50%) translate(${dx}px,${dy}px)`,opacity:.5},onFloor={transform:'translate(-50%,-50%)',opacity:1}
+        current=pallet.animate(collecting?[onFloor,onFork]:[onFork,onFloor],{duration:850,easing:'ease-in-out'})
         if(cargo)cargo.style.opacity='0'
         try{await current.finished}catch{return}
         if(!alive())return
+        pallet.style.opacity=collecting?'0':'1'
+        if(cargo)cargo.style.opacity=collecting?'1':'0'
         await travel(lane,ty,turn,800);await travel(lane,ty,180,450)
-        await travel(lane,aisle.clientHeight-48,180);await travel(lane,aisle.clientHeight-48,360,650)
-        angle=0
+        await travel(lane,aisle.clientHeight+95,180)
+        if(!alive())return
+        // The return journey is outside the hall, not backwards through the aisle.
+        truck.style.opacity='0'
+        current=truck.animate([{opacity:0},{opacity:0}],{duration:900})
+        try{await current.finished}catch{return}
       }
     })().catch(()=>{})
   }
