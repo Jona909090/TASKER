@@ -66,3 +66,10 @@
 }
 @keyframes ms-forklift-light{from{opacity:.55}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){#module-status .ms-forklift,#module-status .ms-forklift-beacon{animation:none}}
+
+/* Light travels and turns with the forklift. */
+#module-status .ms-forklift{overflow:visible}
+#module-status .ms-forklift-headlights{pointer-events:none}
+#module-status .ms-forklift-beacon{animation:ms-forklift-light .8s ease-in-out infinite alternate}
+@media(prefers-reduced-motion:reduce){#module-status .ms-forklift-beacon{animation:none}}
+
