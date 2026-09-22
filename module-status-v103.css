@@ -78,3 +78,7 @@
 #module-status .ms-forklift-beacon{animation:ms-forklift-light .8s ease-in-out infinite alternate}
 @media(prefers-reduced-motion:reduce){#module-status .ms-forklift-beacon{animation:none}}
 
+
+/* Keep the exiting forklift and lights inside the hall, without adding scrollbars. */
+#module-status .ms-hall{overflow:hidden;position:relative}
+#module-status .ms-map-scroll{overflow-x:auto;overflow-y:hidden}
