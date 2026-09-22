@@ -73,17 +73,23 @@
     startDelivery()
   }
   function startDelivery(){
-    const floor=document.querySelector('#ms-halls .ms-floor'),truck=floor?.querySelector('.ms-forklift'),aisle=floor?.querySelector('.ms-aisle')
+    const floor=document.querySelector('#ms-halls .ms-floor'),aisle=floor?.querySelector('.ms-aisle')
+    let truck=floor?.querySelector('.ms-forklift')
     if(!truck||!aisle||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return
     const bays=[...floor.querySelectorAll('.ms-bay')].filter(b=>b.querySelector('[data-ms-module]'))
-    if(!bays.length)return
+    if(!bays.length){truck.style.display='none';return}
+    const small=truck,heavy=truck.cloneNode(true)
+    heavy.classList.add('ms-forklift-heavy')
+    heavy.innerHTML=heavy.innerHTML.replaceAll('ms-forklift-beam','ms-heavy-beam').replaceAll('ms-forklift-amber','ms-heavy-amber').replaceAll('#fff5ae','#ffffff').replace('stop-opacity=".65"','stop-opacity=".95"').replaceAll('L-14 -56H44','L-32 -96H54').replaceAll('L16 -56H74','L6 -96H92')
+    small.parentElement.append(heavy)
+    const fleet=[small,heavy];fleet.forEach(t=>{t.style.animation='none';t.style.opacity='0'})
     let stopped=false,current=null,x=aisle.clientWidth/2,y=-95,angle=180
     const pallets=[]
-    stopDelivery=()=>{stopped=true;current?.cancel();pallets.forEach(p=>p.remove())}
+    stopDelivery=()=>{stopped=true;current?.cancel();pallets.forEach(p=>p.remove());heavy.remove();small.style.opacity='0'}
     truck.style.animation='none'
     const route=truck.parentElement;route.style.inset='0'
-    const cargo=truck.querySelector('.ms-forklift-cargo')
-    const alive=()=>!stopped&&truck.isConnected
+    let cargo=truck.querySelector('.ms-forklift-cargo')
+    const alive=()=>!stopped&&small.isConnected
     const pose=(px,py,a)=>({left:px+'px',top:py+'px',transform:`translate(-50%,-50%) rotate(${a}deg)`})
     async function travel(nx,ny,na,duration){
       if(!alive())return
@@ -93,22 +99,24 @@
       if(!alive())return
       Object.assign(truck.style,end);current.cancel();x=nx;y=ny;angle=na
     }
-    const targets=bays.map(b=>{
-      const pallet=document.createElement('div');pallet.className='ms-delivered-pallet';pallet.setAttribute('aria-hidden','true');floor.append(pallet);pallets.push(pallet)
-      return {bay:b,pallet}
-    })
+    const targets=bays.flatMap(b=>fleet.map((vehicle,index)=>{
+      const pallet=document.createElement('div');pallet.className='ms-delivered-pallet'+(index?' ms-pallet-heavy':'');pallet.setAttribute('aria-hidden','true');floor.append(pallet);pallets.push(pallet)
+      return {bay:b,pallet,vehicle,offset:index?24:-24}
+    }))
     Object.assign(truck.style,pose(x,y,angle))
     ;(async()=>{
-      while(alive())for(const collecting of [false,true])for(const {bay,pallet} of targets){
+      while(alive())for(const collecting of [false,true])for(const {bay,pallet,vehicle,offset} of targets){
         if(!alive())return
+        // One shared aisle reservation: next truck enters only after the previous exits.
+        truck=vehicle;cargo=truck.querySelector('.ms-forklift-cargo')
         const ar=aisle.getBoundingClientRect(),br=bay.getBoundingClientRect(),fr=floor.getBoundingClientRect(),left=bay.classList.contains('left')
-        const ty=br.top+br.height/2-ar.top,lane=ar.width/2,edge=left?25:ar.width-25,turn=left?270:90
+        const ty=br.top+br.height/2-ar.top+offset,lane=ar.width/2,edge=left?25:ar.width-25,turn=left?270:90
         // Each trip begins outside the top entrance, facing the bottom exit.
         x=lane;y=-95;angle=180;Object.assign(truck.style,pose(x,y,angle));truck.style.opacity='1'
         if(cargo)cargo.style.opacity=collecting?'0':'1'
         await travel(lane,ty,180);await travel(lane,ty,turn,450);await travel(edge,ty,turn,900)
         if(!alive())return
-        const px=left?br.right-fr.left-18:br.left-fr.left+18,py=br.top-fr.top+br.height/2
+        const px=left?br.right-fr.left-18:br.left-fr.left+18,py=br.top-fr.top+br.height/2+offset
         pallet.style.left=px+'px';pallet.style.top=py+'px';pallet.style.opacity='1'
         const dx=ar.left+edge-fr.left-px+(left?-28:28),dy=ar.top+ty-fr.top-py
         const onFork={transform:`translate(-50%,-50%) translate(${dx}px,${dy}px)`,opacity:.5},onFloor={transform:'translate(-50%,-50%)',opacity:1}
