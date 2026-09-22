@@ -82,3 +82,20 @@
 /* Keep the exiting forklift and lights inside the hall, without adding scrollbars. */
 #module-status .ms-hall{overflow:hidden;position:relative}
 #module-status .ms-map-scroll{overflow-x:auto;overflow-y:hidden}
+
+/* Occasional runway sweep: a short top-to-bottom wave, followed by a long pause. */
+#module-status .ms-safe-zone{position:relative;overflow:hidden}
+#module-status .ms-safe-zone:after{content:'';position:absolute;left:0;right:0;top:-12%;height:10%;pointer-events:none;background:linear-gradient(transparent,#fff5a0 45%,#ffcf39 55%,transparent);box-shadow:0 0 18px #ffda58;opacity:0;animation:ms-runway-wave 24s linear infinite}
+@keyframes ms-runway-wave{0%,4%{top:-12%;opacity:0}5%{opacity:.95}24%{top:105%;opacity:.95}25%,100%{top:105%;opacity:0}}
+#module-status .ms-forklift-heavy{width:58px;height:97px;filter:drop-shadow(4px 6px 4px #0009)}
+#module-status .ms-forklift-heavy .ms-forklift-headlights{filter:drop-shadow(0 0 8px #e5f7ff);opacity:1}
+#module-status .ms-forklift-heavy .ms-forklift-cargo{transform:translate(-7px,-5px) scale(1.24)}
+#module-status .ms-forklift-heavy .ms-forklift-beacon{transform-box:fill-box;transform-origin:center;transform:scale(1.65);animation:ms-heavy-colors 4.5s linear infinite;filter:drop-shadow(0 0 10px #ffe779)}
+#module-status .ms-forklift-heavy .ms-forklift-rotor{animation:ms-beacon-rotate 1.8s linear infinite,ms-heavy-colors 4.5s linear infinite}
+@keyframes ms-heavy-colors{0%,28%,100%{filter:hue-rotate(180deg) drop-shadow(0 0 9px #55aaff)}33%,61%{filter:hue-rotate(0deg) drop-shadow(0 0 9px #ffd452)}66%,94%{filter:hue-rotate(320deg) drop-shadow(0 0 9px #ff5555)}}
+#module-status .ms-pallet-heavy{width:36px;height:38px;border-color:#496277;background:repeating-linear-gradient(0deg,#91a7b5 0 7px,#526877 7px 10px);box-shadow:3px 5px 7px #0009}
+#module-status .ms-pallet-heavy:after{border-color:#d9e9f2}
+@media(prefers-reduced-motion:reduce){#module-status .ms-safe-zone:after{animation:none;opacity:0}#module-status .ms-forklift-heavy .ms-forklift-beacon,#module-status .ms-forklift-heavy .ms-forklift-rotor{animation:none}}
+
+#module-status .ms-forklift-heavy .ms-forklift-cargo rect{fill:#91a7b5;stroke:#415a6b}
+#module-status .ms-forklift-heavy .ms-forklift-cargo path{stroke:#e0eef5}
