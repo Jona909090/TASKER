@@ -130,8 +130,8 @@
       if(employeeId)s.employees=s.employees.filter(e=>e.id===employeeId)
       const m=root.TaskerHoursModel.month(s),person=employeeId?m.rows[0]?.employee:null
       const personName=person?person.first+' '+person.last:''
-      if(!m.rows.length)throw Error('Prvo dodajte zaposlene za izvoz evidencije.')
       const type=action==='excel'?'xlsx':action==='pdf'?'pdf':format==='xlsx'?'xlsx':'pdf'
+      if(type!=='xlsx'&&!m.rows.length)throw Error('Prvo dodajte zaposlene za izvoz evidencije.')
       const sheets=(books?.length?books:[s]).map(x=>{const copy=JSON.parse(JSON.stringify(x));if(employeeId)copy.employees=copy.employees.filter(e=>e.id===employeeId);return copy})
       const multiple=type==='xlsx'&&sheets.length>1
       let blob
