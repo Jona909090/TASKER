@@ -107,4 +107,3 @@
 @keyframes ms-runway-wave{0%,3%{top:-26%;opacity:0}4%{opacity:1}14%{top:110%;opacity:1}15%,100%{top:110%;opacity:0}}
 @media(prefers-reduced-motion:reduce){#module-status .ms-safe-zone:after{animation:none;opacity:0}}
 
-#module-status .ms-map-head{flex-wrap:wrap;gap:10px}#module-status .ms-inside{border:1px solid #5b7a8d;border-radius:12px;overflow:hidden;background:radial-gradient(ellipse at 50% 35%,#476475,#0c1d2b);margin-bottom:14px}#module-status .ms-inside svg{display:block;width:100%;height:auto;min-height:300px}#module-status .ms-inside-caption{padding:14px 18px;font-weight:bold;letter-spacing:.08em;color:#aee8ff}#module-status .ms-inside-caption small{float:right;font-size:11px;font-weight:normal;letter-spacing:0}#module-status .ms-inside .ms-hint{padding:10px 16px;margin:0}#module-status .ms-inside-module{cursor:pointer;outline:none}#module-status .ms-inside-module:hover,#module-status .ms-inside-module:focus{filter:brightness(1.35)}
