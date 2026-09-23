@@ -55,7 +55,7 @@
     if(nameForm){nameForm.dataset.hallId=hall.id;nameForm.elements.hallName.value=hall.name}
     const mapHeading=document.querySelector('#module-status .ms-map-head h2')
     if(mapHeading)mapHeading.textContent=hall.name
-    const visibleLocations=state.locations.filter(l=>!['shipped','finished'].includes(l.id)&&!['bajkmontvertiv','vertivbajkmont'].includes(l.name.toLowerCase().replace(/[^a-z]/g,'')))
+    const visibleLocations=state.locations.filter(l=>l.id==='dupliko')
     if(locationFilter&&!visibleLocations.some(l=>l.id===locationFilter))locationFilter=''
     el('ms-stats').innerHTML=[['hall','◫','Modula u hali'],['active','⚙','U radu'],['waiting','◷','Čekaju materijal'],['ready','➜','Spremna za otpremu'],['completed','✓','Završena danas']].map(([key,icon,label])=>`<article class="ms-stat ms-${key}"><span>${icon}</span><div><b>${s[key]}</b><small>${label}</small></div></article>`).join('')
     el('ms-halls').innerHTML=[hall].map(h=>{
