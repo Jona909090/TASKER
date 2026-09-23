@@ -83,59 +83,57 @@
     heavy.innerHTML=heavy.innerHTML.replaceAll('ms-forklift-beam','ms-heavy-beam').replaceAll('ms-forklift-amber','ms-heavy-amber').replaceAll('#fff5ae','#ffffff').replace('stop-opacity=".65"','stop-opacity=".95"').replaceAll('L-14 -56H44','L-32 -96H54').replaceAll('L16 -56H74','L6 -96H92')
     small.parentElement.append(heavy)
     const fleet=[small,heavy];fleet.forEach(t=>{t.style.animation='none';t.style.opacity='0'})
-    let stopped=false,current=null,x=aisle.clientWidth/2,y=-95,angle=180
-    const pallets=[]
-    stopDelivery=()=>{stopped=true;current?.cancel();pallets.forEach(p=>p.remove());heavy.remove();small.style.opacity='0'}
-    truck.style.animation='none'
-    const route=truck.parentElement;route.style.inset='0'
-    let cargo=truck.querySelector('.ms-forklift-cargo')
+    let stopped=false
+    const pallets=[],animations=new Set()
+    stopDelivery=()=>{stopped=true;animations.forEach(a=>a.cancel());pallets.forEach(p=>p.remove());heavy.remove();small.style.opacity='0'}
+    small.parentElement.style.inset='0'
     const alive=()=>!stopped&&small.isConnected
-    const pose=(px,py,a)=>({left:px+'px',top:py+'px',transform:`translate(-50%,-50%) rotate(${a}deg)`})
-    async function travel(nx,ny,na,duration){
-      if(!alive())return
-      const end=pose(nx,ny,na)
-      current=truck.animate([pose(x,y,angle),end],{duration:duration??Math.max(500,Math.hypot(nx-x,ny-y)/85*1000),easing:'ease-in-out',fill:'forwards'})
-      try{await current.finished}catch{return}
-      if(!alive())return
-      Object.assign(truck.style,end);current.cancel();x=nx;y=ny;angle=na
+    const pose=(x,y,a)=>({left:x+'px',top:y+'px',transform:`translate(-50%,-50%) rotate(${a}deg)`})
+    async function animate(node,frames,options){
+      if(!alive())return false
+      const animation=node.animate(frames,options);animations.add(animation)
+      try{await animation.finished;return alive()}catch{return false}
+      finally{animations.delete(animation);animation.cancel()}
     }
-    const targets=bays.flatMap(b=>fleet.map((vehicle,index)=>{
-      const pallet=document.createElement('div');pallet.className='ms-delivered-pallet'+(index?' ms-pallet-heavy':'');pallet.setAttribute('aria-hidden','true');floor.append(pallet);pallets.push(pallet)
-      return {bay:b,pallet,vehicle,offset:index?24:-24}
-    }))
-    Object.assign(truck.style,pose(x,y,angle))
-    ;(async()=>{
-      while(alive())for(const collecting of [false,true])for(const {bay,pallet,vehicle,offset} of targets){
-        if(!alive())return
-        // One shared aisle reservation: next truck enters only after the previous exits.
-        truck=vehicle;cargo=truck.querySelector('.ms-forklift-cargo')
-        const ar=aisle.getBoundingClientRect(),br=bay.getBoundingClientRect(),fr=floor.getBoundingClientRect(),left=bay.classList.contains('left')
-        const ty=br.top+br.height/2-ar.top+offset,lane=ar.width/2,edge=left?25:ar.width-25,turn=left?270:90
-        // Each trip begins outside the top entrance, facing the bottom exit.
-        x=lane;y=-95;angle=180;Object.assign(truck.style,pose(x,y,angle));truck.style.opacity='1'
-        if(cargo)cargo.style.opacity=collecting?'0':'1'
-        await travel(lane,ty,180);await travel(lane,ty,turn,450);await travel(edge,ty,turn,900)
-        if(!alive())return
-        const px=left?br.right-fr.left-18:br.left-fr.left+18,py=br.top-fr.top+br.height/2+offset
-        pallet.style.left=px+'px';pallet.style.top=py+'px';pallet.style.opacity='1'
-        const dx=ar.left+edge-fr.left-px+(left?-28:28),dy=ar.top+ty-fr.top-py
-        const onFork={transform:`translate(-50%,-50%) translate(${dx}px,${dy}px)`,opacity:.5},onFloor={transform:'translate(-50%,-50%)',opacity:1}
-        current=pallet.animate(collecting?[onFloor,onFork]:[onFork,onFloor],{duration:850,easing:'ease-in-out'})
-        if(cargo)cargo.style.opacity='0'
-        try{await current.finished}catch{return}
-        if(!alive())return
-        pallet.style.opacity=collecting?'0':'1'
-        if(cargo)cargo.style.opacity=collecting?'1':'0'
-        await travel(lane,ty,turn,800);await travel(lane,ty,180,450)
-        await travel(lane,aisle.clientHeight+95,180)
-        if(!alive())return
-        // The return journey is outside the hall, not backwards through the aisle.
-        truck.style.opacity='0'
-        current=truck.animate([{opacity:0},{opacity:0}],{duration:900})
-        try{await current.finished}catch{return}
+    async function run(truck,index){
+      const left=index===0,cargo=truck.querySelector('.ms-forklift-cargo')
+      // Disjoint lanes and service zones: neither vehicle crosses the centre line.
+      const lane=()=>aisle.clientWidth*(left?.22:.78)
+      let x=lane(),y=-150,angle=180
+      const targets=bays.filter(b=>b.classList.contains('left')===left).map(bay=>{
+        const pallet=document.createElement('div');pallet.className='ms-delivered-pallet'+(index?' ms-pallet-heavy':'');pallet.setAttribute('aria-hidden','true');floor.append(pallet);pallets.push(pallet)
+        return {bay,pallet}
+      })
+      async function travel(nx,ny,na,duration){
+        const end=pose(nx,ny,na)
+        if(!await animate(truck,[pose(x,y,angle),end],{duration:duration??Math.max(500,Math.hypot(nx-x,ny-y)/(index?70:80)*1000),easing:'ease-in-out',fill:'forwards'}))return false
+        Object.assign(truck.style,end);x=nx;y=ny;angle=na;return true
       }
-    })().catch(()=>{})
+      while(alive())for(const collecting of [false,true])for(const target of (targets.length?targets:[null])){
+        if(!alive())return
+        x=lane();y=-150;angle=180;Object.assign(truck.style,pose(x,y,angle));truck.style.opacity='1'
+        if(cargo)cargo.style.opacity=target&&!collecting?'1':'0'
+        if(target){
+          const {bay,pallet}=target,ar=aisle.getBoundingClientRect(),br=bay.getBoundingClientRect(),fr=floor.getBoundingClientRect()
+          const ty=br.top+br.height/2-ar.top,edge=left?25:ar.width-25,turn=left?270:90
+          if(!await travel(lane(),ty,180)||!await travel(lane(),ty,turn,450)||!await travel(edge,ty,turn,900))return
+          const px=left?br.right-fr.left-18:br.left-fr.left+18,py=br.top-fr.top+br.height/2
+          pallet.style.left=px+'px';pallet.style.top=py+'px';pallet.style.opacity='1'
+          const dx=ar.left+edge-fr.left-px+(left?-28:28),dy=ar.top+ty-fr.top-py
+          const onFork={transform:`translate(-50%,-50%) translate(${dx}px,${dy}px)`,opacity:.5},onFloor={transform:'translate(-50%,-50%)',opacity:1}
+          if(cargo)cargo.style.opacity='0'
+          if(!await animate(pallet,collecting?[onFloor,onFork]:[onFork,onFloor],{duration:850,easing:'ease-in-out'}))return
+          pallet.style.opacity=collecting?'0':'1';if(cargo)cargo.style.opacity=collecting?'1':'0'
+          if(!await travel(lane(),ty,turn,800)||!await travel(lane(),ty,180,450))return
+        }
+        if(!await travel(lane(),aisle.clientHeight+150,180))return
+        truck.style.opacity='0'
+        if(!await animate(truck,[{opacity:0},{opacity:0}],{duration:900}))return
+      }
+    }
+    Promise.all(fleet.map(run)).catch(()=>stopDelivery())
   }
+
   function remainingHTML(m,editable=false){
     const pending=M.unfinished(m)
     return '<section class="ms-remaining"><h2>'+esc(m.name)+'</h2><h3>Aktuelni zapis preostalih radova</h3>'+
