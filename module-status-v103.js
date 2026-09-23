@@ -4,7 +4,7 @@
   const el=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
   const date=s=>s?s.split('-').reverse().join('.')+'.':'—',time=s=>new Date(s).toLocaleString('hr-HR'),uid=()=>crypto.randomUUID()
   let state,raw=null,error='',selected='',locationFilter='',dragged=''
-  let activeHall='',stopDelivery=()=>{}
+  let activeHall='',stopDelivery=()=>{},hallView='top'
   const currentHall=()=>state.halls.find(h=>h.id===activeHall)||state.halls[0]
   function read(){
     const text=localStorage.getItem(KEY),result=text?M.migrate(JSON.parse(text)):{state:M.create(),changed:false}
@@ -38,7 +38,7 @@
     document.querySelectorAll('.nav-link').forEach(b=>b.classList.toggle('active',b.id==='open-module-status'))
     if(el('breadcrumb'))el('breadcrumb').textContent='Status modula'
     if(error){content.innerHTML=`<section id="module-status"><h1>Status modula</h1><p role="alert">Spremište nije moguće otvoriti. Postojeći podaci nisu prepisani. ${esc(error)}</p></section>`;return}
-    content.innerHTML=`<section id="module-status"><header class="ms-header"><div><p class="ms-eyebrow">TASKER / PROIZVODNJA</p><div class="ms-title-line"><h1>Status modula</h1><form id="ms-hall-name-form" data-hall-id="${esc(state.halls[0].id)}"><label>Naziv hale<input name="hallName" aria-label="Naziv hale" required maxlength="120" placeholder="npr. BAJKMONT / VERTIV" value="${esc(state.halls[0].name)}"></label><button class="ms-button" type="submit">Sačuvaj naziv</button></form></div><p>Raspored hale, proizvodne faze i kretanje svakog modula.</p></div><div class="ms-actions"><button class="ms-button" data-ms-action="location">+ Dodaj lokaciju</button><button class="ms-button primary" data-ms-action="add">+ Dodaj modul</button></div></header><p id="ms-toast" role="status">Podaci se čuvaju na ovom uređaju. Statusi su ručni; napredak se računa iz završenih faza.</p><div id="ms-stats" class="ms-stats"></div><div class="ms-workspace"><div class="ms-map-column"><div class="ms-map-head"><h2>Proizvodna hala</h2><span>POGLED ODOZGO</span></div><p class="ms-hint">Klikni modul za detalje ili slobodnu poziciju za dodavanje. Na računalu možeš povući modul na slobodnu poziciju; na tabletu koristi Premjesti.</p><div id="ms-halls"></div><div class="ms-legend">${Object.entries(M.statuses).map(([k,s])=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div><section class="ms-panel"><h2>DUPLIKO</h2><div id="ms-locations" class="ms-locations"></div><div id="ms-location-list"></div></section></div><aside id="ms-detail" class="ms-detail ms-panel" aria-label="Detalji modula"></aside></div><dialog id="ms-overview" class="ms-dialog ms-overview" aria-label="Pregled modula bez izmjena"></dialog><dialog id="ms-dialog" class="ms-dialog"></dialog><input id="ms-photo-file" type="file" accept="image/*" hidden></section>`
+    content.innerHTML=`<section id="module-status"><header class="ms-header"><div><p class="ms-eyebrow">TASKER / PROIZVODNJA</p><div class="ms-title-line"><h1>Status modula</h1><form id="ms-hall-name-form" data-hall-id="${esc(state.halls[0].id)}"><label>Naziv hale<input name="hallName" aria-label="Naziv hale" required maxlength="120" placeholder="npr. BAJKMONT / VERTIV" value="${esc(state.halls[0].name)}"></label><button class="ms-button" type="submit">Sačuvaj naziv</button></form></div><p>Raspored hale, proizvodne faze i kretanje svakog modula.</p></div><div class="ms-actions"><button class="ms-button" data-ms-action="location">+ Dodaj lokaciju</button><button class="ms-button primary" data-ms-action="add">+ Dodaj modul</button></div></header><p id="ms-toast" role="status">Podaci se čuvaju na ovom uređaju. Statusi su ručni; napredak se računa iz završenih faza.</p><div id="ms-stats" class="ms-stats"></div><div class="ms-workspace"><div class="ms-map-column"><div class="ms-map-head"><h2>Proizvodna hala</h2><div class="ms-actions" aria-label="Prikaz hale"><button type="button" class="ms-button" data-ms-view="top">Pogled odozgo</button><button type="button" class="ms-button" data-ms-view="inside">Pogled iz hale</button></div></div><p class="ms-hint">Klikni modul za detalje ili slobodnu poziciju za dodavanje. Na računalu možeš povući modul na slobodnu poziciju; na tabletu koristi Premjesti.</p><div id="ms-halls"></div><div class="ms-legend">${Object.entries(M.statuses).map(([k,s])=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div><section class="ms-panel"><h2>DUPLIKO</h2><div id="ms-locations" class="ms-locations"></div><div id="ms-location-list"></div></section></div><aside id="ms-detail" class="ms-detail ms-panel" aria-label="Detalji modula"></aside></div><dialog id="ms-overview" class="ms-dialog ms-overview" aria-label="Pregled modula bez izmjena"></dialog><dialog id="ms-dialog" class="ms-dialog"></dialog><input id="ms-photo-file" type="file" accept="image/*" hidden></section>`
     el('ms-stats').insertAdjacentHTML('beforebegin','<div class="ms-actions" style="margin:16px 0"><label>Hale <select id="ms-hall-choice" aria-label="Odaberi halu"></select></label><button type="button" class="ms-button primary" data-ms-action="add-hall">+ Dodaj halu</button></div>')
     refresh()
     el('module-status').insertAdjacentHTML('afterbegin','<button type="button" class="ms-button ms-back" data-ms-back>← Projekti</button>')
@@ -69,9 +69,67 @@
     el('ms-locations').innerHTML=visibleLocations.map(l=>`<button class="ms-location ${locationFilter===l.id?'selected':''}" data-ms-location="${esc(l.id)}"><span>⌖</span><b>${esc(l.name)}</b><small>${state.modules.filter(m=>m.place.kind==='external'&&m.place.locationId===l.id).length} modula</small></button>`).join('')
     const loc=state.locations.find(l=>l.id===locationFilter),list=state.modules.filter(m=>m.place.kind==='external'&&m.place.locationId===locationFilter)
     el('ms-location-list').innerHTML=loc?`<h3>${esc(loc.name)}</h3>${list.map(m=>`<button class="ms-list-module ${selected===m.id?'selected':''}" data-ms-module="${esc(m.id)}"><strong>${esc(m.name)}</strong>${badge(m)}<span>${M.progress(m)}%</span></button>`).join('')||'<p class="ms-hint">Nema modula na ovoj lokaciji.</p>'}`:''
+    document.querySelectorAll('[data-ms-view]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.msView===hallView));b.classList.toggle('primary',b.dataset.msView===hallView)})
+    if(hallView==='inside')el('ms-halls').innerHTML=insideHallHTML(hall)
     renderDetail()
-    startDelivery()
+    if(hallView==='inside')startInsideMotion();else startDelivery()
   }
+
+  function insideHallHTML(h){
+    const project=(x,y,z)=>{const s=700/(700+z);return [450+x*s,190+(390-y)*s]}
+    const points=vertices=>vertices.map(v=>project(...v).join(',')).join(' ')
+    const poly=(v,fill,stroke='#8295a1')=>`<polygon points="${points(v)}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`
+    const line=(a,b,color='#738693')=>`<polyline points="${points([a,b])}" fill="none" stroke="${color}" stroke-width="2"/>`
+    const label=(x,y,z,text,size=16)=>{const p=project(x,y,z);return `<text x="${p[0]}" y="${p[1]}" text-anchor="middle" fill="#eff8ff" font-size="${size}" font-weight="700" paint-order="stroke" stroke="#102333" stroke-width="3">${esc(text)}</text>`}
+    let scene=poly([[-440,0,0],[440,0,0],[440,0,2400],[-440,0,2400]],'#364650')
+      +poly([[-440,0,0],[-440,320,0],[-440,320,2400],[-440,0,2400]],'#253c4b')
+      +poly([[440,0,0],[440,320,0],[440,320,2400],[440,0,2400]],'#253c4b')
+      +poly([[-440,320,0],[440,320,0],[440,320,2400],[-440,320,2400]],'#152b3b')
+      +poly([[-440,0,2400],[440,0,2400],[440,320,2400],[-440,320,2400]],'#344e5e')
+      +poly([[-100,0,2390],[100,0,2390],[100,180,2390],[-100,180,2390]],'#708891')
+      +label(0,200,2390,'VRATA / IZLAZ',12)
+    for(let z=0;z<=2400;z+=300){
+      scene+=line([-440,0,z],[-440,320,z])+line([440,0,z],[440,320,z])+line([-440,320,z],[440,320,z])
+      scene+=line([-250,305,z],[250,305,z],'#c9f2ff')
+      scene+=line([-440,0,z],[440,0,z],'#60717a')
+    }
+    for(const x of [-155,155])scene+=line([x,1,0],[x,1,2400],'#ffd454')
+    const positions=[...h.positions].sort((a,b)=>a.order-b.order)
+    const maxOrder=Math.max(1,...positions.map(p=>p.order))
+    for(const p of positions){
+      const m=state.modules.find(m=>m.place.kind==='hall'&&m.place.hallId===h.id&&m.place.positionId===p.id)
+      const z=100+(maxOrder-p.order)*360,x=p.side==='left'?-385:195,w=Math.min(175,m?m.width*48:150),height=m?Math.min(220,m.height*48):0,len=m?Math.min(320,Math.max(90,m.length*24)):270
+      const attrs=m?`data-ms-module="${esc(m.id)}" aria-label="${esc(m.name)} · ${esc(M.statuses[m.status].label)}"`:`data-ms-add-position="${esc(p.id)}" data-ms-hall="${esc(h.id)}" aria-label="Dodaj modul na poziciju ${esc(p.label)}"`
+      scene+=`<g role="button" tabindex="0" ${attrs} class="ms-inside-module">`
+      if(m){
+        const c=M.statuses[m.status].color,stroke=selected===m.id?'#b7f8ff':'#9dadb5'
+        scene+=poly([[x,0,z],[x+w,0,z],[x+w,height,z],[x,height,z]],c,stroke)
+        scene+=poly([[x+w,0,z],[x+w,0,z+len],[x+w,height,z+len],[x+w,height,z]],c,stroke)
+        scene+=poly([[x,0,z],[x,0,z+len],[x,height,z+len],[x,height,z]],c,stroke)
+        scene+=poly([[x,height,z],[x+w,height,z],[x+w,height,z+len],[x,height,z+len]],'#607b8e',stroke)
+        for(let i=1;i<6;i++)scene+=line([x+w*i/6,0,z],[x+w*i/6,height,z],'#b6c9d077')
+        scene+=label(x+w/2,height*.55,z-1,m.name,Math.max(10,18*700/(700+z)))
+        scene+=label(x+w/2,height*.26,z-1,M.progress(m)+'%',11)
+      }else scene+=poly([[x,1,z],[x+w,1,z],[x+w,1,z+len],[x,1,z+len]],'#243b4988','#7b929d')
+      scene+=label(x+w/2,5,z-30,p.label+(m?'':' · Slobodno'),12)+'</g>'
+    }
+    scene+='<g id="ms-inside-trucks" aria-hidden="true"></g>'
+    return `<section class="ms-inside"><div class="ms-inside-caption">ULAZ · pogled prema izlazu <small>Klikni modul za detalje</small></div><svg viewBox="0 180 900 440" role="group" aria-label="Pogled iz hale ${esc(h.name)}">${scene}</svg><p class="ms-hint">Fiksni perspektivni prikaz · Za prevlačenje modula koristi pogled odozgo.</p></section>`
+  }
+  function startInsideMotion(){
+    const host=el('ms-inside-trucks');if(!host)return
+    let frame=0,stopped=false;const begin=performance.now(),reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const draw=now=>{
+      if(stopped||!host.isConnected)return
+      host.innerHTML=[0,1].map(i=>{
+        const phase=((now-begin)/(i?30000:26000))%1,z=phase*2400,s=700/(700+z),x=450+(i?85:-85)*s,y=190+390*s
+        return `<g transform="translate(${x} ${y}) scale(${s*(i?1.18:1)})"><path d="M-15 0L-38 -105H38L15 0" fill="#f4fbff" opacity=".14"/><rect x="-22" y="-38" width="44" height="33" rx="5" fill="#e5aa27" stroke="#172935" stroke-width="3"/><rect x="-17" y="-72" width="34" height="37" fill="#15394e" stroke="#a5bfcd" stroke-width="3"/><rect x="-28" y="-19" width="10" height="24" fill="#101b23"/><rect x="18" y="-19" width="10" height="24" fill="#101b23"/><rect x="-20" y="-7" width="40" height="12" fill="${i?'#9bafbd':'#b88b48'}" stroke="#e3d4af"/><circle cy="-78" r="7" fill="${i?['#59adff','#ffd24b','#ff685e'][Math.floor(now/700)%3]:'#ffc743'}" style="filter:drop-shadow(0 0 8px #fff0aa)"/></g>`
+      }).join('')
+      if(!reduced)frame=requestAnimationFrame(draw)
+    }
+    draw(begin);stopDelivery=()=>{stopped=true;cancelAnimationFrame(frame)}
+  }
+
   function startDelivery(){
     const floor=document.querySelector('#ms-halls .ms-floor'),aisle=floor?.querySelector('.ms-aisle')
     let truck=floor?.querySelector('.ms-forklift')
@@ -218,12 +276,14 @@
     d.innerHTML=`<h2>Potvrdi radnju</h2><p>${esc(message)}</p><p class="ms-error" role="alert"></p><div class="ms-actions"><button class="ms-button" data-ms-cancel>Odustani</button><button class="ms-button primary" data-ms-confirm>Potvrdi</button></div>`
     d.showModal()
   }
+  document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('.ms-inside-module')){event.preventDefault();event.target.dispatchEvent(new MouseEvent('click',{bubbles:true}))}})
   window.addEventListener('click',event=>{
     const t=event.target
     if(t.closest('#open-module-status')||t.closest('#module-status-card')){event.preventDefault();event.stopImmediatePropagation();open();return}
     if(!t.closest('#module-status'))return
     if(t.closest('[data-ms-back]')){event.preventDefault();event.stopImmediatePropagation();el('back-to-projects')?.click();return}
     let b
+    if((b=t.closest('[data-ms-view]'))){hallView=b.dataset.msView;refresh();return}
     if(t.closest('[data-ms-screenshot]')){window.TaskerModuleSnapshot?.open(el('ms-overview-content'),state.modules.find(m=>m.id===selected)?.name||'Modul');return}
     if(t.closest('[data-ms-overview-close]')){el('ms-overview').close();return}
     if(t.closest('[data-ms-cancel]')){el('ms-dialog').close();return}
