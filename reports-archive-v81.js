@@ -35,6 +35,7 @@
   }
   async function saveGenerated () {
     try {
+      const editor=document.getElementById('ra-editor');if(editor)editor.hidden=true
       const r=snapshot()
       await storage('put',r)
       activeId=r.id; current=r
@@ -48,6 +49,7 @@
     target.innerHTML=rows.length?rows.map(r=>`<article class="ra-item"><div><strong>${esc(r.date.split('-').reverse().join('.'))}.</strong><span>${esc(r.location)}</span><small>${r.pdf?'PDF sačuvan · ':''}${r.lines.filter(l=>l.kind==='module').length} modula</small></div><div><button data-ra-open="${esc(r.id)}">Otvori</button><button data-ra-edit="${esc(r.id)}">Uredi</button><button data-ra-delete="${esc(r.id)}">Obriši</button></div></article>`).join(''):'<p>Arhiva je prazna. Generirajte prvi izvještaj.</p>'
   }
   function show (r) {
+    const editor=document.getElementById('ra-editor');if(editor)editor.hidden=true
     activeId=r.id; current=r
     const out=document.getElementById('reports-output'), content=document.getElementById('reports-output-content')
     content.innerHTML=r.lines.map(l=>l.kind==='module'?`<h3>${esc(l.text)}</h3>`:l.kind==='work'?`<p>• ${esc(l.text)}</p>`:`<p>${esc(l.text)}</p>`).join('')
@@ -88,11 +90,16 @@
   async function action (kind) {
     if(!current){message('Prvo generirajte ili otvorite izvještaj.');return}
     if(busy)return
+    const editor=document.getElementById('ra-editor')
+    if(editor&&!editor.hidden){
+      current={...current,lines:editor.value.split('\n').map(text=>({kind:/^[•-]\s/.test(text)?'work':'info',text:text.replace(/^[•-]\s/,'')})),updatedAt:new Date().toISOString()};delete current.pdf
+      document.getElementById('reports-output-content').innerHTML=current.lines.map(l=>'<p>'+esc((l.kind==='work'?'• ':'')+l.text)+'</p>').join('')
+    }
     const report=current
     try {
-      if(kind==='whatsapp'){window.open('https://wa.me/?text='+encodeURIComponent(textOf(report)),'_blank','noopener');return}
+      if(kind==='whatsapp'){window.open('https://wa.me/?text='+encodeURIComponent(textOf(report)),'_blank','noopener');await storage('put',report);message('Otvoren WhatsApp sa uređenim tekstom. Izaberite kontakt i potvrdite slanje.');return}
       if(kind==='text'){download(new Blob([textOf(report)],{type:'text/plain;charset=utf-8'}),filename(report,'txt'));return}
-      if(kind==='save'){await storage('put',report);message('Izvještaj je sačuvan u arhivi.');return}
+      if(kind==='save'){await storage('put',report);await list();message('Uređeni izvještaj je sačuvan u arhivi.');return}
       busy=true;message('Pripremam PDF…')
       const pdf=await makePdf(report)
       report.pdf=pdf;await storage('put',report);await list()
@@ -105,11 +112,13 @@
     folder.innerHTML='<summary>▣ Arhiva dnevnih izvještaja</summary><p>Poredano po datumu izvještaja, od ranijeg prema kasnijem.</p><p>Sačuvano na ovom uređaju. Preuzmite tekst ili PDF za kopiju izvan aplikacije.</p><button id="ra-new">+ Novi izvještaj</button><div id="ra-list"></div>'
     page.querySelector('.reports-project-header').after(folder)
     const bar=document.createElement('div');bar.className='ra-actions'
-    bar.innerHTML='<button data-ra-action="save">Sačuvaj izvještaj</button><button data-ra-action="whatsapp">WhatsApp</button><button data-ra-action="text">Preuzmi tekst</button><button data-ra-action="pdf">Napravi / preuzmi PDF</button><p id="ra-message" role="status"></p>'
+    bar.innerHTML='<button id="ra-edit-text">Uredi tekst</button><button data-ra-action="save">Sačuvaj izvještaj</button><button data-ra-action="whatsapp">Pošalji na WhatsApp</button><button data-ra-action="text">Preuzmi tekst</button><button data-ra-action="pdf">Napravi / preuzmi PDF</button><p id="ra-message" role="status"></p>'
     page.querySelector('#reports-output-content').after(bar)
+    const editor=document.createElement('textarea');editor.id='ra-editor';editor.hidden=true;editor.setAttribute('aria-label','Uredi završni tekst izvještaja');editor.style.cssText='min-height:480px;background:white;color:#172033;font:16px/1.6 Arial;margin-top:14px';bar.before(editor)
     current=null;activeId=null;list().catch(e=>message('Arhiva nije dostupna: '+e.message))
   }
   document.addEventListener('click',async e=>{
+    if(e.target.closest('#ra-edit-text')){if(!current)return;const editor=document.getElementById('ra-editor');if(editor.hidden)editor.value=textOf(current);editor.hidden=false;editor.focus();message('Izmenite tekst, zatim sačuvajte ili pošaljite na WhatsApp.');return}
     if(e.target.closest('#reports-generate')){queueMicrotask(saveGenerated);return}
     const act=e.target.closest('[data-ra-action]');if(act){await action(act.dataset.raAction);return}
     if(e.target.closest('#ra-new')){activeId=null;current=null;document.dispatchEvent(new CustomEvent('tasker-report-load',{detail:null}));return}
@@ -117,10 +126,11 @@
     try {
       const rows=await storage('getAll');const id=item.dataset.raOpen||item.dataset.raEdit||item.dataset.raDelete;const r=rows.find(r=>r.id===id);if(!r)return
       if(item.dataset.raDelete){if(!confirm('Obrisati ovaj izvještaj i njegov PDF iz arhive?'))return;await storage('delete',id);if(activeId===id){activeId=null;current=null;document.getElementById('reports-output').hidden=true}await list();return}
-      if(item.dataset.raEdit){document.dispatchEvent(new CustomEvent('tasker-report-load',{detail:r.draft}));install();activeId=r.id;current=r;return}
+      if(item.dataset.raEdit){document.dispatchEvent(new CustomEvent('tasker-report-load',{detail:r.draft}));install();show(r);const editor=document.getElementById('ra-editor');editor.value=textOf(r);editor.hidden=false;editor.focus();return}
       show(r)
     }catch(error){message('Arhiva: '+error.message)}
   })
+  document.addEventListener('input',e=>{if(e.target.id!=='ra-editor')return;document.getElementById('reports-output-content').innerHTML=e.target.value.split('\n').map(line=>'<p>'+esc(line)+'</p>').join('')})
   const style=document.createElement('style');style.textContent=`#ra-folder{padding:18px;margin:0 0 18px;border:1px solid #315777;border-radius:14px;background:#142940}#ra-folder summary{cursor:pointer;color:#64ddff;font-weight:bold;font-size:18px}#ra-folder p{color:#a4bdd1;font-size:13px}.ra-item{display:flex;gap:16px;justify-content:space-between;align-items:center;border-top:1px solid #315777;padding:14px 0}.ra-item span,.ra-item small{display:block;margin-top:5px}.ra-item small{color:#8ba9bf}.ra-item>div:last-child,.ra-actions{display:flex;gap:8px;flex-wrap:wrap}#ra-folder button,.ra-actions button{padding:10px 14px;border:1px solid #3ea6c6;background:#153d56;border-radius:8px;color:#c6f3ff;cursor:pointer}.ra-actions{border-top:1px solid #b6c6d1;margin-top:20px;padding-top:16px}#ra-message{width:100%;font-size:13px;color:#195473}@media(max-width:600px){.ra-item{align-items:flex-start;flex-direction:column}}`
     document.head.append(style)
     new MutationObserver(install).observe(document.getElementById('app')||document.body,{childList:true,subtree:true});install()
