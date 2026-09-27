@@ -19,42 +19,49 @@
     const pattern=digits?'0.'+'0'.repeat(digits):'0'
     return pattern+';-'+pattern+';"–"'
   }
-  function workbook(ExcelJS,s,m,existing,sheetName='Radni sati'){
+  function workbook(ExcelJS,s,m,existing,sheetName='Radni sati',banner){
     const w=existing||new ExcelJS.Workbook();w.creator='TASKER';w.created=new Date();w.calcProperties.fullCalcOnLoad=true
     const last=m.dates.length+4,sh=w.addWorksheet(sheetName,{views:[{state:'frozen',xSplit:3,ySplit:5}],pageSetup:{orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0,showGridLines:false,printTitlesRow:'1:5',margins:{left:.2,right:.2,top:.3,bottom:.3,header:.1,footer:.1}}})
     for(let row=1;row<=4;row++)sh.mergeCells(row,1,row,last)
     sh.getCell(1,1).value=title.toLocaleUpperCase('hr-HR');sh.getCell(2,1).value=s.site||'Projekt / Gradilište nije upisano';sh.getCell(3,1).value=monthName(s).toLocaleUpperCase('hr-HR');sh.getCell(4,1).value='Žuto: odrađeni sati | –: bez sati | Crveno: prestanak rada | Ljubičasto: vikend | Plavo: GO (godišnji)'
     for(let row=1;row<=4;row++){sh.getRow(row).height=row===1?28:23;sh.getCell(row,1).font={name:'Arial',size:row===1?16:11,bold:row<4};sh.getCell(row,1).alignment={vertical:'middle',wrapText:true}}
+    if(banner){
+      for(let row=1;row<=3;row++){sh.getRow(row).height=60;sh.getCell(row,1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF102B40'}};sh.getCell(row,1).font={name:'Arial',size:16,bold:true,color:{argb:'FFFFFFFF'}}}
+      const imageId=w.addImage({base64:banner,extension:'png'});sh.addImage(imageId,{tl:{col:0,row:0},br:{col:last,row:3},editAs:'oneCell'})
+    }
+    sh.getRow(4).height=28;sh.getCell(4,1).font={name:'Arial',size:10,color:{argb:'FF476176'}}
     const headers=['R.br.','Ime','Prezime',...m.dates.map((d,i)=>i+1),'UKUPNO'];sh.getRow(5).values=headers;sh.getRow(5).height=25
-    headers.forEach((v,i)=>{const c=sh.getCell(5,i+1),weekend=m.dates[i-3]?.weekend;c.fill={type:'pattern',pattern:'solid',fgColor:{argb:weekend?'FFD9C9E8':'FF19354B'}};c.font={name:'Arial',size:10,bold:true,color:{argb:weekend?'FF30223E':'FFFFFFFF'}};c.alignment={horizontal:'center',vertical:'middle',wrapText:false,shrinkToFit:true}})
+    sh.getRow(5).height=36
+    headers.forEach((v,i)=>{const c=sh.getCell(5,i+1),date=m.dates[i-3],weekend=date?.weekend;if(date)c.value=v+'\n'+['NED','PON','UTO','SRI','ČET','PET','SUB'][new Date(date.date+'T12:00:00').getDay()];c.fill={type:'pattern',pattern:'solid',fgColor:{argb:weekend?'FFD9C9E8':'FF19354B'}};c.font={name:'Arial',size:9,bold:true,color:{argb:weekend?'FF30223E':'FFFFFFFF'}};c.alignment={horizontal:'center',vertical:'middle',wrapText:!!date,shrinkToFit:true}})
     sh.getColumn(1).width=5;sh.getColumn(2).width=17;sh.getColumn(3).width=20;for(let c=4;c<last;c++)sh.getColumn(c).width=4.5;sh.getColumn(last).width=11
     m.rows.forEach((r,i)=>{
       const rn=i+6,row=sh.getRow(rn)
       row.height=32
       row.values=[i+1,r.employee.first,r.employee.last,...r.cells.map(v=>v==='GO'?'GO':(v||0)/60),{formula:`SUM(D${rn}:${sh.getColumn(last-1).letter}${rn})`,result:r.total/60}]
       for(let c=1;c<=last;c++){
-        const cell=sh.getCell(rn,c),kind=c<=3?'identity':c===last?'total':'day',bg=color(s,r,i,kind,m.dates[c-4],r.cells[c-4])
-        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};cell.font={name:'Arial',size:10,bold:c===last||c===2||c===3,color:{argb:(bg==='A92F3B'||bg==='2879C7')?'FFFFFFFF':'FF111111'}}
+        const cell=sh.getCell(rn,c),kind=c<=3?'identity':c===last?'total':'day',original=color(s,r,i,kind,m.dates[c-4],r.cells[c-4]),palette={A92F3B:'F3CDD2','2879C7':'C9E6FA',FFE34F:'FFF0AD',D7EEDB:'D9EFE3',E0D8EA:'E6DFF0',EFEAF5:'F0EBF7',DDE4EA:'F0F5F8'},bg=palette[original]||original
+        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};cell.font={name:'Arial',size:10,bold:c===last||c===2||c===3||original==='2879C7',color:{argb:original==='A92F3B'?'FF8A2936':original==='2879C7'?'FF155384':'FF18354B'}}
         cell.alignment={vertical:'middle',horizontal:c===2||c===3?'left':'center',wrapText:true}
         cell.border={top:{style:'thin',color:{argb:'FF9DA9B3'}},bottom:{style:'thin',color:{argb:'FF9DA9B3'}},left:{style:'thin',color:{argb:'FF9DA9B3'}},right:{style:'thin',color:{argb:'FF9DA9B3'}}}
         if(c>=4&&r.cells[c-4]!=='GO')cell.numFmt=excelFormat((c===last?r.total:(r.cells[c-4]||0))/60)
       }
     })
-    const totalRow=m.rows.length+6;sh.mergeCells(totalRow,1,totalRow,last-1);sh.getCell(totalRow,1).value='UKUPNO SVIH SATI'
+    const totalRow=m.rows.length+6;sh.mergeCells(totalRow,1,totalRow,3);sh.getCell(totalRow,1).value='UKUPNO SVIH SATI'
+    for(let c=4;c<last;c++){const sum=m.rows.reduce((n,r)=>n+(typeof r.cells[c-4]==='number'?r.cells[c-4]:0),0)/60,col=sh.getColumn(c).letter;sh.getCell(totalRow,c).value=m.rows.length?{formula:`SUM(${col}6:${col}${totalRow-1})`,result:sum}:0;sh.getCell(totalRow,c).numFmt=excelFormat(sum)}
     sh.getCell(totalRow,last).value=m.rows.length?{formula:`SUM(${sh.getColumn(last).letter}6:${sh.getColumn(last).letter}${totalRow-1})`,result:m.total/60}:0
     sh.getCell(totalRow,last).numFmt=excelFormat(m.total/60);sh.getRow(totalRow).height=28
-    for(let c=1;c<=last;c++){sh.getCell(totalRow,c).font={name:'Arial',size:11,bold:true};sh.getCell(totalRow,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD7EEDB'}}}
+    for(let c=1;c<=last;c++){sh.getCell(totalRow,c).font={name:'Arial',size:10,bold:true,color:{argb:'FFFFFFFF'}};sh.getCell(totalRow,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF19354B'}};sh.getCell(totalRow,c).alignment={vertical:'middle',horizontal:c===1?'left':'center',shrinkToFit:true}}
     sh.pageSetup.printArea=`A1:${sh.getColumn(last).letter}${totalRow}`
     sh.headerFooter.oddFooter='TASKER | &P / &N'
     return w
   }
-  function booksWorkbook(ExcelJS,states,M){
+  function booksWorkbook(ExcelJS,states,M,banners=[]){
     const w=new ExcelJS.Workbook(),used=new Set()
-    for(const s of states){
+    for(const [index,s] of states.entries()){
       const base=(s.site||'Gradilište').replace(/[\\\\/\[\]*?:]/g,' ').replace(/^'+|'+$/g,'').trim().slice(0,31)||'Gradilište'
       let name=base,i=2
       while(used.has(name.toLowerCase())){const suffix=' ('+i+++')';name=base.slice(0,31-suffix.length)+suffix}
-      used.add(name.toLowerCase());workbook(ExcelJS,s,M.month(s),w,name)
+      used.add(name.toLowerCase());workbook(ExcelJS,s,M.month(s),w,name,banners[index])
     }
     return w
   }
@@ -136,7 +143,7 @@
       const sheets=(books?.length?books:[s]).map(x=>{const copy=JSON.parse(JSON.stringify(x));if(employeeId)copy.employees=copy.employees.filter(e=>e.id===employeeId);return copy})
       const multiple=type==='xlsx'&&sheets.length>1
       let blob
-      if(type==='xlsx'){const Excel=await library('excel','https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',()=>root.ExcelJS);const w=booksWorkbook(Excel,sheets,root.TaskerHoursModel);blob=new Blob([await w.xlsx.writeBuffer()],{type:mimeXlsx})}
+      if(type==='xlsx'){const Excel=await library('excel','https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',()=>root.ExcelJS);if(!root.TaskerHoursHeader)throw Error('Osvježite TASKER da se učita novo Excel zaglavlje.');const banners=[];for(const sheet of sheets)banners.push(await root.TaskerHoursHeader.render(sheet));const w=booksWorkbook(Excel,sheets,root.TaskerHoursModel,banners);blob=new Blob([await w.xlsx.writeBuffer()],{type:mimeXlsx})}
       else{const PDF=await library('pdf','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',()=>root.jspdf?.jsPDF);blob=paintPdf(PDF,document,s,m)}
       const site=(multiple?'Sva-gradilista':s.site||'Gradiliste').replace(/[^\p{L}\p{N}-]+/gu,'-').slice(0,65),file=new File([blob],`Radni-sati-${s.month}-${site}${personName?'-'+personName.replace(/[^\p{L}\p{N}-]+/gu,'-'):''}-v100-${Date.now()}.${type}`,{type:blob.type})
       const shareSite=multiple?'Sva gradilišta':s.site||'Gradilište',shareTotal=multiple?sheets.reduce((sum,x)=>sum+root.TaskerHoursModel.month(x).total,0):m.total
@@ -170,3 +177,4 @@
   style.textContent+='#eh-ready-file{margin:16px 0;padding:18px;border:1px solid #45c49c;border-radius:12px;background:#102c3e;color:#e7f4ff}#eh-ready-file p{overflow-wrap:anywhere}#eh-ready-file .eh-share-buttons{display:flex;gap:10px;flex-wrap:wrap}#eh-ready-file a,#eh-ready-file button{display:inline-block;padding:14px 18px;border:1px solid #5fdca7;border-radius:9px;background:#146740;color:#fff;font-weight:bold;text-decoration:none;cursor:pointer}#eh-ready-file [hidden]{display:none!important}'
   document.head.append(style)
 })(typeof window==='object'?window:globalThis)
+
