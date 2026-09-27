@@ -1,4 +1,4 @@
-const CACHE = 'tasker-v1075'
+const CACHE = 'tasker-v1076'
 const CORE = [
   './employee-hours-header-v1073.js?build=1075',
   './module-photo-filter-v1059.js?build=1075',
@@ -35,7 +35,7 @@ const CORE = [
   './reports-project-v81.js?build=1075',
   './reports-archive-v81.js?build=1075',
   './tasker-about-v66.jpg',
-  './main-v51.js?build=82',
+  './main-v51.js?build=1076',
   './materials.js',
   './icon-192.svg',
   './icon-512.svg',
