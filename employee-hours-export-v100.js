@@ -7,6 +7,7 @@
   function color(s,r,i,column,date,value){
     if(column==='identity'&&r.employee.endDate&&r.employee.endDate.slice(0,7)<=s.month)return 'A92F3B'
     if(column==='day'&&r.employee.endDate&&date.date>r.employee.endDate)return 'A92F3B'
+    if(column==='day'&&value==='GO')return '2879C7'
     if(column==='day'&&value>0)return 'FFE34F'
     if(column==='total')return 'D7EEDB'
     if(column==='day'&&date.weekend)return i%2===0?'E0D8EA':'EFEAF5'
@@ -22,7 +23,7 @@
     const w=existing||new ExcelJS.Workbook();w.creator='TASKER';w.created=new Date();w.calcProperties.fullCalcOnLoad=true
     const last=m.dates.length+4,sh=w.addWorksheet(sheetName,{views:[{state:'frozen',xSplit:3,ySplit:5}],pageSetup:{orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0,showGridLines:false,printTitlesRow:'1:5',margins:{left:.2,right:.2,top:.3,bottom:.3,header:.1,footer:.1}}})
     for(let row=1;row<=4;row++)sh.mergeCells(row,1,row,last)
-    sh.getCell(1,1).value=title.toLocaleUpperCase('hr-HR');sh.getCell(2,1).value=s.site||'Projekt / Gradilište nije upisano';sh.getCell(3,1).value=monthName(s).toLocaleUpperCase('hr-HR');sh.getCell(4,1).value='Žuto: odrađeni sati | –: bez sati | Crveno: prestanak rada | Ljubičasto: vikend'
+    sh.getCell(1,1).value=title.toLocaleUpperCase('hr-HR');sh.getCell(2,1).value=s.site||'Projekt / Gradilište nije upisano';sh.getCell(3,1).value=monthName(s).toLocaleUpperCase('hr-HR');sh.getCell(4,1).value='Žuto: odrađeni sati | –: bez sati | Crveno: prestanak rada | Ljubičasto: vikend | Plavo: GO (godišnji)'
     for(let row=1;row<=4;row++){sh.getRow(row).height=row===1?28:23;sh.getCell(row,1).font={name:'Arial',size:row===1?16:11,bold:row<4};sh.getCell(row,1).alignment={vertical:'middle',wrapText:true}}
     const headers=['R.br.','Ime','Prezime',...m.dates.map((d,i)=>i+1),'UKUPNO'];sh.getRow(5).values=headers;sh.getRow(5).height=25
     headers.forEach((v,i)=>{const c=sh.getCell(5,i+1),weekend=m.dates[i-3]?.weekend;c.fill={type:'pattern',pattern:'solid',fgColor:{argb:weekend?'FFD9C9E8':'FF19354B'}};c.font={name:'Arial',size:10,bold:true,color:{argb:weekend?'FF30223E':'FFFFFFFF'}};c.alignment={horizontal:'center',vertical:'middle',wrapText:false,shrinkToFit:true}})
@@ -30,13 +31,13 @@
     m.rows.forEach((r,i)=>{
       const rn=i+6,row=sh.getRow(rn)
       row.height=32
-      row.values=[i+1,r.employee.first,r.employee.last,...r.cells.map(v=>(v||0)/60),{formula:`SUM(D${rn}:${sh.getColumn(last-1).letter}${rn})`,result:r.total/60}]
+      row.values=[i+1,r.employee.first,r.employee.last,...r.cells.map(v=>v==='GO'?'GO':(v||0)/60),{formula:`SUM(D${rn}:${sh.getColumn(last-1).letter}${rn})`,result:r.total/60}]
       for(let c=1;c<=last;c++){
         const cell=sh.getCell(rn,c),kind=c<=3?'identity':c===last?'total':'day',bg=color(s,r,i,kind,m.dates[c-4],r.cells[c-4])
-        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};cell.font={name:'Arial',size:10,bold:c===last||c===2||c===3,color:{argb:bg==='A92F3B'?'FFFFFFFF':'FF111111'}}
+        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};cell.font={name:'Arial',size:10,bold:c===last||c===2||c===3,color:{argb:(bg==='A92F3B'||bg==='2879C7')?'FFFFFFFF':'FF111111'}}
         cell.alignment={vertical:'middle',horizontal:c===2||c===3?'left':'center',wrapText:true}
         cell.border={top:{style:'thin',color:{argb:'FF9DA9B3'}},bottom:{style:'thin',color:{argb:'FF9DA9B3'}},left:{style:'thin',color:{argb:'FF9DA9B3'}},right:{style:'thin',color:{argb:'FF9DA9B3'}}}
-        if(c>=4)cell.numFmt=excelFormat((c===last?r.total:(r.cells[c-4]||0))/60)
+        if(c>=4&&r.cells[c-4]!=='GO')cell.numFmt=excelFormat((c===last?r.total:(r.cells[c-4]||0))/60)
       }
     })
     const totalRow=m.rows.length+6;sh.mergeCells(totalRow,1,totalRow,last-1);sh.getCell(totalRow,1).value='UKUPNO SVIH SATI'
@@ -71,14 +72,14 @@
       const lines=singleLine?[String(text)]:wrap(text,w-10),start=yy+h/2-(lines.length-1)*13
       lines.forEach((line,i)=>ctx.fillText(line,align==='left'?x+5:x+w/2,start+i*26))
     }
-    function start(){ctx.fillStyle='#fff';ctx.fillRect(0,0,2380,1684);ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillStyle='#19354B';ctx.font='bold 38px Arial';ctx.fillText(title.toLocaleUpperCase('hr-HR'),left,64);ctx.font='bold 29px Arial';ctx.fillText(s.site||'Projekt / Gradilište nije upisano',left,110,width);ctx.font='26px Arial';ctx.fillText(monthName(s).toLocaleUpperCase('hr-HR'),left,152);ctx.font='21px Arial';ctx.fillText('Žuto: odrađeni sati   |   –: bez sati   |   Crveno: prestanak rada   |   Ljubičasto: vikend',left,187);y=212;let x=left;['R.br.','Ime','Prezime',...m.dates.map((d,i)=>i+1),'UKUPNO'].forEach((text,i)=>{const weekend=m.dates[i-3]?.weekend;box(text,x,y,widths[i],52,weekend?'D9C9E8':'19354B',weekend?'30223E':'FFFFFF',true,'center',true);x+=widths[i]});y+=52}
+    function start(){ctx.fillStyle='#fff';ctx.fillRect(0,0,2380,1684);ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillStyle='#19354B';ctx.font='bold 38px Arial';ctx.fillText(title.toLocaleUpperCase('hr-HR'),left,64);ctx.font='bold 29px Arial';ctx.fillText(s.site||'Projekt / Gradilište nije upisano',left,110,width);ctx.font='26px Arial';ctx.fillText(monthName(s).toLocaleUpperCase('hr-HR'),left,152);ctx.font='21px Arial';ctx.fillText('Žuto: odrađeni sati   |   –: bez sati   |   Crveno: prestanak rada   |   Ljubičasto: vikend | Plavo: GO (godišnji)',left,187);y=212;let x=left;['R.br.','Ime','Prezime',...m.dates.map((d,i)=>i+1),'UKUPNO'].forEach((text,i)=>{const weekend=m.dates[i-3]?.weekend;box(text,x,y,widths[i],52,weekend?'D9C9E8':'19354B',weekend?'30223E':'FFFFFF',true,'center',true);x+=widths[i]});y+=52}
     function finish(){ctx.font='20px Arial';ctx.fillStyle='#42576B';ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(`TASKER · ${s.month} · Stranica ${page+1}`,left,1645);if(page++)pdf.addPage();pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,297,210,undefined,'FAST')}
     start()
     m.rows.forEach((r,i)=>{
       ctx.font='bold 23px Arial';const height=Math.max(42,Math.max(wrap(r.employee.first,155).length,wrap(r.employee.last,185).length)*26+12)
       if(y+height>1530){finish();start()}
-      const values=[i+1,r.employee.first,r.employee.last,...r.cells.map(v=>v>0?number(v):'–'),r.total>0?number(r.total):'–'];let x=left
-      values.forEach((text,j)=>{const kind=j<3?'identity':j===values.length-1?'total':'day',bg=color(s,r,i,kind,m.dates[j-3],r.cells[j-3]);box(text,x,y,widths[j],height,bg,bg==='A92F3B'?'FFFFFF':'111111',kind==='total'||j===1||j===2,j===1||j===2?'left':'center');x+=widths[j]});y+=height
+      const values=[i+1,r.employee.first,r.employee.last,...r.cells.map(v=>v==='GO'?'GO':v>0?number(v):'–'),r.total>0?number(r.total):'–'];let x=left
+      values.forEach((text,j)=>{const kind=j<3?'identity':j===values.length-1?'total':'day',bg=color(s,r,i,kind,m.dates[j-3],r.cells[j-3]);box(text,x,y,widths[j],height,bg,(bg==='A92F3B'||bg==='2879C7')?'FFFFFF':'111111',kind==='total'||j===1||j===2,j===1||j===2?'left':'center');x+=widths[j]});y+=height
     })
     if(y+62>1560){finish();start()}
     box('UKUPNO SVIH SATI',left,y,width-150,56,'D7EEDB','111111',true,'left');box(number(m.total),left+width-150,y,150,56,'D7EEDB','111111',true)
