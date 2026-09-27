@@ -11,7 +11,7 @@
     if(!s || s.version!==1 || !validDate(s.date) || !validMonth(s.month) || typeof s.site!=='string' || !Array.isArray(s.employees) || !s.days || typeof s.days!=='object')throw Error('Neispravni spremljeni podaci.')
     const ids=new Set()
     for(const e of s.employees){if(!e.id||ids.has(e.id)||typeof e.first!=='string'||typeof e.last!=='string'||typeof e.role!=='string')throw Error('Neispravan popis zaposlenih.');ids.add(e.id)}
-    for(const [date,d] of Object.entries(s.days)){if(!validDate(date)||!Number.isInteger(d.minutes)||d.minutes<0||d.minutes>1440||!d.statuses)throw Error('Neispravna dnevna evidencija.');for(const v of Object.values(d.statuses))if(!['present','absent'].includes(v))throw Error('Neispravna prisutnost.')}
+    for(const [date,d] of Object.entries(s.days)){if(!validDate(date)||!Number.isInteger(d.minutes)||d.minutes<0||d.minutes>1440||!d.statuses)throw Error('Neispravna dnevna evidencija.');for(const v of Object.values(d.statuses))if(!['present','absent','leave'].includes(v))throw Error('Neispravna prisutnost.')}
     for(const d of Object.values(s.days))for(const value of Object.values(d.overrides||{}))if(!Number.isInteger(value)||value<0||value>1440)throw Error('Neispravni pojedinačni sati.')
     for(const e of s.employees)if(e.endDate&&!validDate(e.endDate))throw Error('Neispravan posljednji radni dan.')
     const siteIds=new Set()
@@ -58,14 +58,15 @@
       }
       case 'site':n.site=String(action.value);break
       case 'hours':ensureDay(n).minutes=minutes(action.value);break
-      case 'status':if(!n.employees.some(e=>e.id===action.id&&active(e,n.date))||!['present','absent'].includes(action.value))throw Error('Zaposleni nije pronađen.');ensureDay(n).statuses[action.id]=action.value;if(action.value==='absent'&&ensureDay(n).overrides)delete ensureDay(n).overrides[action.id];break
-      case 'all':if(!['present','absent'].includes(action.value))throw Error('Neispravan status.');for(const e of n.employees.filter(e=>active(e,n.date))){ensureDay(n).statuses[e.id]=action.value;if(action.value==='absent'&&ensureDay(n).overrides)delete ensureDay(n).overrides[e.id]}break
+      case 'status':if(!n.employees.some(e=>e.id===action.id&&active(e,n.date))||!['present','absent','leave'].includes(action.value))throw Error('Zaposleni nije pronađen.');ensureDay(n).statuses[action.id]=action.value;if(action.value!=='present'&&ensureDay(n).overrides)delete ensureDay(n).overrides[action.id];break
+      case 'all':if(!['present','absent','leave'].includes(action.value))throw Error('Neispravan status.');for(const e of n.employees.filter(e=>active(e,n.date))){ensureDay(n).statuses[e.id]=action.value;if(action.value!=='present'&&ensureDay(n).overrides)delete ensureDay(n).overrides[e.id]}break
       case 'cell':{
         if(!validDate(action.date)||!n.employees.some(e=>e.id===action.id&&active(e,action.date)))throw Error('Neispravan dan ili zaposleni.')
         const value=String(action.value).trim()
-        const amount=['','-','–','—'].includes(value)?0:minutes(value)
+        const leave=value.toUpperCase()==='GO'
+        const amount=leave||['','-','–','—'].includes(value)?0:minutes(value)
         const d=n.days[action.date]||(n.days[action.date]={minutes:480,statuses:{}})
-        d.statuses[action.id]=amount>0?'present':'absent'
+        d.statuses[action.id]=leave?'leave':amount>0?'present':'absent'
         d.overrides=d.overrides||{}
         if(amount>0)d.overrides[action.id]=amount
         else delete d.overrides[action.id]
@@ -85,7 +86,7 @@
   function month(s){
     const [y,m]=s.month.split('-').map(Number),count=new Date(y,m,0).getDate()
     const dates=Array.from({length:count},(_,i)=>({date:`${s.month}-${String(i+1).padStart(2,'0')}`,weekend:[0,6].includes(new Date(y,m-1,i+1).getDay())}))
-    const rows=s.employees.map(e=>{const cells=dates.map(({date})=>{const d=s.days[date],status=d?.statuses[e.id];if(!active(e,date))return null;return status==='present'?(d.overrides?.[e.id]??d.minutes):status==='absent'?0:null});return {employee:e,cells,total:cells.reduce((a,b)=>a+(b||0),0)}})
+    const rows=s.employees.map(e=>{const cells=dates.map(({date})=>{const d=s.days[date],status=d?.statuses[e.id];if(!active(e,date))return null;return status==='leave'?'GO':status==='present'?(d.overrides?.[e.id]??d.minutes):status==='absent'?0:null});return {employee:e,cells,total:cells.reduce((a,b)=>a+(typeof b==='number'?b:0),0)}})
     return {dates,rows,total:rows.reduce((a,r)=>a+r.total,0)}
   }
   function siteState(s,siteId){
