@@ -7,6 +7,20 @@
     const found=[...normalized.matchAll(/\b(M\s*V\s*S|M\s*V)\s*-?\s*(\d{1,3})(?![\dA-Z])/g)].map(m=>m[1].replace(/\s/g,'')+'-'+m[2].padStart(2,'0'))
     const unique=[...new Set(found)];return confidence>=55&&unique.length===1?unique[0]:UNKNOWN
   }
+
+  const DUPLICATE='Duplo'
+  function detectDate(text){
+    const t=String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    const months=['january|januar|sijecanj','february|februar|veljaca','march|mart|ozujak','april|travanj','may|maj|svibanj','june|jun|lipanj','july|jul|srpanj','august|avgust|kolovoz','september|septembar|rujan','october|oktobar|listopad','november|novembar|studeni','december|decembar|prosinac']
+    const matches=[...t.matchAll(/\b(\d{1,2})[.\/\-\s]+(\d{1,2})[.\/\-\s]+(20\d{2})\b/g)].map(m=>[+m[3],+m[2],+m[1]])
+    for(let i=0;i<months.length;i++){const re=new RegExp('\\b(\\d{1,2})[.\\s]+(?:'+months[i]+')[.\\s,]+(20\\d{2})\\b','g');for(const m of t.matchAll(re))matches.push([+m[2],i+1,+m[1]])}
+    for(const m of t.matchAll(/\b(20\d{2})-(\d{2})-(\d{2})\b/g))matches.push([+m[1],+m[2],+m[3]])
+    const valid=matches.filter(([y,m,d])=>{const x=new Date(Date.UTC(y,m-1,d));return x.getUTCFullYear()===y&&x.getUTCMonth()===m-1&&x.getUTCDate()===d}).map(([y,m,d])=>y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'))
+    return [...new Set(valid)].length===1?valid[0]:''
+  }
+  const chronological=(a,b)=>(a.photoDate||'9999').localeCompare(b.photoDate||'9999')||a.created-b.created||a.order-b.order
+  async function fingerprint(file){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))).map(n=>n.toString(16).padStart(2,'0')).join('')}
+
   const safe=s=>String(s).replace(/[\\/:*?"<>|\x00-\x1f]/g,'_').replace(/^\.+/,'_').slice(0,160)||'slika'
   const table=Uint32Array.from({length:256},(_,i)=>{for(let n=0;n<8;n++)i=i&1?0xedb88320^(i>>>1):i>>>1;return i>>>0})
   function crc(data){let c=0xffffffff;for(const b of data)c=table[(c^b)&255]^(c>>>8);return (c^0xffffffff)>>>0}
@@ -40,21 +54,21 @@
     }
     return new Blob([...body,...directory,...tail,end],{type:'application/zip'})
   }
-  if(typeof module==='object'&&module.exports){module.exports={detect,zip,crc,safe};return}
+  if(typeof module==='object'&&module.exports){module.exports={detect,detectDate,chronological,fingerprint,zip,crc,safe};return}
   let dbPromise,records=[],batch='',folder='',page=0,busy=false,cancel=false,prepared=null,worker=null,urls=[]
   const $=id=>document.getElementById(id),msg=t=>{if($('mp-message'))$('mp-message').textContent=t}
   function db(){return dbPromise||(dbPromise=new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('photos',{keyPath:'id'});r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)}).catch(e=>{dbPromise=null;throw e}))}
   async function request(mode,action){const d=await db();return new Promise((resolve,reject)=>{const tx=d.transaction('photos',mode),r=action(tx.objectStore('photos'));tx.oncomplete=()=>resolve(r.result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('Čuvanje nije uspelo.'))})}
   const put=r=>request('readwrite',s=>s.put(r))
-  async function load(){records=await request('readonly',s=>s.getAll());records.sort((a,b)=>b.created-a.created||a.order-b.order);if(!records.some(r=>r.batch===batch))batch=records[0]?.batch||''}
+  async function load(){records=await request('readonly',s=>s.getAll());records.sort(chronological);if(!records.some(r=>r.batch===batch))batch=records[0]?.batch||''}
   function clearURLs(){urls.forEach(u=>URL.revokeObjectURL(u));urls=[]}
   function render(){
     const d=$('mp-dialog');if(!d)return
     clearURLs()
-    const batches=[...new Set(records.map(r=>r.batch))],items=records.filter(r=>r.batch===batch),groups=[...new Set(items.map(r=>r.group))].sort()
+    const items=records,groups=[...new Set(items.map(r=>r.group))].sort()
     if(folder&&!groups.includes(folder))folder=''
     const filtered=items.filter(r=>!folder||r.group===folder);page=Math.max(0,Math.min(page,Math.ceil(filtered.length/20)-1))
-    d.innerHTML=`<header><div><h2>Filter slika</h2><small>Fotografije se čuvaju na ovom uređaju. Nisu deo sinhronizacije radnih sati i modula.</small></div><button data-mp="close" aria-label="Zatvori">×</button></header><p>Dodaj fotografije — automatski ih razvrstavamo u foldere prema natpisu MV / MVS i broju. Bez čitljive oznake → Neodređeno. Originali ostaju neizmenjeni.</p><div class="mp-tools"><label class="mp-button">+ Dodaj fotografije<input id="mp-files" type="file"  multiple ${busy?'disabled':''}></label><button data-mp="stop" ${busy?'':'hidden'}>Zaustavi</button><details><summary>Raniji uvozi / ponovi čitanje</summary><button data-mp="sort" ${busy||!items.length?'disabled':''}>Ponovi razvrstavanje</button><label>Uvoz <select id="mp-batch" ${busy?'disabled':''}>${batches.map(b=>`<option value="${esc(b)}" ${b===batch?'selected':''}>${esc(records.find(r=>r.batch===b).label)} (${records.filter(r=>r.batch===b).length})</option>`).join('')}</select></label></details></div><p id="mp-message" role="status">${busy?'Obrada je u toku…':'OCR prvi put preuzima alat za čitanje teksta sa interneta. Fotografije se ne šalju OCR serveru.'}</p><div class="mp-folders"><button data-folder="" ${!folder?'aria-pressed="true"':''}>Sve slike (${items.length})</button>${groups.map(g=>`<button data-folder="${esc(g)}" aria-pressed="${folder===g}">📁 ${esc(g)} (${items.filter(r=>r.group===g).length})</button>`).join('')}</div><div class="mp-tools"><button data-mp="zip" ${busy||!filtered.length?'disabled':''}>Pripremi ZIP — ${esc(folder||'svi folderi')}</button>${prepared?'<button data-mp="download">Preuzmi ZIP</button><button class="mp-share" data-mp="share">WhatsApp / pošalji ZIP</button>':''}</div>${prepared?`<p>Spreman: ${esc(prepared.name)} · ${(prepared.size/1048576).toFixed(1)} MB. U prozoru za deljenje izaberi WhatsApp. Ako deljenje ZIP-a nije podržano, preuzmi ga i u WhatsAppu izaberi Spajalica → Dokument.</p>`:''}<div class="mp-grid">${filtered.slice(page*20,page*20+20).map(r=>{let src='';if(r.thumb){src=URL.createObjectURL(r.thumb);urls.push(src)}return `<article>${src?`<img loading="lazy" src="${src}" alt="${esc(r.name)}">`:'<div class="mp-no-preview">Pregled nije dostupan</div>'}<b>${esc(r.name)}</b><details><summary>Ispravi folder</summary><small>${esc(r.note||'Nije obrađeno')}</small><label>Folder<input data-photo="${esc(r.id)}" value="${esc(r.group)}" placeholder="MV-08 ili MVS-01" ${busy?'disabled':''}></label></details></article>`}).join('')}</div>${filtered.length>20?`<div class="mp-tools"><button data-mp="prev" ${page===0?'disabled':''}>←</button><span>Strana ${page+1} / ${Math.ceil(filtered.length/20)}</span><button data-mp="next" ${(page+1)*20>=filtered.length?'disabled':''}>→</button></div>`:''}<p class="mp-foot">Pre slanja proveri foldere. Automatsko prepoznavanje može pogrešiti. Sačuvaj ZIP izvan aplikacije kao rezervnu kopiju.</p>`
+    d.innerHTML=`<header><div><h2>Filter slika</h2><small>Fotografije se čuvaju na ovom uređaju. Nisu deo sinhronizacije radnih sati i modula.</small></div><button data-mp="close" aria-label="Zatvori">×</button></header><p>Dodaj fotografije — automatski ih razvrstavamo u foldere prema natpisu MV / MVS i broju. Bez čitljive oznake → Neodređeno. Datumi se čitaju sa slike: najstarije gore, najnovije dole. Bez datuma ide na kraj. Ponovljene identične datoteke idu u Duplo. Dodaj slike koliko god puta želiš; folderi se dopunjuju.</p><div class="mp-tools"><label class="mp-button">+ Dodaj fotografije<input id="mp-files" type="file"  multiple ${busy?'disabled':''}></label><button data-mp="stop" ${busy?'':'hidden'}>Zaustavi</button><button data-mp="sort" ${busy||!items.length?'disabled':''}>Pročitaj nedostajuće oznake / datume</button></div><p id="mp-message" role="status">${busy?'Obrada je u toku…':'OCR prvi put preuzima alat za čitanje teksta sa interneta. Fotografije se ne šalju OCR serveru.'}</p><div class="mp-folders"><button data-folder="" ${!folder?'aria-pressed="true"':''}>Sve slike (${items.length})</button>${groups.map(g=>`<button data-folder="${esc(g)}" aria-pressed="${folder===g}">📁 ${esc(g)} (${items.filter(r=>r.group===g).length})</button>`).join('')}</div><div class="mp-tools">${folder?`<button data-mp="delete-folder" ${busy?'disabled':''}>Obriši folder ${esc(folder)}</button>`:''}<button data-mp="zip" ${busy||!filtered.length?'disabled':''}>Pripremi ZIP — ${esc(folder||'svi folderi')}</button>${prepared?'<button data-mp="download">Preuzmi ZIP</button><button class="mp-share" data-mp="share">WhatsApp / pošalji ZIP</button>':''}</div>${prepared?`<p>Spreman: ${esc(prepared.name)} · ${(prepared.size/1048576).toFixed(1)} MB. U prozoru za deljenje izaberi WhatsApp. Ako deljenje ZIP-a nije podržano, preuzmi ga i u WhatsAppu izaberi Spajalica → Dokument.</p>`:''}<div class="mp-grid">${filtered.slice(page*20,page*20+20).map(r=>{let src='';if(r.thumb){src=URL.createObjectURL(r.thumb);urls.push(src)}return `<article>${src?`<img loading="lazy" src="${src}" alt="${esc(r.name)}">`:'<div class="mp-no-preview">Pregled nije dostupan</div>'}<b>${esc(r.name)}</b><small>${r.photoDate?esc(r.photoDate.split('-').reverse().join('.')):'Datum nije pročitan'}</small><button data-mp="delete-photo" data-id="${esc(r.id)}" ${busy?'disabled':''}>Obriši sliku</button><details><summary>Ispravi folder / datum</summary><small>${esc(r.note||'Nije obrađeno')}</small><label>Folder<input data-photo="${esc(r.id)}" value="${esc(r.group)}" placeholder="MV-08 ili MVS-01" ${busy?'disabled':''}></label><label>Datum sa fotografije<input type="date" data-photo-date="${esc(r.id)}" value="${esc(r.photoDate||'')}" ${busy?'disabled':''}></label></details></article>`}).join('')}</div>${filtered.length>20?`<div class="mp-tools"><button data-mp="prev" ${page===0?'disabled':''}>←</button><span>Strana ${page+1} / ${Math.ceil(filtered.length/20)}</span><button data-mp="next" ${(page+1)*20>=filtered.length?'disabled':''}>→</button></div>`:''}<p class="mp-foot">Pre slanja proveri foldere. Automatsko prepoznavanje može pogrešiti. Sačuvaj ZIP izvan aplikacije kao rezervnu kopiju.</p>`
   }
   async function bitmap(blob){const img=new Image(),u=URL.createObjectURL(blob);try{img.src=u;await img.decode();return img}finally{URL.revokeObjectURL(u)}}
   async function thumbnail(blob){try{const img=await bitmap(blob),c=document.createElement('canvas');c.width=280;c.height=Math.max(1,Math.round(img.height*280/img.width));c.getContext('2d').drawImage(img,0,0,c.width,c.height);return await new Promise(resolve=>c.toBlob(resolve,'image/jpeg',.72))}catch{return null}}
@@ -66,49 +80,78 @@
     try{return await timeout(pending,90000)}catch(e){expired=true;throw e}
   }
   async function recognize(blob){
-    const img=await bitmap(blob),c=document.createElement('canvas'),readings=[]
-    // Isolate the white module caption, then fall back to a wider area and full image.
-    for(const mode of ['caption','caption-raw','caption-high','caption-low','corner','full']){
-      const caption=mode.startsWith('caption'),crop=mode!=='full',sx=img.width*(caption?.72:crop?.5:0),sy=caption?img.height*.058:0,sw=img.width-sx,sh=img.height*(caption?.045:crop?.16:1),scale=Math.min(crop?3:1,2200/sw)
-      c.width=Math.round(sw*scale);c.height=Math.round(sh*scale);const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,sx,sy,sw,sh,0,0,c.width,c.height)
-      if(caption&&mode!=='caption-raw'){const pixels=ctx.getImageData(0,0,c.width,c.height),threshold=mode==='caption-high'?235:mode==='caption-low'?180:205;for(let i=0;i<pixels.data.length;i+=4){const white=Math.min(pixels.data[i],pixels.data[i+1],pixels.data[i+2])>threshold?0:255;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=white}ctx.putImageData(pixels,0,0)}
-      await worker.setParameters({tessedit_pageseg_mode:caption?'7':'11'})
-      const {data}=await timeout(worker.recognize(c),90000),group=detect(data.text,data.confidence)
-      readings.push(Math.round(data.confidence||0)+'%: '+data.text.trim().slice(0,180))
-      if(group!==UNKNOWN)return {group,note:'Pročitano: '+group}
+    const img=await bitmap(blob),c=document.createElement('canvas')
+    let group=UNKNOWN,photoDate=''
+    // Read both caption lines together; never OCR the large full-resolution photo.
+    for(const mode of ['raw','white','wide']){
+      const sx=img.width*(mode==='wide'?.48:.65),sw=img.width-sx,sh=img.height*.16,scale=Math.min(2,1400/sw)
+      c.width=Math.max(1,Math.round(sw*scale));c.height=Math.max(1,Math.round(sh*scale))
+      const ctx=c.getContext('2d');ctx.drawImage(img,sx,0,sw,sh,0,0,c.width,c.height)
+      if(mode==='white'){const pixels=ctx.getImageData(0,0,c.width,c.height);for(let i=0;i<pixels.data.length;i+=4){const v=Math.min(...pixels.data.slice(i,i+3))>200?0:255;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=v}ctx.putImageData(pixels,0,0)}
+      await worker.setParameters({tessedit_pageseg_mode:'11'})
+      const {data}=await timeout(worker.recognize(c),30000)
+      const found=detect(data.text,data.confidence)
+      if(found!==UNKNOWN)group=found
+      photoDate=photoDate||detectDate(data.text)
+      if(group!==UNKNOWN&&photoDate)break
     }
-    return {group:UNKNOWN,note:'Proveri ručno. Pročitani tekst: '+readings.join(' / ')}
+    return {group,photoDate,note:'Pročitano: '+group+(photoDate?' · '+photoDate:' · datum nije pročitan')}
   }
   async function add(files){
     if(busy)return
     files=[...files];if(!files.length)return
-    busy=true;prepared=null;cancel=false;batch=crypto.randomUUID();folder='';page=0;render();const now=Date.now(),label=new Date(now).toLocaleString('hr-HR');let failure='',saved=0
-    try{for(let i=0;i<files.length;i++){if(cancel)break;msg(`Čuvam sliku ${i+1} / ${files.length}…`);const file=files[i];await put({id:crypto.randomUUID(),batch,label,created:now,order:i,name:file.name,file,thumb:await thumbnail(file),group:UNKNOWN,note:'Nije obrađeno',manual:false});saved++}}catch{failure='Nema dovoljno prostora ili čuvanje nije uspelo. Prikazane su samo uspešno sačuvane slike. Originali na uređaju nisu obrisani.'}
-    finally{busy=false;await load();render();msg(failure||(cancel?'Dodavanje je zaustavljeno.':'Fotografije su sačuvane.'))}
-    if(saved&&!failure&&!cancel)await sort()
+    busy=true;prepared=null;cancel=false;batch=crypto.randomUUID();folder='';page=0;render()
+    const now=Date.now(),label=new Date(now).toLocaleString('hr-HR');let failure='',saved=0
+    try{
+      const seen=new Map()
+      for(const r of records){
+        if(cancel)break
+        if(!r.hash){msg('Proveravam ranije slike za duplikate…');r.hash=await fingerprint(r.file);await put(r)}
+        if(r.group!==DUPLICATE)seen.set(r.hash,r)
+      }
+      for(let i=0;i<files.length;i++){
+        if(cancel)break
+        msg('Dodajem sliku '+(i+1)+' / '+files.length+'…')
+        const file=files[i],hash=await fingerprint(file),original=seen.get(hash)
+        const r={id:crypto.randomUUID(),batch,label,created:now,order:i,name:file.name,file,hash,thumb:original?.thumb||await thumbnail(file),group:original?DUPLICATE:UNKNOWN,photoDate:original?.photoDate||'',note:original?'Duplikat: '+original.name:'Nije obrađeno',manual:false,duplicateOf:original?.id||''}
+        await put(r);records.push(r);if(!original)seen.set(hash,r);saved++
+      }
+    }catch(e){failure='Dodavanje nije završeno. Proveri prostor na uređaju. Sačuvano: '+saved+'. Originalne fotografije nisu obrisane.'}
+    finally{busy=false;records.sort(chronological);render();msg(failure||(cancel?'Dodavanje zaustavljeno.':'Slike sačuvane.'))}
+    if(saved&&!cancel)await sort()
   }
   async function sort(){
     if(busy)return
-    const list=records.filter(r=>r.batch===batch&&!r.manual);if(!list.length){msg('Nema slika za automatsko čitanje.');return}
+    const list=records.filter(r=>r.group!==DUPLICATE&&(!r.photoDate||r.group===UNKNOWN));if(!list.length){msg('Sve slike su već razvrstane. Duplikati su u folderu Duplo.');return}
     busy=true;cancel=false;prepared=null;render();let failure='',done=0
     try{msg('Učitavam alat za čitanje oznaka…');worker=await makeWorker();await worker.setParameters({tessedit_pageseg_mode:'11'});
-      for(const r of list){if(cancel)break;msg(`Čitam oznaku ${done+1} / ${list.length}: ${r.name}`);try{Object.assign(r,await recognize(r.file))}catch(e){r.group=UNKNOWN;r.note='Čitanje nije uspelo — proveri ručno.';if(e.message.includes('predugo'))throw e}await put(r);done++}
+      for(const r of list){if(cancel)break;msg(`Čitam oznaku ${done+1} / ${list.length}: ${r.name}`);try{const result=await recognize(r.file);if(r.manual)delete result.group;if(r.photoDate)delete result.photoDate;Object.assign(r,result)}catch(e){r.note='Čitanje nije uspelo — proveri ručno.';if(e.message.includes('predugo'))throw e}await put(r);done++;if(done%10===0){records.sort(chronological);render()}}
     }catch(e){failure=e.message||'OCR nije dostupan.'}finally{await worker?.terminate().catch(()=>{});worker=null;busy=false;await load();render();msg(failure||`${cancel?'Zaustavljeno.':'Razvrstavanje završeno.'} Obrađeno ${done} / ${list.length}. Proveri foldere i pripremi ZIP.`)}
   }
   function download(){if(!prepared)return;const u=URL.createObjectURL(prepared),a=document.createElement('a');a.href=u;a.download=prepared.name;a.click();setTimeout(()=>URL.revokeObjectURL(u),60000)}
   async function prepare(){
     if(busy)return;busy=true;cancel=false;prepared=null;render()
-    try{const rows=records.filter(r=>r.batch===batch&&(!folder||r.group===folder)),blob=await zip(rows,(i,n)=>{if(cancel)throw Error('Priprema ZIP-a je zaustavljena.');msg(`Pakujem originalne slike ${i} / ${n}…`)});prepared=new File([blob],`TASKER-${safe(folder||'Svi-moduli')}-${new Date(records.find(r=>r.batch===batch).created).toISOString().slice(0,10)}.zip`,{type:'application/zip'});busy=false;render();msg('ZIP je spreman. Klikni WhatsApp / pošalji ZIP ili Preuzmi ZIP.')}catch(e){busy=false;render();msg(e.message)}
+    try{const rows=records.filter(r=>!folder||r.group===folder).sort(chronological),blob=await zip(rows,(i,n)=>{if(cancel)throw Error('Priprema ZIP-a je zaustavljena.');msg(`Pakujem originalne slike ${i} / ${n}…`)});prepared=new File([blob],`${safe(folder||'Svi-moduli')}.zip`,{type:'application/zip'});busy=false;render();msg('ZIP je spreman. Klikni WhatsApp / pošalji ZIP ili Preuzmi ZIP.')}catch(e){busy=false;render();msg(e.message)}
   }
   async function share(){
     if(!prepared)return
     if(!navigator.share||!navigator.canShare?.({files:[prepared]})){download();msg('Ovaj uređaj ne podržava direktno deljenje ZIP-a. ZIP je pripremljen za preuzimanje. U WhatsAppu izaberi Spajalica → Dokument i priloži ga.');return}
     try{await navigator.share({files:[prepared],title:prepared.name});msg('Otvoren je sistemski prozor za deljenje ZIP-a.')}catch(e){msg(e.name==='AbortError'?'Deljenje je otkazano. ZIP je i dalje spreman.':'Deljenje nije uspelo. Klikni Preuzmi ZIP i priloži ga kao Dokument u WhatsAppu.')}
   }
+
+  async function removePhotos(id){
+    if(busy)return
+    const targets=id?records.filter(r=>r.id===id):records.filter(r=>r.group===folder)
+    if(!targets.length||!confirm(id?'Obrisati ovu sliku iz aplikacije? Original na uređaju ostaje.':'Obrisati folder '+folder+' sa '+targets.length+' slika iz aplikacije? Ovo se ne može poništiti. Originali na uređaju ostaju.'))return
+    busy=true;prepared=null
+    try{const d=await db();await new Promise((resolve,reject)=>{const tx=d.transaction('photos','readwrite'),s=tx.objectStore('photos');targets.forEach(r=>s.delete(r.id));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});const ids=new Set(targets.map(r=>r.id));records=records.filter(r=>!ids.has(r.id));busy=false;render();msg('Obrisano iz aplikacije: '+targets.length+'. Originali na uređaju nisu obrisani.')}
+    catch(e){busy=false;render();msg('Brisanje nije uspelo.')}
+  }
+
   async function open(){
     let d=$('mp-dialog');if(!d){d=document.createElement('dialog');d.id='mp-dialog';d.setAttribute('aria-label','Filter slika');document.body.append(d);d.addEventListener('close',clearURLs);
-      d.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const action=b.dataset.mp;if(action==='close')d.close();if(action==='stop'){cancel=true;msg('Zaustavljam nakon trenutne slike…')}if(action==='sort')sort();if(action==='zip')prepare();if(action==='download')download();if(action==='share')share();if(action==='prev'){page--;render()}if(action==='next'){page++;render()}if(b.hasAttribute('data-folder')&&!busy){folder=b.dataset.folder;page=0;prepared=null;render()}})
-      d.addEventListener('change',async e=>{try{if(e.target.id==='mp-files')await add(e.target.files);if(e.target.id==='mp-batch'&&!busy){batch=e.target.value;folder='';page=0;prepared=null;render()}if(e.target.dataset.photo&&!busy){const r=records.find(r=>r.id===e.target.dataset.photo),value=e.target.value.trim(),group=value.toLowerCase()===UNKNOWN.toLowerCase()?UNKNOWN:detect(value);if(group===UNKNOWN&&value.toLowerCase()!==UNKNOWN.toLowerCase()){e.target.value=r.group;msg('Unesi npr. MV-08, MVS-01 ili Neodređeno.');return}await put({...r,group,manual:true,note:'Ručno odabran folder'});prepared=null;await load();render()}}catch(e){msg('Promena nije sačuvana: '+e.message)}})
+      d.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const action=b.dataset.mp;if(action==='close')d.close();if(action==='stop'){cancel=true;msg('Zaustavljam nakon trenutne slike…')}if(action==='delete-photo')removePhotos(b.dataset.id);if(action==='delete-folder')removePhotos();if(action==='sort')sort();if(action==='zip')prepare();if(action==='download')download();if(action==='share')share();if(action==='prev'){page--;render()}if(action==='next'){page++;render()}if(b.hasAttribute('data-folder')&&!busy){folder=b.dataset.folder;page=0;prepared=null;render()}})
+      d.addEventListener('change',async e=>{try{if(e.target.dataset.photoDate&&!busy){const r=records.find(r=>r.id===e.target.dataset.photoDate);await put({...r,photoDate:e.target.value});prepared=null;await load();render()}if(e.target.id==='mp-files')await add(e.target.files);if(e.target.id==='mp-batch'&&!busy){batch=e.target.value;folder='';page=0;prepared=null;render()}if(e.target.dataset.photo&&!busy){const r=records.find(r=>r.id===e.target.dataset.photo);if(r.group===DUPLICATE){e.target.value=DUPLICATE;msg('Ovo je duplikat. Ostaje u folderu Duplo; možeš ga obrisati.');return}const value=e.target.value.trim(),group=value.toLowerCase()===UNKNOWN.toLowerCase()?UNKNOWN:detect(value);if(group===UNKNOWN&&value.toLowerCase()!==UNKNOWN.toLowerCase()){e.target.value=r.group;msg('Unesi npr. MV-08, MVS-01 ili Neodređeno.');return}await put({...r,group,manual:true,note:'Ručno odabran folder'});prepared=null;await load();render()}}catch(e){msg('Promena nije sačuvana: '+e.message)}})
     }
     if(!d.open)d.showModal();if(busy){render();return}try{await load();render()}catch{d.innerHTML='<h2>Filter slika</h2><p>Nije moguće otvoriti lokalno spremište fotografija. Proveri da preglednik dozvoljava čuvanje podataka.</p><button data-mp="close">Zatvori</button>'}
   }
@@ -117,4 +160,3 @@
   new MutationObserver(install).observe(document.body,{childList:true,subtree:true});install()
   window.addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}})
 })()
-
