@@ -296,7 +296,15 @@
     const nav=document.querySelector('.sidebar nav')
     if(nav&&!el('open-module-status')){const b=document.createElement('button');b.id='open-module-status';b.className='nav-link';b.type='button';b.dataset.page='module-status';b.innerHTML='<span>◫</span> Status modula';nav.append(b)}
     const grid=document.querySelector('#content .project-grid')
-    if(grid&&!el('module-status-card'))grid.insertAdjacentHTML('beforeend','<button type="button" class="project-card" id="module-status-card"><div class="project-card-top"><span class="project-symbol">◫</span><span class="project-status">PROIZVODNJA</span></div><p class="project-label">ZASEBNA EVIDENCIJA</p><h2>Status modula</h2><p class="project-description">Interaktivna hala, proizvodne faze, lokacije i istorija modula.</p><div class="project-card-footer"><span>MV · MVS</span><strong>Otvori halu →</strong></div></button>')
+    if(grid&&!el('module-status-card')){
+      const card='<button type="button" class="project-card project-module-status" id="module-status-card"><span class="project-card-glow" aria-hidden="true"></span><span class="project-card-cover module-card-cover" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div class="project-card-top"><span class="project-symbol">◫</span><span class="project-status">PROIZVODNJA</span></div><p class="project-label">ZASEBNA EVIDENCIJA</p><h2>Status modula</h2><p class="project-description">Interaktivna hala, proizvodne faze, lokacije i istorija modula.</p><div class="project-card-footer"><span>MV · MVS</span><strong>Otvori halu →</strong></div></button>'
+      const firstEmpty=grid.querySelector('[data-new-project-slot]')
+      if(firstEmpty)firstEmpty.insertAdjacentHTML('beforebegin',card);else grid.insertAdjacentHTML('beforeend',card)
+    }
+    if(grid)Array.from(grid.querySelectorAll('[data-new-project-slot]')).forEach((card,index)=>{
+      const number=card.querySelector('.empty-project-number'),label=String(6+index).padStart(2,'0')
+      if(number&&number.textContent!==label)number.textContent=label
+    })
   }
   new MutationObserver(install).observe(el('app')||document.body,{childList:true,subtree:true});install()
 })()

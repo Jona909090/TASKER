@@ -56,6 +56,9 @@
     .project-reports .project-symbol{background:linear-gradient(145deg,#1c8ab2,#14516f)!important;color:#b9f4ff!important;box-shadow:0 0 22px rgba(61,213,255,.25)!important}
     .project-reports .project-status i{background:#58ff8b!important;box-shadow:0 0 9px #58ff8b!important}
     .project-reports:before{content:'';position:absolute;inset:auto -15% -45% 25%;height:78%;pointer-events:none;background:repeating-linear-gradient(135deg,transparent 0 18px,rgba(57,200,255,.035) 19px 20px);transform:rotate(-8deg)}
+    .project-reports .reports-card-cover{background:linear-gradient(105deg,rgba(31,151,205,.5),rgba(5,31,53,.15)),repeating-linear-gradient(90deg,transparent 0 32px,rgba(104,220,255,.14) 33px 34px),repeating-linear-gradient(0deg,transparent 0 22px,rgba(104,220,255,.11) 23px 24px)}
+    .project-reports .reports-card-cover:after{background:linear-gradient(180deg,transparent 20%,#112a47 100%)}
+    .project-reports .reports-card-cover i{border-color:rgba(113,226,255,.5)}
 
     .reports-project-page{max-width:1180px;margin:0 auto;padding:8px 0 46px}
     .reports-project-header{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:20px;padding:24px 28px;border:1px solid #315777;border-radius:18px;background:linear-gradient(145deg,#172e49,#102139);box-shadow:0 18px 42px rgba(0,0,0,.18)}
@@ -77,6 +80,7 @@
   function cardMarkup () {
     return `<button type="button" class="project-card project-reports" id="${CARD_ID}">
       <span class="project-card-glow" aria-hidden="true"></span>
+      <span class="project-card-cover reports-card-cover" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
       <div class="project-card-top"><span class="project-symbol">▤</span><span class="project-status"><i></i> Novi projekt</span></div>
       <p class="project-label">PROJEKT</p><h2>IZVJEŠTAJI</h2>
       <p class="project-description">Brz unos dnevnih izvještaja po lokaciji, modulima i izvedenim radovima.</p>

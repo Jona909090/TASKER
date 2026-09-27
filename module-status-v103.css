@@ -106,4 +106,9 @@
 #module-status .ms-safe-zone:after{top:-26%;height:24%;background:linear-gradient(transparent,#fff9c7 25%,#fff 48%,#ffe264 70%,transparent);box-shadow:0 0 28px 8px #ffe867;animation:ms-runway-wave 18s linear infinite}
 @keyframes ms-runway-wave{0%,3%{top:-26%;opacity:0}4%{opacity:1}14%{top:110%;opacity:1}15%,100%{top:110%;opacity:0}}
 @media(prefers-reduced-motion:reduce){#module-status .ms-safe-zone:after{animation:none;opacity:0}}
-
+.project-module-status{border-color:rgba(239,190,68,.48)!important;background:radial-gradient(circle at 86% 10%,rgba(255,184,46,.13),transparent 36%),linear-gradient(145deg,#19324f,#10243d)!important}
+.project-module-status .project-symbol{background:linear-gradient(145deg,#efb52e,#c78212)!important;color:#17253a!important;box-shadow:0 0 20px rgba(246,184,43,.24)!important}
+.project-module-status .project-card-glow{background:radial-gradient(circle,rgba(255,190,54,.28),rgba(60,165,221,.08) 42%,transparent 68%)}
+.project-module-status .module-card-cover{background:linear-gradient(105deg,rgba(205,142,25,.45),rgba(10,43,69,.17)),repeating-linear-gradient(90deg,transparent 0 32px,rgba(255,209,105,.13) 33px 34px),repeating-linear-gradient(0deg,transparent 0 22px,rgba(255,209,105,.1) 23px 24px)}
+.project-module-status .module-card-cover:after{background:linear-gradient(180deg,transparent 20%,#122b48 100%)}
+.project-module-status .module-card-cover i{border-color:rgba(255,207,94,.5)}

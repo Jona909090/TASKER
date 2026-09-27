@@ -28,6 +28,9 @@
   style.textContent = `
     .project-employee-hours{background:radial-gradient(circle at 85% 10%,#25df9a20,transparent 45%),linear-gradient(145deg,#17314d,#0d2037)!important;border-color:#39bb9866!important}
     .project-employee-hours .project-symbol{background:#164d48;color:#78f6c0;box-shadow:0 0 20px #42efa52b}
+    .project-employee-hours .hours-card-cover{background:linear-gradient(105deg,rgba(23,166,137,.5),rgba(4,38,39,.16)),repeating-linear-gradient(90deg,transparent 0 32px,rgba(102,255,205,.14) 33px 34px),repeating-linear-gradient(0deg,transparent 0 22px,rgba(102,255,205,.1) 23px 24px)}
+    .project-employee-hours .hours-card-cover:after{background:linear-gradient(180deg,transparent 20%,#112d2f 100%)}
+    .project-employee-hours .hours-card-cover i{border-color:rgba(105,248,204,.48)}
     #employee-hours-project{max-width:1180px;margin:0 auto;padding:8px 0 40px;color:#edf7ff}
     #employee-hours-project .eh-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:26px;border:1px solid #315777;border-radius:18px;background:linear-gradient(145deg,#172e49,#102139);margin-bottom:20px}
     #employee-hours-project h1{font-size:clamp(24px,3vw,34px);margin:9px 0}
@@ -52,7 +55,7 @@
   function installCard () {
     const grid = document.querySelector('#content .project-grid')
     if (!grid || document.getElementById(cardId)) return
-    const card = `<button type="button" class="project-card project-employee-hours" id="${cardId}"><span class="project-card-glow" aria-hidden="true"></span><div class="project-card-top"><span class="project-symbol" aria-hidden="true">◷</span><span class="project-status">Novi projekt</span></div><p class="project-label">PROJEKT</p><h2>RADNI SATI ZAPOSLENIH</h2><p class="project-description">Dnevna prisutnost i mjesečna evidencija radnih sati.</p><div class="project-card-footer"><span>PRISUTNOST · RADNI SATI</span><strong>Otvori projekt →</strong></div></button>`
+    const card = `<button type="button" class="project-card project-employee-hours" id="${cardId}"><span class="project-card-glow" aria-hidden="true"></span><span class="project-card-cover hours-card-cover" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div class="project-card-top"><span class="project-symbol" aria-hidden="true">◷</span><span class="project-status">Novi projekt</span></div><p class="project-label">PROJEKT</p><h2>RADNI SATI ZAPOSLENIH</h2><p class="project-description">Dnevna prisutnost i mjesečna evidencija radnih sati.</p><div class="project-card-footer"><span>PRISUTNOST · RADNI SATI</span><strong>Otvori projekt →</strong></div></button>`
     const empty = grid.querySelector('[data-new-project-slot]')
     if (empty) empty.insertAdjacentHTML('beforebegin', card)
     else grid.insertAdjacentHTML('beforeend', card)
