@@ -21,6 +21,7 @@
     date: today(),
     workers: '',
     foremen: '',
+    start: '07:00', end: '17:00', note: '',
     modules: []
   })
 
@@ -33,6 +34,7 @@
         date: String(saved.date || today()),
         workers: saved.workers === 0 ? '0' : String(saved.workers || ''),
         foremen: saved.foremen === 0 ? '0' : String(saved.foremen || ''),
+        start: String(saved.start || '07:00'), end: String(saved.end || '17:00'), note: String(saved.note || ''),
         modules: Array.isArray(saved.modules) ? saved.modules.map(module => ({
           id: String(module.id || `module-${Date.now()}-${Math.random()}`),
           name: String(module.name || ''),
@@ -70,6 +72,7 @@
     @media(max-width:520px){.reports-basic-fields{grid-template-columns:1fr}.reports-basic-fields label:first-child{grid-column:auto}.reports-modules-heading{align-items:stretch;flex-direction:column}.reports-add-module{width:100%}.reports-project-header>span{display:none}.reports-work-row{grid-template-columns:25px 1fr 34px}.reports-output{padding:19px}}
   `
   document.head.appendChild(style)
+  style.textContent += '.reports-project-page textarea{width:100%;box-sizing:border-box;min-height:125px;padding:12px;border:1px solid #365b7b;border-radius:9px;background:#0e2037;color:#f2f8ff;font:16px/1.5 Arial;resize:vertical}.reports-module-fields{grid-template-columns:1fr}.reports-project-page label{font-size:12px;text-transform:none;letter-spacing:0}.reports-basic-fields{grid-template-columns:repeat(3,minmax(0,1fr))}.reports-module-body label+label{margin-top:12px}@media(max-width:600px){.reports-basic-fields{grid-template-columns:1fr 1fr}}'
 
   function cardMarkup () {
     return `<button type="button" class="project-card project-reports" id="${CARD_ID}">
@@ -93,11 +96,9 @@
     <header><span>MODUL ${index + 1}</span><button type="button" data-remove-report-module="${escapeHtml(module.id)}" title="Ukloni modul">×</button></header>
     <div class="reports-module-body">
       <div class="reports-module-fields">
-        <label>Naziv modula<input data-report-module-name value="${escapeHtml(module.name)}" placeholder="npr. Drugi modul"></label>
-        <label>Oznaka modula<input data-report-module-code value="${escapeHtml(module.code)}" placeholder="npr. MV-15"></label>
+        <label>Modul ili lokacija<input data-report-module-code value="${escapeHtml([module.name,module.code].filter(Boolean).join(' / '))}" placeholder="MV-11, MVS-01 ili Dupliko"></label>
       </div>
-      <div class="reports-work-heading"><h3>Izvedeni radovi</h3><button type="button" class="reports-add-work" data-add-report-work="${escapeHtml(module.id)}">+ Dodaj rad</button></div>
-      <div class="reports-work-list">${module.works.map((work, workIndex) => `<div class="reports-work-row" data-report-work="${workIndex}"><span>${workIndex + 1}</span><input value="${escapeHtml(work)}" placeholder="Unesite izvedeni rad"><button type="button" data-remove-report-work="${workIndex}" title="Ukloni rad">×</button></div>`).join('')}</div>
+      <label>Radovi — svaki rad u novi red<textarea data-report-works placeholder="Postavljanje panela&#10;Izvlačenje modula – 2 radnika, 2 sata">${escapeHtml(module.works.join('\n'))}</textarea></label>
     </div>
   </article>`
 
@@ -118,9 +119,12 @@
         <label>Datum<input id="report-date" type="date" value="${escapeHtml(state.date || today())}"></label>
         <label>Broj radnika<input id="report-workers" type="number" min="0" step="1" inputmode="numeric" value="${escapeHtml(state.workers)}"></label>
         <label>Broj poslovođa<input id="report-foremen" type="number" min="0" step="1" inputmode="numeric" value="${escapeHtml(state.foremen)}"></label>
+        <label>Početak rada<input id="report-start" type="time" value="${escapeHtml(state.start || '07:00')}"></label>
+        <label>Kraj rada<input id="report-end" type="time" value="${escapeHtml(state.end || '17:00')}"></label>
       </section>
       <section class="reports-modules-heading"><div><h2>Moduli</h2><p>Dodajte potreban broj modula i radova.</p></div><button type="button" class="reports-add-module" id="reports-add-module">+ Dodaj modul</button></section>
       <div class="reports-modules-list" id="reports-modules-list"></div>
+      <label style="margin-top:18px">Dodatna napomena (nije obavezna)<textarea id="report-note" placeholder="Npr. dodatna ekipa – 5 radnika">${escapeHtml(state.note || '')}</textarea></label>
       <button type="button" class="reports-generate" id="reports-generate">GENERIRAJ IZVJEŠTAJ</button>
       <section class="reports-output" id="reports-output" hidden><header><h2>Gotov izvještaj</h2><button type="button" class="reports-output-copy" id="reports-copy">Kopiraj tekst</button></header><div class="reports-output-content" id="reports-output-content"></div></section>
     </section>`
@@ -132,6 +136,9 @@
     state.date = document.querySelector('#report-date')?.value || today()
     state.workers = document.querySelector('#report-workers')?.value || ''
     state.foremen = document.querySelector('#report-foremen')?.value || ''
+    state.start = document.querySelector('#report-start')?.value || ''
+    state.end = document.querySelector('#report-end')?.value || ''
+    state.note = document.querySelector('#report-note')?.value || ''
     saveState()
   }
 
@@ -140,7 +147,7 @@
     if (!module) return
     module.name = card.querySelector('[data-report-module-name]')?.value || ''
     module.code = card.querySelector('[data-report-module-code]')?.value || ''
-    module.works = [...card.querySelectorAll('[data-report-work] input')].map(input => input.value)
+    module.works = (card.querySelector('[data-report-works]')?.value || '').split('\n')
     saveState()
   }
 
@@ -197,9 +204,10 @@
     if (!output || !content) return
     content.innerHTML = `<p><strong>${escapeHtml(locationText(state.location) || 'PROJEKT / LOKACIJA')}</strong></p>
       <p>${escapeHtml(formattedDate(state.date))}</p>
+      <p>${escapeHtml(state.start)} – ${escapeHtml(state.end)}</p>
       <p>${workers} ${word(workers, 'radnik', 'radnika', 'radnika')}</p>
       <p>${foremen} ${word(foremen, 'poslovođa', 'poslovođe', 'poslovođa')}</p>
-      ${modules.map(module => `<h3>${escapeHtml(sentenceText(module.name) || 'Modul')}${module.code.trim() ? ` (modul ${escapeHtml(moduleCode(module.code))})` : ''}</h3>${module.works.filter(work => work.trim()).length ? `<ul>${module.works.filter(work => work.trim()).map(work => `<li>${escapeHtml(sentenceText(work))}</li>`).join('')}</ul>` : '<p>– Nema upisanih radova</p>'}`).join('')}`
+      ${modules.map(module => `<h3>${escapeHtml(moduleCode(module.code) || sentenceText(module.name) || 'Modul')}</h3>${module.works.filter(work => work.trim()).length ? `<ul>${module.works.filter(work => work.trim()).map(work => `<li>${escapeHtml(sentenceText(work.replace(/^[•-]\s*/,'')))}</li>`).join('')}</ul>` : '<p>– Nema upisanih radova</p>'}`).join('')}${state.note ? '<p>'+escapeHtml(state.note).replace(/\n/g,'<br>')+'</p>' : ''}`
     output.hidden = false
     output.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -232,6 +240,7 @@
     }
     const removeModule = event.target.closest('[data-remove-report-module]')
     if (removeModule) {
+      if(!confirm('Ukloniti ovaj modul i njegove radove iz nacrta?'))return
       state.modules = state.modules.filter(module => module.id !== removeModule.dataset.removeReportModule)
       saveState(); renderModules(); return
     }
@@ -243,7 +252,7 @@
       if (module) { module.works.splice(Number(removeWork.dataset.removeReportWork), 1); if (!module.works.length) module.works.push(''); saveState(); renderModules() }
       return
     }
-    if (event.target.closest('#reports-generate')) { generateReport(); return }
+    if (event.target.closest('#reports-generate')) { const editor=document.getElementById('ra-editor');if(editor&&!editor.hidden&&!confirm('Ponovno generisanje zamenjuje ručno uređen tekst. Nastaviti?')){event.stopImmediatePropagation();return}generateReport(); return }
     if (event.target.closest('#reports-copy')) {
       navigator.clipboard?.writeText(plainReportText()).then(() => { const button = document.querySelector('#reports-copy'); if (button) { button.textContent = 'Kopirano'; setTimeout(() => { button.textContent = 'Kopiraj tekst' }, 1400) } }).catch(() => {})
     }
@@ -251,7 +260,7 @@
 
   document.addEventListener('input', event => {
     if (!event.target.closest(`#${CONTENT_ID}`)) return
-    if (event.target.closest('.reports-basic-fields')) syncBasicFields()
+    if (event.target.closest('.reports-basic-fields') || event.target.id==='report-note') syncBasicFields()
     const card = event.target.closest('[data-report-module]')
     if (card) syncModuleCard(card)
   })
