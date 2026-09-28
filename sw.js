@@ -1,5 +1,6 @@
-const CACHE = 'tasker-v1078'
+const CACHE = 'tasker-v1079'
 const CORE = [
+  './module-status-glow-v1079.css',
   './module-status-polish-v1078.css',
   './employee-hours-header-v1073.js?build=1075',
   './module-photo-filter-v1059.js?build=1075',
@@ -7,7 +8,7 @@ const CORE = [
   './module-status-snapshot-v104.js?build=1075',
   './vendor/html2canvas-1.4.1.min.js',
   './module-status-model-v103.js?build=1075',
-  './module-status-v103.js?build=1075',
+  './module-status-v103.js?build=1079',
   './module-status-v103.css?build=1075',
   './employee-hours-archive-v102.js?build=102',
   './employee-hours-books-v97.js?build=97',
@@ -33,10 +34,10 @@ const CORE = [
   './nav-icons-v71.js?build=82',
   './dashboard-live-v72.js?build=82',
   './control-order-v76.js?build=82',
-  './reports-project-v81.js?build=1078',
-  './reports-archive-v81.js?build=1078',
+  './reports-project-v81.js?build=1079',
+  './reports-archive-v81.js?build=1079',
   './tasker-about-v66.jpg',
-  './main-v51.js?build=1078',
+  './main-v51.js?build=1079',
   './materials.js',
   './icon-192.svg',
   './icon-512.svg',
