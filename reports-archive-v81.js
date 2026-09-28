@@ -119,7 +119,6 @@
   }
   document.addEventListener('click',async e=>{
     if(e.target.closest('#ra-edit-text')){if(!current)return;const editor=document.getElementById('ra-editor');if(editor.hidden)editor.value=textOf(current);editor.hidden=false;editor.focus();message('Izmenite tekst, zatim sačuvajte ili pošaljite na WhatsApp.');return}
-    if(e.target.closest('#reports-generate')){queueMicrotask(saveGenerated);return}
     const act=e.target.closest('[data-ra-action]');if(act){await action(act.dataset.raAction);return}
     if(e.target.closest('#ra-new')){activeId=null;current=null;document.dispatchEvent(new CustomEvent('tasker-report-load',{detail:null}));return}
     const item=e.target.closest('[data-ra-open],[data-ra-edit],[data-ra-delete]');if(!item)return
@@ -130,6 +129,7 @@
       show(r)
     }catch(error){message('Arhiva: '+error.message)}
   })
+  document.addEventListener('tasker-report-generated',()=>{queueMicrotask(saveGenerated)})
   document.addEventListener('input',e=>{if(e.target.id!=='ra-editor')return;document.getElementById('reports-output-content').innerHTML=e.target.value.split('\n').map(line=>'<p>'+esc(line)+'</p>').join('')})
   const style=document.createElement('style');style.textContent=`#ra-folder{padding:18px;margin:0 0 18px;border:1px solid #315777;border-radius:14px;background:#142940}#ra-folder summary{cursor:pointer;color:#64ddff;font-weight:bold;font-size:18px}#ra-folder p{color:#a4bdd1;font-size:13px}.ra-item{display:flex;gap:16px;justify-content:space-between;align-items:center;border-top:1px solid #315777;padding:14px 0}.ra-item span,.ra-item small{display:block;margin-top:5px}.ra-item small{color:#8ba9bf}.ra-item>div:last-child,.ra-actions{display:flex;gap:8px;flex-wrap:wrap}#ra-folder button,.ra-actions button{padding:10px 14px;border:1px solid #3ea6c6;background:#153d56;border-radius:8px;color:#c6f3ff;cursor:pointer}.ra-actions{border-top:1px solid #b6c6d1;margin-top:20px;padding-top:16px}#ra-message{width:100%;font-size:13px;color:#195473}@media(max-width:600px){.ra-item{align-items:flex-start;flex-direction:column}}`
     document.head.append(style)
