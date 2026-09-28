@@ -16,6 +16,7 @@
       <style id="tasker-layout-emergency">.dashboard-card-tools,.dashboard-section-tools{display:none!important}</style>
     <link rel="stylesheet" href="./module-status-v103.css?build=1075" />
     <link rel="stylesheet" href="./module-status-polish-v1078.css" />
+    <link rel="stylesheet" href="./module-status-glow-v1079.css" />
   </head>
   <body>
     <div id="pwa-splash" aria-hidden="true"><div class="pwa-splash-inner"><span class="pwa-splash-logo"><i></i><b>T</b><i></i></span><strong>TASKER</strong><small>SVE POD KONTROLOM</small></div></div>
@@ -35,8 +36,8 @@
     <script src="./nav-icons-v71.js?build=82"></script>
     <script src="./dashboard-live-v72.js?build=82"></script>
     <script src="./control-order-v76.js?build=82"></script>
-    <script src="./reports-project-v81.js?build=1078"></script>
-    <script src="./reports-archive-v81.js?build=1078"></script>
+    <script src="./reports-project-v81.js?build=1079"></script>
+    <script src="./reports-archive-v81.js?build=1079"></script>
     <script src="./employee-hours-model-v94.js?build=1075"></script>
     <script src="./employee-hours-books-v97.js?build=97"></script>
     <script src="./employee-hours-archive-v102.js?build=102"></script>
@@ -45,12 +46,12 @@
     <script src="./employee-hours-v98.js?build=1075"></script>
     <script src="./module-status-model-v103.js?build=1075"></script>
     <script src="./module-status-snapshot-v104.js?build=1075"></script>
-    <script src="./module-status-v103.js?build=1075"></script>
+    <script src="./module-status-v103.js?build=1079"></script>
     <script src="./module-photo-filter-v1059.js?build=1075"></script>
     <script src="./tasker-sync-v105.js?build=1075"></script>
-    <script type="module" src="./main-v51.js?build=1078"></script>
+    <script type="module" src="./main-v51.js?build=1079"></script>
     <script>
-      if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js?v=1078', { updateViaCache: 'none' }).then((registration) => registration.update()); navigator.serviceWorker.addEventListener('controllerchange', () => { if (!sessionStorage.getItem('tasker-v1078-reloaded')) { sessionStorage.setItem('tasker-v1078-reloaded', '1'); location.reload(); } }); });
+      if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js?v=1079', { updateViaCache: 'none' }).then((registration) => registration.update()); navigator.serviceWorker.addEventListener('controllerchange', () => { if (!sessionStorage.getItem('tasker-v1079-reloaded')) { sessionStorage.setItem('tasker-v1079-reloaded', '1'); location.reload(); } }); });
       window.addEventListener('load', () => setTimeout(() => document.querySelector('#pwa-splash')?.classList.add('splash-hidden'), 850));
     </script>
   </body>
