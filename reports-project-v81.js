@@ -162,6 +162,13 @@
   }
 
   const spelling = {
+    zavrsili:'završili', zavrsila:'završila', zavrseni:'završeni', zavrsene:'završene',
+    demontaznih:'demontažnih', demontazni:'demontažni', demontaznog:'demontažnog',
+    lajsni:'lajsni', silikonniranje:'silikoniranje', silikonirnje:'silikoniranje',
+    busenje:'bušenje', busenju:'bušenju', izvlacenje:'izvlačenje', premestanje:'premeštanje',
+    premjestanje:'premještanje', zastita:'zaštita', zastite:'zaštite', ciscenje:'čišćenje',
+    ostecenje:'oštećenje', ostecenja:'oštećenja', pricvrscivanje:'pričvršćivanje',
+    nosaca:'nosača', nosaci:'nosači', unutarnjih:'unutarnjih', supljina:'šupljina',
     izvestaj: 'izvještaj', izvestaja: 'izvještaja', izvestaji: 'izvještaji',
     izvjestaj: 'izvještaj', izvjestaja: 'izvještaja', izvjestaji: 'izvještaji',
     unutrasnji: 'unutrašnji', unutrasnja: 'unutrašnja', unutrasnje: 'unutrašnje',
@@ -185,21 +192,45 @@
         : replacement
     })
 
-  const sentenceText = value => {
+  const suggestText = value => {
     const text = correctSpelling(value).replace(/\s+([,.;:!?])/g, '$1')
+      .replace(/\b(dva radnika) završili\b/gi,'$1 su završili')
+      .replace(/\b(tri sata) istovar\b/gi,'$1 istovara')
     return text ? text.charAt(0).toLocaleUpperCase('hr-HR') + text.slice(1) : ''
   }
+  // Final rendering must never silently re-apply a rejected suggestion.
+  const sentenceText = value => String(value || '').trim()
 
-  const locationText = value => correctSpelling(value)
+  const locationText = value => String(value || '')
     .replace(/\s*\/\s*/g, ' – ')
     .replace(/\s*-\s*/g, ' – ')
     .toLocaleUpperCase('hr-HR')
 
-  const moduleCode = value => correctSpelling(value).replace(/\s*-\s*/g, '-').toLocaleUpperCase('hr-HR')
+  const moduleCode = value => String(value || '').replace(/\s*-\s*/g, '-').toLocaleUpperCase('hr-HR')
+
+  let review = null
+  function reviewReport () {
+    syncBasicFields();document.querySelectorAll('[data-report-module]').forEach(syncModuleCard)
+    const draft=JSON.parse(JSON.stringify(state)),changes=[]
+    draft.modules.forEach((m,mi)=>m.works.forEach((value,wi)=>{const proposed=suggestText(value.replace(/^[•-]\s*/,''));const original=value.replace(/^[•-]\s*/,'').trim();if(proposed!==original)changes.push({mi,wi,original,proposed,label:m.code||m.name||'Modul '+(mi+1)})}))
+    String(draft.note||'').split('\n').forEach((original,ni)=>{const proposed=suggestText(original);if(proposed!==original.trim())changes.push({ni,original,proposed,label:'Napomena'})})
+    review={draft,changes}
+    document.getElementById('reports-review')?.remove()
+    const dialog=document.createElement('dialog');dialog.id='reports-review'
+    dialog.innerHTML='<h2>Provera teksta pre generisanja</h2><p>Pregledajte predloge. Odznačite izmene koje ne želite ili sami uredite predlog. Oznake modula, brojevi i sati nisu predmet ispravke.</p><p>Lokalna provera poznatih grešaka i izraza — ne prepoznaje sve gramatičke greške.</p>'+(changes.length?changes.map((c,i)=>'<section><label><input type="checkbox" data-review-accept="'+i+'" checked> Prihvati predlog · '+escapeHtml(c.label)+'</label><p><strong>Original:</strong> '+escapeHtml(c.original)+'</p><label>Predlog<textarea data-review-text="'+i+'">'+escapeHtml(c.proposed)+'</textarea></label></section>').join(''):'<p>Nema predloga u lokalnoj proveri. Proverite sadržaj pa potvrdite generisanje.</p>')+'<footer><button type="button" id="reports-review-cancel">Nazad na unos</button><button type="button" id="reports-review-confirm">Potvrdi i generiši izveštaj</button></footer>'
+    document.body.append(dialog);dialog.addEventListener('cancel',()=>{review=null;dialog.remove()});dialog.showModal()
+  }
+  function finishReview () {
+    if(!review)return
+    const dialog=document.getElementById('reports-review'),{draft,changes}=review,notes=String(draft.note||'').split('\n')
+    changes.forEach((c,i)=>{if(!dialog.querySelector('[data-review-accept="'+i+'"]').checked)return;const value=dialog.querySelector('[data-review-text="'+i+'"]').value;if(c.ni!==undefined)notes[c.ni]=value;else draft.modules[c.mi].works[c.wi]=value})
+    draft.note=notes.join('\n');state=draft;saveState();renderModules();const note=document.getElementById('report-note');if(note)note.value=state.note
+    review=null;dialog.close();dialog.remove();generateReport()
+    document.dispatchEvent(new CustomEvent('tasker-report-generated'))
+  }
+  style.textContent += '#reports-review{box-sizing:border-box;width:min(760px,94vw);max-height:88vh;overflow:auto;padding:24px;border:1px solid #4b9ab4;border-radius:16px;background:#142b44;color:#e8f3ff}#reports-review::backdrop{background:#000b}#reports-review p{line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}#reports-review section{border:1px solid #46627b;border-radius:10px;padding:14px;margin:12px 0}#reports-review label{display:block;font-weight:bold}#reports-review textarea{box-sizing:border-box;width:100%;min-height:85px;margin-top:8px;background:#0b2035;color:white;font:16px/1.5 Arial;border:1px solid #5b829e;border-radius:8px;padding:10px}#reports-review footer{display:flex;gap:12px;flex-wrap:wrap;position:sticky;bottom:-24px;padding:16px 0;background:#142b44}#reports-review button{padding:14px;border:1px solid #62d5ef;border-radius:8px;background:#13556c;color:white;cursor:pointer}#reports-review-confirm{background:#12633e!important}'
 
   function generateReport () {
-    syncBasicFields()
-    document.querySelectorAll('[data-report-module]').forEach(syncModuleCard)
     const workers = Number(state.workers) || 0
     const foremen = Number(state.foremen) || 0
     const modules = state.modules.filter(module => module.name.trim() || module.code.trim() || module.works.some(work => work.trim()))
@@ -223,6 +254,8 @@
   }
 
   document.addEventListener('click', event => {
+    if(event.target.closest('#reports-review-cancel')){review=null;document.getElementById('reports-review')?.remove();return}
+    if(event.target.closest('#reports-review-confirm')){finishReview();return}
     const open = event.target.closest(`#${CARD_ID}`)
     if (open) { event.preventDefault(); event.stopImmediatePropagation(); renderProject(); return }
     if (event.target.closest('#reports-project-back')) {
@@ -256,7 +289,7 @@
       if (module) { module.works.splice(Number(removeWork.dataset.removeReportWork), 1); if (!module.works.length) module.works.push(''); saveState(); renderModules() }
       return
     }
-    if (event.target.closest('#reports-generate')) { const editor=document.getElementById('ra-editor');if(editor&&!editor.hidden&&!confirm('Ponovno generisanje zamenjuje ručno uređen tekst. Nastaviti?')){event.stopImmediatePropagation();return}generateReport(); return }
+    if (event.target.closest('#reports-generate')) { event.stopImmediatePropagation();const editor=document.getElementById('ra-editor');if(editor&&!editor.hidden&&!confirm('Ponovno generisanje zamenjuje ručno uređen tekst. Nastaviti?'))return;reviewReport(); return }
     if (event.target.closest('#reports-copy')) {
       navigator.clipboard?.writeText(plainReportText()).then(() => { const button = document.querySelector('#reports-copy'); if (button) { button.textContent = 'Kopirano'; setTimeout(() => { button.textContent = 'Kopiraj tekst' }, 1400) } }).catch(() => {})
     }
