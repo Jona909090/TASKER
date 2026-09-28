@@ -92,7 +92,8 @@
     const pose=(x,y,a)=>({left:x+'px',top:y+'px',transform:`translate(-50%,-50%) rotate(${a}deg)`})
     async function animate(node,frames,options){
       if(!alive())return false
-      const animation=node.animate(frames,options);animations.add(animation)
+      // Slow the complete delivery cycle equally, preserving independent lanes.
+      const animation=node.animate(frames,{...options,duration:options.duration*1.7});animations.add(animation)
       try{await animation.finished;return alive()}catch{return false}
       finally{animations.delete(animation);animation.cancel()}
     }
