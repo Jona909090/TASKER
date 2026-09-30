@@ -1,8 +1,8 @@
-const CACHE = 'tasker-v1080'
+const CACHE = 'tasker-v1081'
 const CORE = [
   './private-expenses-model-v1080.js',
-  './private-expenses-v1080.js',
-  './private-expenses-v1080.css',
+  './private-expenses-v1080.js?build=1081',
+  './private-expenses-v1080.css?build=1081',
   './module-status-glow-v1079.css',
   './module-status-polish-v1078.css',
   './employee-hours-header-v1073.js?build=1075',
