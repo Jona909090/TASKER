@@ -2,8 +2,8 @@
   'use strict'
   const mimeXlsx='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   const title='Mjesečna evidencija radnih sati'
-  const number=m=>new Intl.NumberFormat('hr-HR',{maximumFractionDigits:2}).format(m/60)
-  const monthName=s=>new Intl.DateTimeFormat('hr-HR',{month:'long',year:'numeric'}).format(new Date(s.month+'-15T12:00:00'))
+  const number=m=>new Intl.NumberFormat('sr-Latn-RS',{maximumFractionDigits:2}).format(m/60)
+  const monthName=s=>new Intl.DateTimeFormat('sr-Latn-RS',{month:'long',year:'numeric'}).format(new Date(s.month+'-15T12:00:00'))
   function color(s,r,i,column,date,value){
     if(column==='identity'&&r.employee.endDate&&r.employee.endDate.slice(0,7)<=s.month)return 'A92F3B'
     if(column==='day'&&r.employee.endDate&&date.date>r.employee.endDate)return 'A92F3B'
@@ -23,7 +23,7 @@
     const w=existing||new ExcelJS.Workbook();w.creator='TASKER';w.created=new Date();w.calcProperties.fullCalcOnLoad=true
     const last=m.dates.length+4,sh=w.addWorksheet(sheetName,{views:[{state:'frozen',xSplit:3,ySplit:5}],pageSetup:{orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0,showGridLines:false,printTitlesRow:'1:5',margins:{left:.2,right:.2,top:.3,bottom:.3,header:.1,footer:.1}}})
     for(let row=1;row<=4;row++)sh.mergeCells(row,1,row,last)
-    sh.getCell(1,1).value=title.toLocaleUpperCase('hr-HR');sh.getCell(2,1).value=s.site||'Projekt / Gradilište nije upisano';sh.getCell(3,1).value=monthName(s).toLocaleUpperCase('hr-HR');sh.getCell(4,1).value='Žuto: odrađeni sati | –: bez sati | Crveno: prestanak rada | Ljubičasto: vikend | Plavo: GO (godišnji)'
+    sh.getCell(1,1).value=title.toLocaleUpperCase('sr-Latn-RS');sh.getCell(2,1).value=s.site||'Projekt / Gradilište nije upisano';sh.getCell(3,1).value=monthName(s).toLocaleUpperCase('sr-Latn-RS');sh.getCell(4,1).value='Žuto: odrađeni sati | –: bez sati | Crveno: prestanak rada | Ljubičasto: vikend | Plavo: GO (godišnji)'
     for(let row=1;row<=4;row++){sh.getRow(row).height=row===1?28:23;sh.getCell(row,1).font={name:'Arial',size:row===1?16:11,bold:row<4};sh.getCell(row,1).alignment={vertical:'middle',wrapText:true}}
     if(banner){
       for(let row=1;row<=3;row++){sh.getRow(row).height=60;sh.getCell(row,1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF102B40'}};sh.getCell(row,1).font={name:'Arial',size:16,bold:true,color:{argb:'FFFFFFFF'}}}
@@ -79,7 +79,7 @@
       const lines=singleLine?[String(text)]:wrap(text,w-10),start=yy+h/2-(lines.length-1)*13
       lines.forEach((line,i)=>ctx.fillText(line,align==='left'?x+5:x+w/2,start+i*26))
     }
-    function start(){ctx.fillStyle='#fff';ctx.fillRect(0,0,2380,1684);ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillStyle='#19354B';ctx.font='bold 38px Arial';ctx.fillText(title.toLocaleUpperCase('hr-HR'),left,64);ctx.font='bold 29px Arial';ctx.fillText(s.site||'Projekt / Gradilište nije upisano',left,110,width);ctx.font='26px Arial';ctx.fillText(monthName(s).toLocaleUpperCase('hr-HR'),left,152);ctx.font='21px Arial';ctx.fillText('Žuto: odrađeni sati   |   –: bez sati   |   Crveno: prestanak rada   |   Ljubičasto: vikend | Plavo: GO (godišnji)',left,187);y=212;let x=left;['R.br.','Ime','Prezime',...m.dates.map((d,i)=>i+1),'UKUPNO'].forEach((text,i)=>{const weekend=m.dates[i-3]?.weekend;box(text,x,y,widths[i],52,weekend?'D9C9E8':'19354B',weekend?'30223E':'FFFFFF',true,'center',true);x+=widths[i]});y+=52}
+    function start(){ctx.fillStyle='#fff';ctx.fillRect(0,0,2380,1684);ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillStyle='#19354B';ctx.font='bold 38px Arial';ctx.fillText(title.toLocaleUpperCase('sr-Latn-RS'),left,64);ctx.font='bold 29px Arial';ctx.fillText(s.site||'Projekt / Gradilište nije upisano',left,110,width);ctx.font='26px Arial';ctx.fillText(monthName(s).toLocaleUpperCase('sr-Latn-RS'),left,152);ctx.font='21px Arial';ctx.fillText('Žuto: odrađeni sati   |   –: bez sati   |   Crveno: prestanak rada   |   Ljubičasto: vikend | Plavo: GO (godišnji)',left,187);y=212;let x=left;['R.br.','Ime','Prezime',...m.dates.map((d,i)=>i+1),'UKUPNO'].forEach((text,i)=>{const weekend=m.dates[i-3]?.weekend;box(text,x,y,widths[i],52,weekend?'D9C9E8':'19354B',weekend?'30223E':'FFFFFF',true,'center',true);x+=widths[i]});y+=52}
     function finish(){ctx.font='20px Arial';ctx.fillStyle='#42576B';ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(`TASKER · ${s.month} · Stranica ${page+1}`,left,1645);if(page++)pdf.addPage();pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,297,210,undefined,'FAST')}
     start()
     m.rows.forEach((r,i)=>{
