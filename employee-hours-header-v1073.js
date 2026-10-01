@@ -9,7 +9,7 @@
     ctx.fillStyle='#62D8ED';ctx.font='bold 25px Arial';ctx.fillText('TASKER / EVIDENCIJA',65,68)
     ctx.fillStyle='#FFFFFF';ctx.font='bold 53px Arial';ctx.fillText('MJESEČNA EVIDENCIJA',65,145);ctx.fillText('RADNIH SATI',65,208)
     const site=s.site||'Gradilište';let size=39;while(size>16){ctx.font='bold '+size+'px Arial';if(ctx.measureText(site).width<950)break;size--}ctx.fillText(site,65,310,950)
-    ctx.fillStyle='#BBD6E4';ctx.font='28px Arial';ctx.fillText(new Intl.DateTimeFormat('hr-HR',{month:'long',year:'numeric'}).format(new Date(s.month+'-15T12:00:00')).toLocaleUpperCase('hr-HR'),65,380)
+    ctx.fillStyle='#BBD6E4';ctx.font='28px Arial';ctx.fillText(new Intl.DateTimeFormat('sr-Latn-RS',{month:'long',year:'numeric'}).format(new Date(s.month+'-15T12:00:00')).toLocaleUpperCase('sr-Latn-RS'),65,380)
     ctx.fillStyle='#143149';ctx.fillRect(1780,170,340,130)
     ctx.strokeStyle='#7396AA';ctx.lineWidth=2;ctx.strokeRect(1780,170,340,130)
     const lines=site.split(/\s*\/\s*/).filter(Boolean);ctx.textAlign='center';ctx.fillStyle='#FFFFFF'
