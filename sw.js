@@ -1,11 +1,11 @@
-const CACHE = 'tasker-v1081'
+const CACHE = 'tasker-v1082'
 const CORE = [
   './private-expenses-model-v1080.js',
-  './private-expenses-v1080.js?build=1081',
+  './private-expenses-v1080.js?build=1082',
   './private-expenses-v1080.css?build=1081',
   './module-status-glow-v1079.css',
   './module-status-polish-v1078.css',
-  './employee-hours-header-v1073.js?build=1075',
+  './employee-hours-header-v1073.js?build=1082',
   './module-photo-filter-v1059.js?build=1075',
   './tasker-sync-v105.js?build=1075',
   './module-status-snapshot-v104.js?build=1075',
@@ -15,9 +15,9 @@ const CORE = [
   './module-status-v103.css?build=1075',
   './employee-hours-archive-v102.js?build=102',
   './employee-hours-books-v97.js?build=97',
-  './employee-hours-model-v94.js?build=1075',
-  './employee-hours-export-v100.js?build=1075',
-  './employee-hours-v98.js?build=1075',
+  './employee-hours-model-v94.js?build=1082',
+  './employee-hours-export-v100.js?build=1082',
+  './employee-hours-v98.js?build=1082',
   './',
   './index.html',
   './manifest.webmanifest',
