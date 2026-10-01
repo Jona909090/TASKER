@@ -22,8 +22,8 @@
   }
   const active = (e,date) => !e.endDate || date<=e.endDate
   const listed = (e,date) => (!e.dailyHiddenFrom||date<e.dailyHiddenFrom)&&(!e.endDate||e.endDate.slice(0,7)>=date.slice(0,7))
-  const day = (s,date=s.date) => s.days[date] || {minutes:480,statuses:{}}
-  const ensureDay = s => s.days[s.date] || (s.days[s.date]={minutes:480,statuses:{}})
+  const day = (s,date=s.date) => s.days[date] || {minutes:600,statuses:{}}
+  const ensureDay = s => s.days[s.date] || (s.days[s.date]={minutes:600,statuses:{}})
   function minutes(value){const str=String(value).trim().replace(',','.');if(!/^\d+(\.\d{1,2})?$/.test(str))throw Error('Upišite broj sati između 0 i 24.');const n=Number(str);if(n>24)throw Error('Broj sati mora biti između 0 i 24.');return Math.round(n*60)}
   function change(s,action){
     const n=JSON.parse(JSON.stringify(s))
@@ -68,7 +68,7 @@
         const value=String(action.value).trim()
         const leave=value.toUpperCase()==='GO'
         const amount=leave||['','-','–','—'].includes(value)?0:minutes(value)
-        const d=n.days[action.date]||(n.days[action.date]={minutes:480,statuses:{}})
+        const d=n.days[action.date]||(n.days[action.date]={minutes:600,statuses:{}})
         d.statuses[action.id]=leave?'leave':amount>0?'present':'absent'
         d.overrides=d.overrides||{}
         if(amount>0)d.overrides[action.id]=amount
