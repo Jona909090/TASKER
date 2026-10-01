@@ -28,3 +28,21 @@
 #private-expenses .pe-calendar-grid button[aria-disabled=true]{color:#8393a1;background:#152c3e;cursor:default}
 #private-expenses .pe-calendar-grid button.pe-today{color:#071f13;background:#70ffa0;border:2px solid #d5ffe2;border-radius:50%;box-shadow:0 0 15px #4aff8077;font-weight:900}
 @media(prefers-reduced-motion:reduce){#private-expenses .pe-category{transition:none}}
+/* Monthly overview category chart */
+#private-expenses .pe-total{grid-template-columns:minmax(160px,1fr) minmax(340px,1.8fr) minmax(150px,.8fr);align-items:center}
+#private-expenses .pe-total>div:nth-child(2){text-align:left}
+#private-expenses .pe-budget-info{text-align:right}
+#private-expenses .pe-overview-chart{display:flex;gap:22px;align-items:center;justify-content:center}
+#private-expenses .pe-mini-donut{width:146px;height:146px;border-radius:50%;padding:13px;box-sizing:border-box;flex-shrink:0;box-shadow:0 0 24px #33d5ce33,0 0 8px #e8c25744;transform:rotate(-90deg)}
+#private-expenses .pe-mini-donut>div{height:100%;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#102638;transform:rotate(90deg);box-shadow:inset 0 0 18px #0007}
+#private-expenses .pe-mini-donut small{font-size:11px;color:#b4d9e9}
+#private-expenses .pe-mini-donut strong{font-size:25px;color:#91ffcb}
+#private-expenses .pe-chart-legend{min-width:0;max-height:170px;overflow:auto;padding-right:5px}
+#private-expenses .pe-chart-legend h3{font-size:13px;color:#ffe29b;margin:0 0 12px}
+#private-expenses .pe-chart-legend>div{display:flex;align-items:center;gap:7px;font-size:11px;margin:7px 0}
+#private-expenses .pe-chart-legend strong{margin-left:auto;white-space:nowrap}
+#private-expenses .pe-chart-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 7px currentColor}
+#private-expenses .pe-chart-legend p{font-size:12px;line-height:1.5;max-width:190px;color:#b9cfdf}
+#private-expenses .pe-chart-swatches i{width:14px;height:14px}
+@media(max-width:950px){#private-expenses .pe-total{grid-template-columns:1fr 1fr}#private-expenses .pe-overview-chart{grid-column:1/-1;grid-row:2;justify-content:flex-start}#private-expenses .pe-budget-info{grid-column:2;grid-row:1}}
+@media(max-width:440px){#private-expenses .pe-overview-chart{gap:13px}#private-expenses .pe-mini-donut{width:120px;height:120px;padding:11px}}
