@@ -1,4 +1,4 @@
-const CACHE = 'tasker-v1086'
+const CACHE = 'tasker-v1087'
 const CORE = [
   './private-expenses-model-v1080.js',
   './private-expenses-v1080.js?build=1085',
@@ -11,11 +11,12 @@ const CORE = [
   './module-status-snapshot-v104.js?build=1075',
   './vendor/html2canvas-1.4.1.min.js',
   './module-status-model-v103.js?build=1075',
-  './module-status-v1086.js?build=1086',
+  './module-status-v103.js?build=1079',
   './module-boq-templates.js?build=1086',
-  './module-boq-model.js?build=1086',
-  './module-boq-ui.js?build=1086',
-  './module-boq.css?build=1086',
+
+
+  './module-costing-v1087.css',
+  './module-costing-v1087.js',
   './module-status-v103.css?build=1075',
   './employee-hours-archive-v102.js?build=102',
   './employee-hours-books-v97.js?build=97',
