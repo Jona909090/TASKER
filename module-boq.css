@@ -1,0 +1,25 @@
+#module-status .bq-tabs{display:flex;flex-wrap:wrap;gap:7px;margin:16px 0;border-bottom:1px solid #d6b75b;padding-bottom:12px}
+#module-status .bq-tabs button[aria-pressed=true]{background:#16764d;border-color:#e6c875;color:#fff}
+#module-status [hidden]{display:none!important}
+#module-status .bq-scroll{overflow:auto;max-height:65vh;margin:14px 0}
+#module-status .bq-scroll table{border-collapse:collapse;width:100%;min-width:640px;font-size:12px}
+#module-status .bq-scroll th,#module-status .bq-scroll td{border:1px solid #34566b;padding:9px;text-align:left}
+#module-status .bq-scroll th{position:sticky;top:0;background:#193c50;z-index:1}
+#module-status .bq-scroll td small{display:block;color:#ffd378;margin-top:5px}
+#module-status .bq-scroll button{text-align:left;min-width:180px;font-size:12px}
+#module-status .bq-badge{display:inline-block;background:color-mix(in srgb,var(--bq-color) 18%,#122638);border:1px solid var(--bq-color);border-radius:8px;padding:5px;color:#fff;font-size:12px}
+#module-status .bq-phase{display:grid;gap:10px;border:1px solid #a78b4c;border-radius:12px;padding:14px;margin:12px 0;background:#0e293d}
+#module-status .bq-phase select,#module-status .bq-dialog input,#module-status .bq-dialog select,#module-status .bq-dialog textarea{box-sizing:border-box;max-width:100%;padding:10px;background:#102438;color:#fff;border:1px solid #66869a;border-radius:7px;font:inherit}
+#module-status .bq-dialog{width:min(1100px,94vw);max-width:94vw;max-height:90vh;overflow:auto;background:#10283b;color:#eef8ff;border:1px solid #dbb85e;border-radius:16px;padding:24px}
+#module-status .bq-dialog label{display:grid;gap:7px;margin:12px 0}
+#module-status .bq-close{display:flex;justify-content:flex-end;position:sticky;top:0;z-index:4}
+#module-status .bq-totals{display:flex;flex-wrap:wrap;gap:20px;padding:15px;background:#153e48;border-radius:10px}
+#module-status .bq-totals b{display:block;color:#8affbd}
+#module-status .bq-photos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+#module-status .bq-photos img{width:100%;max-height:300px;object-fit:contain}
+#module-status .bq-history{padding-left:20px;font-size:13px}
+#module-status .bq-history li{border-bottom:1px solid #426074;padding:12px 0}
+#module-status .bq-history time{color:#ffe198}
+#module-status #bq-error{color:#ffbb74}
+@media(max-width:600px){#module-status .bq-dialog{padding:14px}#module-status .bq-tabs button{flex:1;font-size:12px}}
+
