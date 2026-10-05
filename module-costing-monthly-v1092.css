@@ -1,0 +1,17 @@
+#tc-dialog{width:min(1380px,96vw)}
+#tc-dialog table{border:1px solid #b39756}
+#tc-dialog td,#tc-dialog th{padding:6px 8px;border-color:#a58a454d;font-weight:400}
+#tc-dialog th{font-weight:600;border-bottom:1px solid #c0a15b}
+#tc-dialog .tc-inline{width:67px;min-height:28px;height:28px;box-sizing:border-box;padding:4px 6px;border:1px solid #b89b50;border-radius:5px;background:#0b2636;color:#eff8ff;font-size:12px;font-weight:400}
+#tc-dialog .tc-inline:focus,#tc-dialog .tc-month-select:focus{outline:1px solid #ffe094;box-shadow:0 0 8px #e8b94c40}
+#tc-dialog .tc-inline[aria-invalid=true]{border-color:#ff6577}
+#tc-dialog .tc-month-select{width:100px;min-height:28px;height:28px;padding:3px 5px;font-size:11px;border:1px solid #b89b50;border-radius:5px;background:#122e3c}
+#tc-dialog .tc-quantity{display:flex;align-items:center;gap:5px;margin-top:4px}
+#tc-dialog .tc-quantity small{margin:0;font-size:10px;color:#cfbe8b}
+#tc-dialog td[data-tc-col=price],#tc-dialog td[data-tc-col=value]{border-left-color:#bd9d58}
+#tc-dialog td[data-tc-col=value]{white-space:nowrap;font-weight:600}
+#tc-dialog .tc-status{padding:4px;font-size:11px;font-weight:400}
+#tc-dialog #tc-filter strong{color:#a1ffcb;text-transform:capitalize}
+#tc-dialog .tc-row-done td{border-color:#afaa5655}
+#tc-dialog [data-tc-total]{border-top:1px solid #b89b50;padding-top:10px;color:#b4ffcb}
+
