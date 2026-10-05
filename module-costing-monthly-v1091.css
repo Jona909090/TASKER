@@ -1,0 +1,6 @@
+#tc-dialog{width:min(1380px,96vw)}
+#tc-dialog .tc-inline{width:82px;min-height:42px;box-sizing:border-box;border-color:#c3a354;background:#0a2435;color:#fff;font-weight:bold}
+#tc-dialog .tc-inline:focus{outline:2px solid #6dffb1;outline-offset:2px}
+#tc-dialog .tc-row-save{display:block;margin-top:6px;padding:5px 8px;font-size:11px;border-color:#c3a354;color:#9affc3}
+#tc-dialog #tc-filter strong{color:#a1ffcb;text-transform:capitalize}
+
