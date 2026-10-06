@@ -1,0 +1,14 @@
+#tc-dialog{border:1px solid #e1bd65;box-shadow:0 0 0 3px #cfaa4222,0 0 35px #d9ac352b}
+#tc-dialog>h3{color:#63ff92;font-size:20px;letter-spacing:.4px;text-shadow:0 0 12px #35ff7670;border-left:3px solid #e9c465;padding:8px 12px;background:linear-gradient(90deg,#25b66c20,transparent);border-radius:5px}
+#tc-dialog [data-pdf-archive]{border-color:#d8b65a;color:#ffe09a;box-shadow:0 0 9px #d8b65a22}
+#tc-pdf-archive{box-sizing:border-box;width:min(1000px,95vw);max-height:88vh;overflow:auto;background:#102b3d;color:#eaf4ff;border:1px solid #dfb95e;border-radius:16px;padding:22px;font:14px Arial;box-shadow:0 0 30px #caa14333}
+#tc-pdf-archive::backdrop{background:#020913c9}
+#tc-pdf-archive header{display:flex;justify-content:space-between;align-items:center;gap:15px}
+#tc-pdf-archive p{line-height:1.5;overflow-wrap:anywhere}
+#tc-pdf-archive article{display:flex;justify-content:space-between;align-items:center;gap:16px;border:1px solid #c4a25870;border-radius:10px;padding:14px;margin:10px 0;background:#15354a}
+#tc-pdf-archive strong{color:#65ff97;font-size:17px}#tc-pdf-archive small{color:#b0c4d6}
+#tc-pdf-archive button,#tc-pdf-archive a{display:inline-block;background:#183b51;color:#f4f8ff;border:1px solid #bd9d56;padding:10px;border-radius:7px;cursor:pointer;text-decoration:none}
+#tc-pdf-archive .tc-pdf-tools{display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0}#tc-pdf-archive .tc-share{background:#12693f;color:#bbffd0}#tc-pdf-archive [data-pdf-delete]{color:#ffb8bc;border-color:#ba676b}
+#tc-archive-msg{color:#9effba}#tc-pdf-archive summary{cursor:pointer;color:#e8ce95;margin-top:16px}
+@media(max-width:700px){#tc-pdf-archive article{align-items:stretch;flex-direction:column}#tc-pdf-archive{padding:14px}}
+
