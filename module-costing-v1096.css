@@ -1,0 +1,5 @@
+#tc-dialog .tc-row-new td,#tc-dialog .tc-row-untouched td,#tc-dialog .tc-row-waiting td,#tc-dialog .tc-row-blocked td{background:#602d37;color:#ffd9de;border-color:#bd777755}
+#tc-dialog .tc-edit{display:grid;gap:8px;margin-top:14px;padding:10px;border:1px solid #b39756;border-radius:8px}
+#tc-dialog .tc-edit label{display:grid;gap:4px}
+#tc-dialog .tc-edit input,#tc-dialog .tc-edit select{width:100%;box-sizing:border-box;min-width:0}
+#tc-dialog .tc-edit button{border-color:#b39756}
