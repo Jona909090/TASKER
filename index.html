@@ -25,6 +25,7 @@
 <link rel="stylesheet" href="./module-vtr-v1098.css">
 <link rel="stylesheet" href="./module-hall-premium-v1099.css">
 <link rel="stylesheet" href="./module-action-icons-v1102.css">
+<link rel="stylesheet" href="./module-drawings-v1103.css">
 </head>
   <body>
     <div id="pwa-splash" aria-hidden="true"><div class="pwa-splash-inner"><span class="pwa-splash-logo"><i></i><b>T</b><i></i></span><strong>TASKER</strong><small>SVE POD KONTROLOM</small></div></div>
@@ -69,11 +70,12 @@
     <script src="./private-expenses-v1080.js?build=1085"></script>
     <script type="module" src="./main-v51.js?build=1079"></script>
     <script>
-      if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js?v=1102', { updateViaCache: 'none' }).then((registration) => registration.update()); navigator.serviceWorker.addEventListener('controllerchange', () => { if (!sessionStorage.getItem('tasker-v1102-reloaded')) { sessionStorage.setItem('tasker-v1102-reloaded', '1'); location.reload(); } }); });
+      if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js?v=1103', { updateViaCache: 'none' }).then((registration) => registration.update()); navigator.serviceWorker.addEventListener('controllerchange', () => { if (!sessionStorage.getItem('tasker-v1103-reloaded')) { sessionStorage.setItem('tasker-v1103-reloaded', '1'); location.reload(); } }); });
       window.addEventListener('load', () => setTimeout(() => document.querySelector('#pwa-splash')?.classList.add('splash-hidden'), 850));
     </script>
   <script src="./module-vtr-v1098.js?build=1101"></script>
 <script src="./module-hall-premium-v1099.js"></script>
 <script src="./module-action-icons-v1102.js"></script>
+<script src="./module-drawings-v1103.js"></script>
 </body>
 </html>
