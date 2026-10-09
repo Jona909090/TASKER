@@ -1,0 +1,8 @@
+#module-status .ms-remaining-compact{margin:18px 0;padding:14px;border:1px solid #b89446;border-radius:12px;background:linear-gradient(135deg,#233845,#142936)}
+#module-status .ms-remaining-compact summary{cursor:pointer;color:#ffdc83;font-size:15px;font-weight:700;min-height:44px;line-height:1.5}
+#module-status .ms-remaining-compact summary strong{display:inline-block;margin-left:10px;padding:1px 9px;border:1px solid #b89446;border-radius:20px;color:#fff1c5}
+#module-status .ms-remaining-compact summary small{display:block;margin:4px 0 0 18px;font-size:12px;font-weight:400;color:#a9c2d2}
+#module-status .ms-remaining-compact ol{max-height:320px;overflow:auto;overscroll-behavior:contain;margin:12px 0;padding:0;list-style:none}
+#module-status .ms-remaining-compact li{padding:10px 8px;margin:0;border-bottom:1px solid #ffffff18;font-size:13px;line-height:1.5}
+#module-status .ms-remaining-compact li b{font-weight:500}
+#module-status .ms-remaining-compact .ms-button{font-size:12px;min-height:44px;width:100%}
