@@ -1,0 +1,13 @@
+#ms-drawings.drawing-viewing{width:98vw;max-width:none;height:96vh;height:96dvh;max-height:96dvh;padding:0;overflow:hidden}
+#ms-drawings.drawing-viewing>header,#ms-drawings.drawing-viewing>nav,#ms-drawings.drawing-viewing>[data-files]{display:none}
+#ms-drawings .drawing-viewer[hidden]{display:none}
+#ms-drawings .drawing-viewer{display:flex;flex-direction:column;height:100%;min-height:0}
+#ms-drawings .drawing-viewer-toolbar{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;background:#102b3d;border-bottom:2px solid #d7b15b;z-index:2}
+#ms-drawings .drawing-viewer-toolbar button,#ms-drawings .drawing-viewer-toolbar a{min-height:46px;font-weight:bold}
+#ms-drawings [data-view-back]{background:linear-gradient(120deg,#b38a32,#e3c16c);color:#132638;border-color:#ffe5a4}
+#ms-drawings .drawing-viewer-toolbar button:disabled{opacity:.4;cursor:default}
+#ms-drawings [data-view-title]{flex:1 0 100%;font-size:12px;overflow-wrap:anywhere;color:#cbe2ef}
+#ms-drawings .drawing-pages{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;background:#39424a;padding:12px;color:white}
+#ms-drawings .drawing-pages canvas{display:block;background:white;margin:0 auto 12px;max-width:none}
+#ms-drawings:not(.drawing-viewing)>header{position:sticky;top:-24px;z-index:2;background:#0d273b;padding:12px 0}
+@media(max-width:600px){#ms-drawings .drawing-viewer-toolbar{gap:7px;padding:9px}#ms-drawings .drawing-viewer-toolbar button,#ms-drawings .drawing-viewer-toolbar a{padding:10px;font-size:13px}#ms-drawings:not(.drawing-viewing)>header{top:-16px}}
