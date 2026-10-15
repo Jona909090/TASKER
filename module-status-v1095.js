@@ -7,10 +7,10 @@
   let activeHall='',stopDelivery=()=>{}
   const currentHall=()=>state.halls.find(h=>h.id===activeHall)||state.halls[0]
   function read(){
-    const text=localStorage.getItem(KEY),result=text?M.migrate(JSON.parse(text)):{state:M.create(),changed:false}
+    const text=localStorage.getItem(KEY),result=text?M.migrate(window.TaskerModulePhotos.hydrate(JSON.parse(text))):{state:M.create(),changed:false}
     if(result.changed){
       if(!localStorage.getItem(KEY+'.before-dupliko-merge'))localStorage.setItem(KEY+'.before-dupliko-merge',text)
-      const updated=JSON.stringify(result.state);localStorage.setItem(KEY,updated);raw=updated
+      const updated=JSON.stringify(window.TaskerModulePhotos.pack(result.state));localStorage.setItem(KEY,updated);raw=updated
     }else raw=text
     state=result.state
   }
@@ -19,7 +19,7 @@
   function commit(action){
     try{
       if(localStorage.getItem(KEY)!==raw){read();refresh();throw Error('Podaci su promijenjeni u drugoj kartici. Prikazan je novi zapis; ponovite radnju.')}
-      const next=M.change(state,action),text=JSON.stringify(next);localStorage.setItem(KEY,text);state=next;raw=text;refresh();notice('✓ Sačuvano na ovom uređaju.');return true
+      const next=M.change(state,action),text=JSON.stringify(window.TaskerModulePhotos.pack(next));localStorage.setItem(KEY,text);state=next;raw=text;refresh();notice('✓ Sačuvano na ovom uređaju.');return true
     }catch(e){notice('Nije sačuvano: '+e.message);return false}
   }
   const options=(value,phase=false)=>Object.entries(M.statuses).filter(([k])=>!phase||k!=='ready').map(([key,v])=>`<option value="${key}" ${key===value?'selected':''}>${phase&&key==='done'?'Završeno':v.label}</option>`).join('')
@@ -31,7 +31,8 @@
     return html
   }
   function parsePlace(value){const [kind,id,positionId]=value.split(':');return kind==='hall'?{kind,hallId:id,positionId}:{kind,locationId:id}}
-  function open(){
+  async function open(){
+    try{await window.TaskerModulePhotos.ready}catch(e){alert('Fotografije nisu učitane: '+e.message);return}
     try{read();error=''}catch(e){error=e.message}
     const content=el('content');if(!content)return
     document.querySelector('.shell')?.classList.remove('project-home')
@@ -286,7 +287,7 @@
     if(t.id==='ms-photo-file'&&t.files?.[0]){
       const file=t.files[0],id=t.dataset.moduleId,url=URL.createObjectURL(file),img=new Image()
       notice('Pripremam fotografiju…')
-      img.onload=()=>{try{const scale=Math.min(1,800/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);commit({type:'photo',id,value:canvas.toDataURL('image/jpeg',.72)})}catch(e){notice('Fotografija nije spremljena: '+e.message)}finally{URL.revokeObjectURL(url);t.value=''}}
+      img.onload=async()=>{try{const scale=Math.min(1,800/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);const value=canvas.toDataURL('image/jpeg',.72);await window.TaskerModulePhotos.save(value);commit({type:'photo',id,value})}catch(e){notice('Fotografija nije spremljena: '+e.message)}finally{URL.revokeObjectURL(url);t.value=''}}
       img.onerror=()=>{URL.revokeObjectURL(url);t.value='';notice('Uređaj ne može otvoriti taj format slike. Odaberite JPG, PNG ili WebP.')};img.src=url
     }
   })
@@ -294,7 +295,7 @@
   document.addEventListener('dragover',event=>{if(dragged&&event.target.closest('#module-status [data-ms-drop]')){event.preventDefault();event.dataTransfer.dropEffect='move'}})
   document.addEventListener('drop',event=>{const bay=event.target.closest('#module-status [data-ms-drop]');if(!bay||!dragged)return;event.preventDefault();const id=dragged;dragged='';if(commit({type:'move',id,place:{kind:'hall',hallId:bay.dataset.msHall,positionId:bay.dataset.msDrop}})){selected=id;refresh()}})
   document.addEventListener('dragend',()=>{dragged=''})
-  window.addEventListener('storage',event=>{if(event.key!==KEY)return;try{read();if(!el('ms-dialog')?.open)refresh();notice('Evidencija je osvježena iz druge kartice.')}catch(e){notice(e.message)}})
+  window.addEventListener('storage',async event=>{if(event.key!==KEY)return;try{const text=localStorage.getItem(KEY);if(text)await window.TaskerModulePhotos.load(JSON.parse(text));read();if(!el('ms-dialog')?.open)refresh();notice('Evidencija je osvježena iz druge kartice.')}catch(e){notice(e.message)}})
   function install(){
     for(const node of document.querySelectorAll('#open-module-status,#module-status-card'))node.onclick=event=>{event.preventDefault();event.stopImmediatePropagation();open()}
     const nav=document.querySelector('.sidebar nav')

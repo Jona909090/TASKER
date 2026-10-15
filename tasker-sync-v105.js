@@ -13,7 +13,7 @@
   const sessions={};let running=false
   const $=id=>document.getElementById(id)
   const hash=async s=>s===null?null:Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))).map(n=>n.toString(16).padStart(2,'0')).join('')
-  const read=d=>{const s=localStorage.getItem(configs[d].key);return s===null?null:JSON.stringify(JSON.parse(s))}
+  const read=async d=>{const s=localStorage.getItem(configs[d].key);if(s===null)return null;const data=JSON.parse(s);if(d==='modules'){await root.TaskerModulePhotos.load(data);return JSON.stringify(root.TaskerModulePhotos.hydrate(data))}return JSON.stringify(data)}
   const base=d=>{try{return JSON.parse(localStorage.getItem(META+d)||'null')}catch{return null}}
   const saveBase=(d,revision,h)=>localStorage.setItem(META+d,JSON.stringify({revision,hash:h}))
   function valid(d,data){
@@ -57,9 +57,9 @@
   }
   async function check(d,automatic=false){
     if(sessions[d]?.reload){actions(d,'reload');message(d,'Podaci su preuzeti. Otvorite novu verziju pre nastavka rada.');return}
-    const local=read(d),localHash=await hash(local),b=base(d)
+    const local=await read(d),localHash=await hash(local),b=base(d)
     const remote=await api({action:'read',dataset:d})
-    if(read(d)!==local){sessions[d]=null;throw Error('Podaci su promenjeni tokom provere. Pokušajte ponovo.')}
+    if(await read(d)!==local){sessions[d]=null;throw Error('Podaci su promenjeni tokom provere. Pokušajte ponovo.')}
     if(remote.data!==null)valid(d,remote.data)
     const remoteText=remote.data===null?null:JSON.stringify(remote.data),remoteHash=await hash(remoteText)
     const mode=decision(localHash,b,remote.revision,remoteHash)
@@ -80,23 +80,24 @@
   }
   async function upload(d,explicit){
     const s=sessions[d];if(!s||s.local===null)throw Error('Na ovom uređaju nema sačuvanih podataka.')
-    if(read(d)!==s.local)throw Error('Podaci su promenjeni. Kliknite Proveri vezu ponovo.')
+    if(await read(d)!==s.local)throw Error('Podaci su promenjeni. Kliknite Proveri vezu ponovo.')
     valid(d,JSON.parse(s.local))
     if(explicit){if(!confirm('Poslati sve podatke kartice '+configs[d].label+' sa OVOG uređaja? Ako postoji druga verzija u oblaku, ona će biti zamenjena, uz sačuvanu rezervnu kopiju.'))return;await backup(d,s.local,s.remoteText)}
     else if(!['upload','initial-upload'].includes(s.mode))throw Error('Prvo potvrdite početnu verziju.')
-    if(read(d)!==s.local)throw Error('Podaci su promenjeni tokom pripreme. Pokušajte ponovo.')
+    if(await read(d)!==s.local)throw Error('Podaci su promenjeni tokom pripreme. Pokušajte ponovo.')
     const result=await api({action:'write',dataset:d,baseRevision:s.remote.revision,requestId:crypto.randomUUID(),data:JSON.parse(s.local)})
     saveBase(d,result.revision,s.localHash);actions(d,'equal');message(d,'✓ Sačuvano u oblaku. Dostupno na drugom povezanom uređaju.');sessions[d]=null
   }
   async function download(d){
     const s=sessions[d];if(!s||!s.remoteText)throw Error('Nema podataka za preuzimanje.')
     if(!confirm('Preuzeti celu evidenciju '+configs[d].label+' iz oblaka? Trenutna lokalna verzija će biti sačuvana kao rezervna kopija, a stranica ponovo učitana.'))return
-    if(read(d)!==s.local)throw Error('Lokalni podaci su promenjeni. Proverite vezu ponovo.')
+    if(await read(d)!==s.local)throw Error('Lokalni podaci su promenjeni. Proverite vezu ponovo.')
     valid(d,s.remote.data);await backup(d,s.local,s.remoteText)
-    if(read(d)!==s.local)throw Error('U međuvremenu je sačuvana nova izmena. Prenos je zaustavljen.')
+    const stored=d==='modules'?JSON.stringify(await root.TaskerModulePhotos.prepare(s.remote.data)):s.remoteText
+    if(await read(d)!==s.local)throw Error('U međuvremenu je sačuvana nova izmena. Prenos je zaustavljen.')
     // Remove the baseline first so an interrupted import can never blindly upload stale data.
     localStorage.removeItem(META+d)
-    localStorage.setItem(configs[d].key,s.remoteText)
+    localStorage.setItem(configs[d].key,stored)
     saveBase(d,s.remote.revision,s.remoteHash)
     sessions[d]={reload:true};actions(d,'reload');location.reload()
   }
@@ -120,7 +121,7 @@
   }
   async function exportBackups(d){
     const rows=await new Promise((resolve,reject)=>{const req=indexedDB.open('tasker-sync-backups-v105',1);req.onupgradeneeded=()=>req.result.createObjectStore('snapshots',{keyPath:'id'});req.onerror=()=>reject(Error('Kopije nisu dostupne.'));req.onsuccess=()=>{const db=req.result,r=db.transaction('snapshots').objectStore('snapshots').getAll();r.onsuccess=()=>{db.close();resolve(r.result.filter(x=>x.dataset===d))};r.onerror=()=>{db.close();reject(Error('Kopije nisu dostupne.'))}}})
-    const blob=new Blob([JSON.stringify({dataset:d,current:read(d),backups:rows},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='TASKER-rezervne-kopije-'+d+'-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)
+    const blob=new Blob([JSON.stringify({dataset:d,current:await read(d),backups:rows},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='TASKER-rezervne-kopije-'+d+'-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)
   }
   function mount(){
     for(const [d,c]of Object.entries(configs)){

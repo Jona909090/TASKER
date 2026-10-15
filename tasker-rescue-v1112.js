@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const knownDatabases = ['tasker-receipt-images','tasker-order-pdfs','tasker-workforce-pdfs','tasker-work-diary','tasker-photo-archive','tasker-costing-pdfs-v1'];
+  const knownDatabases = ['tasker-module-photo-storage-v1','tasker-module-photos-v1','tasker-receipt-images','tasker-order-pdfs','tasker-workforce-pdfs','tasker-work-diary','tasker-photo-archive','tasker-costing-pdfs-v1'];
   const style = document.createElement('style');
   style.textContent = '#tasker-rescue-open{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:9000;padding:13px 18px;border:2px solid #ffe39a;border-radius:12px;background:#17354b;color:#ffe39a;font:bold 15px Arial;cursor:pointer}#tasker-rescue{position:fixed;inset:0;z-index:2147483647;background:#061322eF;color:#eaf5ff;overflow:auto;padding:24px;font:16px/1.5 Arial}#tasker-rescue[hidden]{display:none}#tasker-rescue>section{max-width:720px;margin:auto;padding:22px;border:1px solid #ddba64;border-radius:16px;background:#102b3d}#tasker-rescue button,#tasker-rescue a{display:inline-block;padding:12px;margin:6px;border:1px solid #dfbc66;border-radius:8px;color:#fff;background:#1c4964;font:inherit;cursor:pointer}#tasker-rescue button:disabled{opacity:.5}#tasker-rescue p{overflow-wrap:anywhere}#tasker-rescue .rescue-file{border-top:1px solid #486174;padding:10px 0}';
   document.head.append(style);

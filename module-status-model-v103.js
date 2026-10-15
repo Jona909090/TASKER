@@ -89,7 +89,7 @@
       names.add(m.name.toLowerCase());checkPlace(s,m.place,m.id);unique(m.phases)
       for(const dim of ['length','width','height'])if(!Number.isFinite(m[dim])||m[dim]<=0||m[dim]>100)throw Error('Dimenzije moraju biti između 0 i 100 metara.')
       for(const p of m.phases)if(!p.name||!['new','active','waiting','blocked','done'].includes(p.status)||(p.status==='done'&&!p.completedAt))throw Error('Neispravna faza.')
-      if(m.photo&&!/^data:image\/(jpeg|png|webp);base64,/.test(m.photo))throw Error('Neispravna fotografija.')
+      if(m.photo&&!/^data:image\/(jpeg|png|webp);base64,/.test(m.photo)&&!/^tasker-photo:[a-f0-9-]{36}$/.test(m.photo))throw Error('Neispravna fotografija.')
     }
     return s
   }
