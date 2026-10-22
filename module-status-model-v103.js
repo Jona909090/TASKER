@@ -19,6 +19,7 @@
   const today=(d=new Date())=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)
   const date=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s
   const clean=(v,max=120)=>String(v??'').trim().slice(0,max)
+  const phaseStatuses={...statuses,elsewhere:{label:'Ne radi se ovde',color:'#137c88',icon:'↗'},other_team:{label:'Ne radimo mi',color:'#7845a8',icon:'◇'}}
   const progress=m=>m.phases.length?Math.round(100*m.phases.filter(p=>p.status==='done').length/m.phases.length):0
   function create(){return {version:1,phaseTemplateVersion:3,revision:0,halls:[{id:'main',name:'Proizvodna hala',positions:Array.from({length:10},(_,i)=>({id:'p'+(i+1),label:String(i+1),side:i<5?'left':'right',order:i%5+1}))}],locations:[{id:'dupliko',name:'DUPLIKO'},{id:'shipped',name:'Otpremljeni'},{id:'finished',name:'Završeni'}],modules:[]}}
   function migrate(source,time=new Date().toISOString()){
@@ -88,7 +89,7 @@
       if(!m.name||names.has(m.name.toLowerCase())||!['MV','MVS'].includes(m.type)||!statuses[m.status]||!date(m.arrival)||m.dispatch&&!date(m.dispatch)||m.departure&&!date(m.departure)||!Array.isArray(m.phases)||!Array.isArray(m.history))throw Error('Neispravan modul ili ponovljen naziv.')
       names.add(m.name.toLowerCase());checkPlace(s,m.place,m.id);unique(m.phases)
       for(const dim of ['length','width','height'])if(!Number.isFinite(m[dim])||m[dim]<=0||m[dim]>100)throw Error('Dimenzije moraju biti između 0 i 100 metara.')
-      for(const p of m.phases)if(!p.name||!['new','active','waiting','blocked','done'].includes(p.status)||(p.status==='done'&&!p.completedAt))throw Error('Neispravna faza.')
+      for(const p of m.phases)if(!p.name||!['new','active','waiting','blocked','done','elsewhere','other_team'].includes(p.status)||(p.status==='done'&&!p.completedAt))throw Error('Neispravna faza.')
       if(m.photo&&!/^data:image\/(jpeg|png|webp);base64,/.test(m.photo)&&!/^tasker-photo:[a-f0-9-]{36}$/.test(m.photo))throw Error('Neispravna fotografija.')
     }
     return s
@@ -176,8 +177,8 @@
         break
       }
       case 'phase':{
-        requireModule();const p=m.phases.find(p=>p.id===a.phaseId);if(!p||!['new','active','waiting','blocked','done'].includes(a.value))throw Error('Neispravna faza ili status.')
-        if(p.status!==a.value){p.status=a.value;p.completedAt=a.value==='done'?time:null;delete p.completedOn;log(m,a.value==='done'?'phase-done':a.value==='waiting'?'waiting':'phase','Faza '+p.name+': '+(a.value==='done'?'Završeno':statuses[a.value].label));if(m.status==='done'&&a.value!=='done')setStatus(m,'active')}
+        requireModule();const p=m.phases.find(p=>p.id===a.phaseId);if(!p||!['new','active','waiting','blocked','done','elsewhere','other_team'].includes(a.value))throw Error('Neispravna faza ili status.')
+        if(p.status!==a.value){p.status=a.value;p.completedAt=a.value==='done'?time:null;delete p.completedOn;log(m,a.value==='done'?'phase-done':a.value==='waiting'?'waiting':'phase','Faza '+p.name+': '+(a.value==='done'?'Završeno':phaseStatuses[a.value].label));if(m.status==='done'&&a.value!=='done')setStatus(m,'active')}
         break
       }
       case 'add-phase':requireModule();if(!a.phaseId||!clean(a.name))throw Error('Upišite naziv faze.');m.phases.push({id:a.phaseId,name:clean(a.name),status:'new',completedAt:null});log(m,'phase-added','Dodana faza: '+clean(a.name));if(m.status==='done')setStatus(m,'active');break
@@ -190,7 +191,7 @@
     s.revision++;return validate(s)
   }
   function stats(s,day=today()){return {hall:s.modules.filter(m=>m.place.kind==='hall').length,active:s.modules.filter(m=>m.status==='active').length,waiting:s.modules.filter(m=>m.status==='waiting').length,ready:s.modules.filter(m=>m.status==='ready').length,completed:s.modules.filter(m=>m.completedAt&&today(new Date(m.completedAt))===day).length}}
-  const api={statuses,phaseNames,create,validate,change,progress,stats,locationName,today,migrate,unfinished}
+  const api={statuses,phaseStatuses,phaseNames,create,validate,change,progress,stats,locationName,today,migrate,unfinished}
   if(typeof module==='object'&&module.exports)module.exports=api;else root.TaskerModuleStatusModel=api
 })(typeof window==='object'?window:globalThis)
 

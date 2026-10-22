@@ -22,7 +22,7 @@
       const next=M.change(state,action),text=JSON.stringify(window.TaskerModulePhotos.pack(next));localStorage.setItem(KEY,text);state=next;raw=text;refresh();notice('✓ Sačuvano na ovom uređaju.');return true
     }catch(e){notice('Nije sačuvano: '+e.message);return false}
   }
-  const options=(value,phase=false)=>Object.entries(M.statuses).filter(([k])=>!phase||k!=='ready').map(([key,v])=>`<option value="${key}" ${key===value?'selected':''}>${phase&&key==='done'?'Završeno':v.label}</option>`).join('')
+  const options=(value,phase=false)=>Object.entries(phase?M.phaseStatuses:M.statuses).filter(([k])=>!phase||k!=='ready').map(([key,v])=>`<option value="${key}" ${key===value?'selected':''}>${phase&&key==='done'?'Završeno':v.label}</option>`).join('')
   const badge=m=>`<span class="ms-badge" style="--status:${M.statuses[m.status].color}">${M.statuses[m.status].icon} ${M.statuses[m.status].label}</span>`
   function places(current){
     let html=''
@@ -168,7 +168,7 @@
       (m.photo?'<img class="ms-overview-photo" src="'+m.photo+'" alt="Fotografija modula">':'')+
       '<dl class="ms-data"><div><dt>Trenutna lokacija / pozicija</dt><dd>'+esc(M.locationName(state,m.place))+'</dd></div><div><dt>Tip</dt><dd>'+m.type+'</dd></div><div><dt>Dimenzije D × Š × V</dt><dd>'+m.length+' × '+m.width+' × '+m.height+' m</dd></div><div><dt>Datum ulaska</dt><dd>'+date(m.arrival)+'</dd></div><div><dt>Datum odlaska iz hale</dt><dd>'+date(m.departure)+'</dd></div><div><dt>Planirana otprema</dt><dd>'+date(m.dispatch)+'</dd></div><div><dt>Napredak</dt><dd>'+M.progress(m)+'%</dd></div></dl>'+
       (m.note?'<p class="ms-note">'+esc(m.note)+'</p>':'')+remainingHTML(m)+
-      '<h3>Sve proizvodne faze</h3><ol class="ms-read-phases">'+m.phases.map(p=>'<li><b>'+esc(p.name)+'</b><span>'+esc(p.status==='done'?'Završeno':M.statuses[p.status].label)+'</span>'+(p.completedAt?'<small>Datum završetka: '+date(phaseDate(p))+'</small>':'')+'</li>').join('')+'</ol>'+
+      '<h3>Sve proizvodne faze</h3><ol class="ms-read-phases">'+m.phases.map(p=>'<li><b>'+esc(p.name)+'</b><span>'+esc(p.status==='done'?'Završeno':M.phaseStatuses[p.status].label)+'</span>'+(p.completedAt?'<small>Datum završetka: '+date(phaseDate(p))+'</small>':'')+'</li>').join('')+'</ol>'+
       '</div><button class="ms-button" data-ms-overview-close>Zatvori pregled</button>'
     d.showModal()
   }
@@ -190,6 +190,7 @@
     box.querySelector('h3').insertAdjacentHTML('beforebegin','<div class="ms-actions"><button class="ms-button" data-ms-action="overview">Pregled bez izmjena</button><button class="ms-button" data-ms-action="dates">Uredi datume</button></div>')
     box.querySelector('#ms-phase-form').insertAdjacentHTML('afterend',remainingHTML(m,true))
     box.querySelector('.ms-phases').scrollTop=old
+    for(const select of box.querySelectorAll('[data-ms-phase]'))if(['elsewhere','other_team'].includes(select.value)){select.style.setProperty('background',M.phaseStatuses[select.value].color,'important');select.style.setProperty('color','#fff','important');select.style.setProperty('border-color',select.value==='elsewhere'?'#59e4ee':'#d4a7ff','important')}
     box.querySelector('.ms-data').insertAdjacentHTML('afterend','<button type="button" class="ms-button" data-ms-action="dimensions">Podešavanja</button>')
   }
   function dimensionsDialog(){
