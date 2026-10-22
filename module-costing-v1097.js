@@ -2,6 +2,8 @@
  'use strict';
  const M=root.TaskerModuleStatusModel,T=root.TaskerBoqTemplates,base={migrate:M.migrate,change:M.change},copy=x=>JSON.parse(JSON.stringify(x));
  const KEY='tasker.module-status.v1',today=()=>M.today(),day=x=>x?M.today(new Date(x)):today();
+ const statusLabels={new:'Nije započeto',active:'U radu',waiting:'Čeka materijal',blocked:'Blokiran',done:'Završeno',elsewhere:'Ne radi se ovde',other_team:'Ne radimo mi'};
+ const statusColors={new:'#743943',active:'#786113',waiting:'#8a5318',blocked:'#a32d3d',done:'#167342',elsewhere:'#137c88',other_team:'#7845a8'};
  const direct={'A|1.1|Instalacija parne brane':'Parna brana u podu','A|1.2':'Podni lim','A|1.3':'Vuna u pod 200 mm','A|1.4':'Postavljanje plywooda','A|1.5':'Postavljanje Cetris ploča','A|1.6':'Postavljanje bakrene trake na pod','B|2.1':'Postavljanje vune u strop 80/100 mm','B|2.2':'Postavljanje parne brane','B|2.3':'Postavljanje stropnih panela','C|3.3':'Postavljanje zidnih panela','E|6.6':'Silikoniranje modula'};
  const expected=i=>direct[i.section[0]+'|'+i.boq+'|'+i.name]||direct[i.section[0]+'|'+i.boq]||'';
  function init(s){if(!s.costing)s.costing={version:1,mappings:{},prices:{},events:[],reports:[]};return s.costing}
@@ -39,6 +41,11 @@
  function ensure(source,backup){const s=align(restore(source,backup)),c=init(s);for(const m of s.modules)for(const p of m.phases)if(!c.events.some(e=>e.moduleId===m.id&&e.phaseId===p.id))track(c,m,p,p.status==='new'?(m.arrival||today()):(p.completedOn||day(p.completedAt)),new Date().toISOString());return s}
  M.migrate=function(source,at){let backup;try{backup=JSON.parse(root.localStorage?.getItem(KEY+'.before-boq-v1')||'null');if(source.boq&&!root.localStorage?.getItem(KEY+'.before-simple-costing'))root.localStorage?.setItem(KEY+'.before-simple-costing',JSON.stringify(source))}catch(e){throw Error('Rezervna kopija nije sačuvana: '+e.message)}const s=ensure(source,backup),r=base.migrate(s,at);return {state:r.state,changed:r.changed||JSON.stringify(source)!==JSON.stringify(r.state)}};
  M.change=function(source,a,at=new Date().toISOString()){
+  if(a.type==='cost-status'){
+   const s=copy(source),m=s.modules.find(m=>m.id===a.moduleId),item=T.find(t=>t.type===m?.type)?.items.find(i=>i.id===a.itemId);
+   if(!item||!Object.hasOwn(statusLabels,a.status)||!/^\d{4}-(0[1-9]|1[0-2])$/.test(a.month))throw Error('Neispravan status, stavka ili mesec.');
+   const c=init(s);c.itemStatuses||={};c.itemStatuses[m.id]||={};c.itemStatuses[m.id][item.id]||={};c.itemStatuses[m.id][item.id][a.month]=a.status;s.revision++;return M.validate(s);
+  }
   if(a.type==='cost-item')return saveItem(source,a,at);
   if(a.type==='cost-price')return savePrice(source,a,at);
   if(a.type==='cost-month')return saveMonth(source,a,at);
@@ -59,6 +66,7 @@
    const name=Object.hasOwn(c.mappings,i.id)?c.mappings[i.id]:expected(i),mods=s.modules.filter(m=>m.type===t.type&&(!moduleId||m.id===moduleId)),proof=mods.map(m=>{const p=m.phases.find(p=>p.costItemId===i.id)||m.phases.find(p=>p.name===name),prev=p&&at(c,m,p,month+'-00'),cur=p&&at(c,m,p,month+'-31');const previous=round(i.quantity*(prev?.percent||0)/100),total=round(i.quantity*(cur?.percent||0)/100);return {touched:!!p&&c.events.some(e=>!e.superseded&&e.moduleId===m.id&&e.phaseId===p.id&&e.on<=month+'-31'&&e.status!=='new'),module:m.name,previous,total,current:round(total-previous),status:cur?.status||'new',review:!p||cur?.percent===null}}),sum=k=>round(proof.reduce((n,p)=>n+p[k],0)),total=sum('total'),quantity=round(i.quantity*mods.length),price=Object.hasOwn(c.prices,i.id)?c.prices[i.id]:null;
    return {...i,phase:name,quantity,previous:sum('previous'),current:sum('current'),total,remaining:round(quantity-total),price,value:price===null?null:round(sum('current')*price),proof,status:proof.some(p=>['waiting','blocked'].includes(p.status))?'waiting':quantity>0&&total===quantity?'done':proof.some(p=>p.status==='active')||total>0?'active':'new'}
   })}));if(moduleId)for(const g of groups)for(const row of g.rows){row.excluded=!!c.excluded?.[moduleId]?.[row.id];row.untouched=!row.proof.some(p=>p.touched)&&!c.itemOverrides?.[moduleId]?.[row.id];if(row.untouched||row.excluded){for(const k of ['quantity','previous','current','total','remaining','price','value'])row[k]=null;row.unit='';row.status=row.excluded?'excluded':'new'}}if(moduleId)for(const g of groups)g.rows=g.rows.map(row=>pricedRow(s,ledgerRow(s,row,month,moduleId),month,moduleId));if(moduleId)for(const g of groups)for(const row of g.rows){const override=c.itemStatuses?.[moduleId]?.[row.id]?.[month];if(override&&!row.excluded)row.status=override;}
+  for(const g of groups)for(const row of g.rows){if(row.excluded||c.itemStatuses?.[moduleId]?.[row.id]?.[month])continue;const special=row.proof.find(p=>['blocked','elsewhere','other_team'].includes(p.status));if(special)row.status=special.status;}
   return {month,scope,moduleId,moduleName:chosen?.name||'',groups};
  }
 
@@ -126,7 +134,7 @@
   if(!original)throw Error('Stavka nije pronađena.');
   const quantity=Number(String(a.quantity).replace(',','.')),name=String(a.name||'').trim(),unit=String(a.unit||'').trim();
   if(!name||!unit||!Number.isFinite(quantity)||quantity<=0)throw Error('Unesite naziv, jedinicu mere i količinu veću od nule.');
-  if(!['auto','new','active','waiting','done'].includes(a.status)||!/^\d{4}-(0[1-9]|1[0-2])$/.test(a.month))throw Error('Neispravan status ili mesec.');
+  if(a.status!=='auto'&&!Object.hasOwn(statusLabels,a.status)||!/^\d{4}-(0[1-9]|1[0-2])$/.test(a.month))throw Error('Neispravan status ili mesec.');
   const c=init(s),book=c.monthly?.[m.id]?.[original.id];
   if(book&&book.baseline+Object.values(book.entries).reduce((n,e)=>n+e.quantity,0)>quantity+1e-6)throw Error('Ugovorena količina ne može biti manja od već evidentirane.');
   c.itemOverrides||={};c.itemOverrides[m.id]||={};c.itemOverrides[m.id][original.id]={name,unit,quantity};
@@ -141,14 +149,20 @@
   return s;
  }
  function totalText(rows){const included=rows.filter(i=>!i.excluded),priced=included.filter(i=>Number.isFinite(i.value)),missing=included.filter(i=>Number.isFinite(i.current)&&i.current!==0&&!Number.isFinite(i.price)).length;const amount=new Intl.NumberFormat('sr-Latn-RS',{minimumFractionDigits:2,maximumFractionDigits:2}).format(priced.reduce((n,i)=>n+i.value,0));return (priced.length?amount+' €':'—')+(missing?' (stavke bez cene: '+missing+')':'')}
- root.TaskerCosting={ensure,restore,calculate,expected,totalText};
+ root.TaskerCosting={ensure,restore,calculate,expected,totalText,statusLabels,statusColors};
  if(!root.document)return;
+ const statusStyle=document.createElement('style');statusStyle.textContent='#tc-dialog .tc-row-elsewhere td{background:#154c57;color:#c5f7ff}#tc-dialog .tc-row-other_team td{background:#4f346d;color:#f0deff}#tc-dialog .tc-row-blocked td{background:#682b3a;color:#ffe1e6}#tc-dialog [data-tc-status] option{background:#102b3d;color:#fff}';document.head.append(statusStyle);
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),num=x=>x===null?'—':new Intl.NumberFormat('sr-Latn-RS',{maximumFractionDigits:3}).format(x);
  let state,raw,report,month=today().slice(0,7),scope='ALL',moduleId=null,viewingSaved=false,selectedDate=today(),inlineSaving=false;
  function read(){raw=localStorage.getItem(KEY);state=raw?M.migrate(JSON.parse(raw)).state:ensure(M.create())}
  function write(a){if(['cost-month','cost-price'].includes(a.type)&&!localStorage.getItem(KEY+'.before-monthly-v1091'))localStorage.setItem(KEY+'.before-monthly-v1091',raw);if(localStorage.getItem(KEY)!==raw)throw Error('Podaci su u međuvremenu promenjeni. Zatvorite i ponovo otvorite troškovnik.');state=M.change(state,a);raw=JSON.stringify(state);localStorage.setItem(KEY,raw);root.dispatchEvent(new StorageEvent('storage',{key:KEY,newValue:raw}))}
  function dialog(){let d=document.getElementById('tc-dialog');if(!d){d=document.createElement('dialog');d.id='tc-dialog';document.body.append(d)}return d}
- function html(r){return r.groups.map(g=>'<h3>'+esc(r.moduleName||g.type)+' · '+esc(g.type)+' troškovnik</h3><div class="tc-scroll"><table><thead><tr><th>Stavka</th><th>Status</th><th>JM</th><th>Ugovoreno</th><th>Prethodno</th><th>Mesec</th><th>Ukupno</th><th>Preostalo</th><th>Cena €</th><th>Iznos meseca €</th></tr></thead><tbody>'+g.rows.map(i=>'<tr data-tc-item="'+esc(i.id)+'" class="tc-row-'+i.status+'"><td><details><summary>'+esc(i.boq)+' · '+esc(i.name)+'</summary><p>'+esc(i.description)+'</p><small>Prati: '+esc(i.phase||'Nije povezano')+'</small>'+(!viewingSaved?'<p><button type="button" data-tc-exclude="'+esc(i.id)+'" data-value="'+(!i.excluded)+'">'+(i.excluded?'Vrati — radimo ovu stavku':'Ne radimo ovu stavku')+'</button></p>':'')+(!viewingSaved?editFields(i):'')+'</details></td><td>'+(i.excluded?'<span class="tc-status excluded">Ne radimo</span>':false? '—':'<span class="tc-status '+i.status+'">'+({done:'Završeno',active:'U toku',waiting:'Čeka / blokirano',new:'Nije završeno'}[i.status]||'—')+'</span>')+'</td><td>'+esc(i.unit||'—')+'</td>'+['quantity','previous','current','total','remaining','price','value'].map(k=>'<td data-tc-col="'+k+'">'+cell(i,k)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div><p data-tc-total>Ukupno ovog meseca: '+totalText(g.rows)+'</p>').join('')}
+ function statusCell(i){
+  if(i.excluded)return '<span class="tc-status excluded">Ne radimo</span>';
+  if(viewingSaved)return '<span class="tc-status">'+esc(statusLabels[i.status]||i.status)+'</span>';
+  return '<select data-tc-status="'+esc(i.id)+'" aria-label="Status stavke '+esc(i.boq)+' '+esc(i.name)+'" style="max-width:160px;width:100%;min-height:40px;white-space:normal;border:1px solid #dfbd66;border-radius:7px;padding:6px;color:white;background:'+statusColors[i.status]+'">'+Object.entries(statusLabels).map(([key,label])=>'<option value="'+key+'"'+(key===i.status?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select>';
+ }
+ function html(r){return r.groups.map(g=>'<h3>'+esc(r.moduleName||g.type)+' · '+esc(g.type)+' troškovnik</h3><div class="tc-scroll"><table><thead><tr><th>Stavka</th><th>Status</th><th>JM</th><th>Ugovoreno</th><th>Prethodno</th><th>Mesec</th><th>Ukupno</th><th>Preostalo</th><th>Cena €</th><th>Iznos meseca €</th></tr></thead><tbody>'+g.rows.map(i=>'<tr data-tc-item="'+esc(i.id)+'" class="tc-row-'+i.status+'"><td><details><summary>'+esc(i.boq)+' · '+esc(i.name)+'</summary><p>'+esc(i.description)+'</p><small>Prati: '+esc(i.phase||'Nije povezano')+'</small>'+(!viewingSaved?'<p><button type="button" data-tc-exclude="'+esc(i.id)+'" data-value="'+(!i.excluded)+'">'+(i.excluded?'Vrati — radimo ovu stavku':'Ne radimo ovu stavku')+'</button></p>':'')+(!viewingSaved?editFields(i):'')+'</details></td><td>'+statusCell(i)+'</td><td>'+esc(i.unit||'—')+'</td>'+['quantity','previous','current','total','remaining','price','value'].map(k=>'<td data-tc-col="'+k+'">'+cell(i,k)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div><p data-tc-total>Ukupno ovog meseca: '+totalText(g.rows)+'</p>').join('')}
 
 
  const monthNames=['Januar','Februar','Mart','April','Maj','Jun','Jul','Avgust','Septembar','Oktobar','Novembar','Decembar'];
@@ -167,7 +181,7 @@
    const row=report.groups.flatMap(g=>g.rows).find(i=>i.id===tr.dataset.tcItem);if(!row)continue;
    tr.className='tc-row-'+row.status;
    for(const k of ['quantity','previous','total','remaining','value'])tr.querySelector('[data-tc-col="'+k+'"]').textContent=k==='value'?money(row[k]):num(row[k]);
-   tr.cells[1].textContent=row.excluded?'Ne radimo':false?'—':({done:'Završeno',active:'U toku',waiting:'Čeka / blokirano',new:'Nije završeno'}[row.status]||'—');
+   tr.cells[1].innerHTML=statusCell(row);
    tr.cells[2].textContent=row.unit||'—';const unitLabel=tr.querySelector('.tc-quantity small');if(unitLabel)unitLabel.textContent=row.unit||'Količina';
   }
   const rows=report.groups.flatMap(g=>g.rows).filter(i=>!i.untouched&&!i.excluded);
@@ -184,9 +198,10 @@
   }catch(err){input.setAttribute('aria-invalid','true');fail(err)}finally{inlineSaving=false}
  });
  document.addEventListener('change',e=>{if(e.target.matches('#tc-dialog [data-tc-month]')){month=e.target.value;selectedDate=month+'-01';render()}});
+ document.addEventListener('change',e=>{const select=e.target;if(!select.matches('#tc-dialog [data-tc-status]'))return;try{inlineSaving=true;write({type:'cost-status',moduleId,itemId:select.dataset.tcStatus,month,status:select.value});refreshAmounts();document.getElementById('tc-msg').textContent='✓ Status sačuvan za ovaj modul i izabrani mesec. Količine i proizvodne faze nisu promenjene.'}catch(err){fail(err);refreshAmounts()}finally{inlineSaving=false}});
  function editFields(i){
   const original=T.flatMap(t=>t.items).find(x=>x.id===i.id),value=state.costing.itemOverrides?.[moduleId]?.[i.id]||original,status=state.costing.itemStatuses?.[moduleId]?.[i.id]?.[month]||'auto';
-  return '<form data-tc-edit="'+esc(i.id)+'" class="tc-edit"><label>Naziv<input name="name" required value="'+esc(value.name)+'"></label><label>JM<input name="unit" required value="'+esc(value.unit)+'"></label><label>Ugovorena količina<input name="quantity" inputmode="decimal" required value="'+esc(value.quantity)+'"></label><label>Status za izabrani mesec<select name="status">'+[['auto','Prati fazu automatski'],['new','Nije završeno'],['active','U toku'],['waiting','Blokirano'],['done','Završeno']].map(([k,v])=>'<option value="'+k+'"'+(status===k?' selected':'')+'>'+v+'</option>').join('')+'</select></label><button>Sačuvaj izmenu stavke</button><small>Važi samo za ovaj modul. Faze u aplikaciji se ne menjaju.</small></form>';
+  return '<form data-tc-edit="'+esc(i.id)+'" class="tc-edit"><label>Naziv<input name="name" required value="'+esc(value.name)+'"></label><label>JM<input name="unit" required value="'+esc(value.unit)+'"></label><label>Ugovorena količina<input name="quantity" inputmode="decimal" required value="'+esc(value.quantity)+'"></label><label>Status za izabrani mesec<select name="status">'+[['auto','Prati fazu automatski'],...Object.entries(statusLabels)].map(([k,v])=>'<option value="'+k+'"'+(status===k?' selected':'')+'>'+v+'</option>').join('')+'</select></label><button>Sačuvaj izmenu stavke</button><small>Važi samo za ovaj modul. Faze u aplikaciji se ne menjaju.</small></form>';
  }
  document.addEventListener('submit',e=>{if(!e.target.matches('[data-tc-edit]'))return;e.preventDefault();try{write({type:'cost-item',moduleId,itemId:e.target.dataset.tcEdit,month,...Object.fromEntries(new FormData(e.target))});render()}catch(err){fail(err)}});
  function settings(){const c=init(state);return '<details class="tc-settings"><summary>⚙ Unesi cene (opcionalno)</summary><p>Svaka stavka automatski prati istoimenu fazu. Cena se unosi po originalnoj jedinici mere.</p>'+T.filter(t=>t.type===scope).map(t=>'<form data-tc-settings="'+t.type+'"><div class="tc-scroll"><table><thead><tr><th>Stavka</th><th>Cena €/JM</th></tr></thead><tbody>'+t.items.map(i=>'<tr><td>'+esc(i.boq)+' '+esc(i.name)+'<small>'+num(i.quantity)+' '+esc(i.unit)+' po modulu</small></td><td><input name="price-'+i.id+'" type="number" min="0" step="0.01" placeholder="Opcionalno" value="'+(c.prices[i.id]??'')+'"></td></tr>').join('')+'</tbody></table></div><button>Sačuvaj cene</button></form>').join('')+'</details>'}

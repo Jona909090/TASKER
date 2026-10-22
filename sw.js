@@ -1,4 +1,4 @@
-const CACHE = 'tasker-v1115'
+const CACHE = 'tasker-v1116'
 const CORE = [
  './module-photo-storage-v1114.js',
  './tasker-refresh-v1113.js',
@@ -43,9 +43,9 @@ const CORE = [
 
 
   './module-costing-v1089.css',
-  './module-costing-v1097.js',
+  './module-costing-v1097.js?build=1116',
   './module-phase-order-v1090.js',
-  './module-costing-pdf-v1097.js',
+  './module-costing-pdf-v1097.js?build=1116',
   './module-status-v103.css?build=1075',
   './employee-hours-archive-v102.js?build=102',
   './employee-hours-books-v97.js?build=97',
