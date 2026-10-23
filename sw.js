@@ -1,4 +1,4 @@
-const CACHE = 'tasker-v1119'
+const CACHE = 'tasker-v1120'
 const CORE = [
  './tasker-transfer-v1117.js',
  './module-photo-storage-v1114.js',
@@ -51,7 +51,8 @@ const CORE = [
   './employee-hours-archive-v102.js?build=102',
   './employee-hours-books-v97.js?build=97',
   './employee-hours-model-v94.js?build=1085',
-  './employee-hours-export-v100.js?build=1085',
+  './employee-hours-export-v100.js?build=1120',
+  './employee-hours-stamp-v1120.png',
   './employee-hours-v98.js?build=1085',
   './',
   './index.html',

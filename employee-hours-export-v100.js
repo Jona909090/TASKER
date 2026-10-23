@@ -65,7 +65,8 @@
     }
     return w
   }
-  function paintPdf(PDF,document,s,m){
+  function paintPdf(PDF,document,s,m,stamp){
+    if(!stamp)throw Error('Pečat nije učitan. Osvježite aplikaciju i ponovite izvoz.')
     const pdf=new PDF({orientation:'landscape',unit:'mm',format:'a4',compress:true})
     const canvas=document.createElement('canvas');canvas.width=2380;canvas.height=1684
     const ctx=canvas.getContext('2d'),left=64,width=2252,dayW=(width-64-165-195-124)/m.dates.length
@@ -80,15 +81,15 @@
       lines.forEach((line,i)=>ctx.fillText(line,align==='left'?x+5:x+w/2,start+i*26))
     }
     function start(){ctx.fillStyle='#fff';ctx.fillRect(0,0,2380,1684);ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillStyle='#19354B';ctx.font='bold 38px Arial';ctx.fillText(title.toLocaleUpperCase('sr-Latn-RS'),left,64);ctx.font='bold 29px Arial';ctx.fillText(s.site||'Projekt / Gradilište nije upisano',left,110,width);ctx.font='26px Arial';ctx.fillText(monthName(s).toLocaleUpperCase('sr-Latn-RS'),left,152);ctx.font='21px Arial';ctx.fillText('Žuto: odrađeni sati   |   –: bez sati   |   Crveno: prestanak rada   |   Ljubičasto: vikend | Plavo: GO (godišnji)',left,187);y=212;let x=left;['R.br.','Ime','Prezime',...m.dates.map((d,i)=>i+1),'UKUPNO'].forEach((text,i)=>{const weekend=m.dates[i-3]?.weekend;box(text,x,y,widths[i],52,weekend?'D9C9E8':'19354B',weekend?'30223E':'FFFFFF',true,'center',true);x+=widths[i]});y+=52}
-    function finish(){ctx.font='20px Arial';ctx.fillStyle='#42576B';ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(`TASKER · ${s.month} · Stranica ${page+1}`,left,1645);if(page++)pdf.addPage();pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,297,210,undefined,'FAST')}
+    function finish(){ctx.font='20px Arial';ctx.fillStyle='#42576B';ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(`TASKER · ${s.month} · Stranica ${page+1}`,left,1645);const stampW=220,stampH=stampW*stamp.naturalHeight/stamp.naturalWidth;ctx.drawImage(stamp,2380-left-stampW,1684-24-stampH,stampW,stampH);if(page++)pdf.addPage();pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,297,210,undefined,'FAST')}
     start()
     m.rows.forEach((r,i)=>{
       ctx.font='bold 23px Arial';const height=Math.max(42,Math.max(wrap(r.employee.first,155).length,wrap(r.employee.last,185).length)*26+12)
-      if(y+height>1530){finish();start()}
+      if(y+height>1480){finish();start()}
       const values=[i+1,r.employee.first,r.employee.last,...r.cells.map(v=>v==='GO'?'GO':v>0?number(v):'–'),r.total>0?number(r.total):'–'];let x=left
       values.forEach((text,j)=>{const kind=j<3?'identity':j===values.length-1?'total':'day',bg=color(s,r,i,kind,m.dates[j-3],r.cells[j-3]);box(text,x,y,widths[j],height,bg,(bg==='A92F3B'||bg==='2879C7')?'FFFFFF':'111111',kind==='total'||j===1||j===2,j===1||j===2?'left':'center');x+=widths[j]});y+=height
     })
-    if(y+62>1560){finish();start()}
+    if(y+62>1480){finish();start()}
     box('UKUPNO SVIH SATI',left,y,width-150,56,'D7EEDB','111111',true,'left');box(number(m.total),left+width-150,y,150,56,'D7EEDB','111111',true)
     finish();return pdf.output('blob')
   }
@@ -96,6 +97,8 @@
   if(typeof module==='object'&&module.exports){module.exports=api;return}
   let busy=false,prepared=null,readyUrl=null
   const loading={}
+  let stampPromise
+  function loadStamp(){if(!stampPromise)stampPromise=new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>{stampPromise=null;reject(Error('Pečat nije učitan. Osvježite aplikaciju i ponovite izvoz.'))};img.src='./employee-hours-stamp-v1120.png'});return stampPromise}
   function library(key,url,test){if(test())return Promise.resolve(test());if(!loading[key])loading[key]=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=url;script.onload=()=>{if(test())resolve(test());else{delete loading[key];reject(Error('Dodatak za izvoz nije dostupan.'))}};script.onerror=()=>{delete loading[key];script.remove();reject(Error('Provjerite internet i ponovite izvoz.'))};document.head.append(script)});return loading[key]}
   function download(file){const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
   const el=id=>document.getElementById(id)
@@ -144,7 +147,7 @@
       const multiple=type==='xlsx'&&sheets.length>1
       let blob
       if(type==='xlsx'){const Excel=await library('excel','https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',()=>root.ExcelJS);if(!root.TaskerHoursHeader)throw Error('Osvježite TASKER da se učita novo Excel zaglavlje.');const banners=[];for(const sheet of sheets)banners.push(await root.TaskerHoursHeader.render(sheet));const w=booksWorkbook(Excel,sheets,root.TaskerHoursModel,banners);blob=new Blob([await w.xlsx.writeBuffer()],{type:mimeXlsx})}
-      else{const PDF=await library('pdf','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',()=>root.jspdf?.jsPDF);blob=paintPdf(PDF,document,s,m)}
+      else{const PDF=await library('pdf','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',()=>root.jspdf?.jsPDF);blob=paintPdf(PDF,document,s,m,await loadStamp())}
       const site=(multiple?'Sva-gradilista':s.site||'Gradiliste').replace(/[^\p{L}\p{N}-]+/gu,'-').slice(0,65),file=new File([blob],`Radni-sati-${s.month}-${site}${personName?'-'+personName.replace(/[^\p{L}\p{N}-]+/gu,'-'):''}-v100-${Date.now()}.${type}`,{type:blob.type})
       const shareSite=multiple?'Sva gradilišta':s.site||'Gradilište',shareTotal=multiple?sheets.reduce((sum,x)=>sum+root.TaskerHoursModel.month(x).total,0):m.total
       prepared={file,channel:action,subject:`Radni sati${personName?' – '+personName:''} – ${shareSite} – ${monthName(s)}`,text:`Mjesečna evidencija radnih sati${personName?' – '+personName:''}\n${shareSite}\n${monthName(s)}\nUkupno svih sati: ${number(shareTotal)} h`}
