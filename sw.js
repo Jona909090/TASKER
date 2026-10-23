@@ -1,16 +1,16 @@
-const CACHE = 'tasker-v1118'
+const CACHE = 'tasker-v1119'
 const CORE = [
  './tasker-transfer-v1117.js',
  './module-photo-storage-v1114.js',
  './tasker-refresh-v1113.js',
  './tasker-rescue-v1112.js',
  './module-detail-v1111.css',
- './module-status-v1095.js?build=1118',
+ './module-status-v1095.js?build=1119',
  './project-portal-v1110.js',
  './module-drawing-viewer-v1109.css',
  './module-drawing-viewer-v1109.js',
- './module-dupliko-style-v1107.css',
- './module-dupliko-style-v1107.js',
+ './module-dupliko-style-v1107.css?build=1119',
+ './module-dupliko-style-v1107.js?build=1119',
  './module-daily-reports-v1106.js?build=1108',
  './module-daily-reports-v1106.css',
  './module-drawings-v1103.js?build=1105',
@@ -38,7 +38,7 @@ const CORE = [
   './tasker-sync-v105.js?build=1114',
   './module-status-snapshot-v104.js?build=1075',
   './vendor/html2canvas-1.4.1.min.js',
-  './module-status-model-v103.js?build=1115',
+  './module-status-model-v103.js?build=1119',
   './module-status-v1095.js',
   './module-boq-templates.js?build=1086',
 

@@ -21,6 +21,8 @@
   const clean=(v,max=120)=>String(v??'').trim().slice(0,max)
   const phaseStatuses={...statuses,elsewhere:{label:'Ne radi se ovde',color:'#137c88',icon:'↗'},other_team:{label:'Ne radimo mi',color:'#7845a8',icon:'◇'}}
   const progress=m=>m.phases.length?Math.round(100*m.phases.filter(p=>p.status==='done').length/m.phases.length):0
+  function duplikoArrival(m){const e=[...(m.history||[])].reverse().find(e=>e.type==='move'&&/(?:→|Početna lokacija:)\s*(?:DUPLIKO|KALINOVICA)\s*$/i.test(e.text||''));return e?(e.occurredOn||e.at):m.departure||''}
+  function duplikoModules(s){const list=s.modules.filter(m=>m.place.kind==='external'&&m.place.locationId==='dupliko');const manual=Array.isArray(s.duplikoOrder)?s.duplikoOrder:[];return list.sort((a,b)=>{const ai=manual.indexOf(a.id),bi=manual.indexOf(b.id);if(ai>=0||bi>=0)return (ai<0?Infinity:ai)-(bi<0?Infinity:bi);return (duplikoArrival(a)||'9999').localeCompare(duplikoArrival(b)||'9999')})}
   function create(){return {version:1,phaseTemplateVersion:3,revision:0,halls:[{id:'main',name:'Proizvodna hala',positions:Array.from({length:10},(_,i)=>({id:'p'+(i+1),label:String(i+1),side:i<5?'left':'right',order:i%5+1}))}],locations:[{id:'dupliko',name:'DUPLIKO'},{id:'shipped',name:'Otpremljeni'},{id:'finished',name:'Završeni'}],modules:[]}}
   function migrate(source,time=new Date().toISOString()){
     validate(source)
@@ -100,8 +102,9 @@
     const log=(mod,type,text)=>mod.history.push({at:time,type,text})
     const requireModule=()=>{if(!m)throw Error('Modul nije pronađen.')}
     const setStatus=(mod,value)=>{if(!statuses[value])throw Error('Odaberite status.');if(mod.status===value)return;log(mod,value==='waiting'?'waiting':'status','Status: '+statuses[mod.status].label+' → '+statuses[value].label);mod.status=value;if(value==='done'){mod.completedAt=time;log(mod,'completed','Modul završen')}else delete mod.completedAt}
-    const move=(mod,place)=>{checkPlace(s,place,mod.id);if(JSON.stringify(mod.place)===JSON.stringify(place))return;const from=locationName(s,mod.place);if(mod.place.kind==='hall'&&place.kind==='external')mod.departure=today(new Date(time));mod.place=clone(place);log(mod,place.kind==='hall'?'position':place.locationId==='shipped'?'shipped':'move',from+' → '+locationName(s,place))}
+    const move=(mod,place)=>{checkPlace(s,place,mod.id);if(JSON.stringify(mod.place)===JSON.stringify(place))return;const order=duplikoModules(s).map(x=>x.id).filter(id=>id!==mod.id);const from=locationName(s,mod.place);if(mod.place.kind==='hall'&&place.kind==='external')mod.departure=today(new Date(time));mod.place=clone(place);if(place.kind==='external'&&place.locationId==='dupliko')order.push(mod.id);s.duplikoOrder=order;log(mod,place.kind==='hall'?'position':place.locationId==='shipped'?'shipped':'move',from+' → '+locationName(s,place))}
     switch(a.type){
+      case 'dupliko-order':{requireModule();const ids=duplikoModules(s).map(x=>x.id),i=ids.indexOf(m.id),j=i+Number(a.delta);if(i<0||![-1,1].includes(a.delta)||j<0||j>=ids.length)throw Error('Neispravan redosled Duplika.');[ids[i],ids[j]]=[ids[j],ids[i]];s.duplikoOrder=ids;break}
       case 'add-hall':{
         const name=clean(a.name)
         if(!name)throw Error('Upišite naziv hale.')
@@ -191,7 +194,7 @@
     s.revision++;return validate(s)
   }
   function stats(s,day=today()){return {hall:s.modules.filter(m=>m.place.kind==='hall').length,active:s.modules.filter(m=>m.status==='active').length,waiting:s.modules.filter(m=>m.status==='waiting').length,ready:s.modules.filter(m=>m.status==='ready').length,completed:s.modules.filter(m=>m.completedAt&&today(new Date(m.completedAt))===day).length}}
-  const api={statuses,phaseStatuses,phaseNames,create,validate,change,progress,stats,locationName,today,migrate,unfinished}
+  const api={statuses,phaseStatuses,phaseNames,create,validate,change,progress,stats,locationName,today,migrate,unfinished,duplikoArrival,duplikoModules}
   if(typeof module==='object'&&module.exports)module.exports=api;else root.TaskerModuleStatusModel=api
 })(typeof window==='object'?window:globalThis)
 
