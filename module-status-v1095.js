@@ -142,8 +142,21 @@
   function remainingHTML(m,editable=false){
     const pending=M.unfinished(m)
     return (editable?'<details class="ms-remaining ms-remaining-compact"><summary><span>Preostali radovi</span><strong>'+pending.length+'</strong><small>Otvori / zatvori pregled</small></summary>':'<section class="ms-remaining"><h2>'+esc(m.name)+'</h2><h3>Aktuelni zapis preostalih radova</h3>')+
+      '<div class="ms-actions"><button type="button" class="ms-button" data-ms-copy-remaining="'+esc(m.id)+'" aria-label="Kopiraj sve preostale radove za '+esc(m.name)+'">⧉ Kopiraj tekst</button><small data-ms-copy-result role="status" aria-live="polite"></small></div>'+
       (pending.length?'<ol>'+pending.map(p=>'<li><b>'+esc(p.name)+'</b></li>').join('')+'</ol>':'<p>Svi radovi su završeni.</p>')+
       (editable?'<button type="button" class="ms-button" data-ms-action="remaining">Uredi / dodaj preostale radove</button></details>':'</section>')
+  }
+  async function copyRemaining(button){
+    const m=state.modules.find(m=>m.id===button.dataset.msCopyRemaining);if(!m)return;
+    const pending=M.unfinished(m),text=m.name+'\nAktuelni zapis preostalih radova\n\n'+(pending.length?pending.map((p,i)=>(i+1)+'. '+p.name).join('\n'):'Svi radovi su završeni.');
+    const area=button.closest('.ms-remaining'),result=area.querySelector('[data-ms-copy-result]');
+    area.querySelector('[data-ms-manual-copy]')?.remove();button.disabled=true;
+    try{await navigator.clipboard.writeText(text);result.textContent='✓ Kopirano — nalepi u poruku ili izveštaj.'}
+    catch{
+      const input=document.createElement('textarea');input.value=text;input.readOnly=true;input.dataset.msManualCopy='';input.setAttribute('aria-label','Tekst preostalih radova za kopiranje');input.style.cssText='width:100%;min-height:140px;font-size:16px';area.append(input);input.focus();input.select();input.setSelectionRange(0,text.length);
+      let copied=false;try{copied=document.execCommand('copy')}catch{}
+      if(copied){input.remove();button.focus();result.textContent='✓ Kopirano — nalepi u poruku ili izveštaj.'}else result.textContent='Automatsko kopiranje nije dozvoljeno. Označeni tekst kopiraj ručno.';
+    }finally{button.disabled=false}
   }
   const phaseDate=p=>p.completedOn||M.today(new Date(p.completedAt))
   function remainingDialog(){
@@ -231,6 +244,7 @@
     if(!t.closest('#module-status'))return
     if(t.closest('[data-ms-back]')){event.preventDefault();event.stopImmediatePropagation();el('back-to-projects')?.click();return}
     let b
+    if((b=t.closest('[data-ms-copy-remaining]'))){event.preventDefault();event.stopImmediatePropagation();copyRemaining(b);return}
     if(t.closest('[data-ms-screenshot]')){window.TaskerModuleSnapshot?.open(el('ms-overview-content'),state.modules.find(m=>m.id===selected)?.name||'Modul');return}
     if(t.closest('[data-ms-overview-close]')){el('ms-overview').close();return}
     if(t.closest('[data-ms-cancel]')){el('ms-dialog').close();return}
