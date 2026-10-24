@@ -1,6 +1,6 @@
 (function(){
  'use strict';
- const keys={modules:'tasker.module-status.v1',hours:'tasker.employee-hours.v1'},DB='tasker-transfer-backups-v1';
+ const keys={modules:'tasker.module-status.v1',hours:'tasker.employee-hours.v1',reports:'tasker.daily-reports.v1',vtr:'tasker.vtr.v1'},DB='tasker-transfer-backups-v1';
  const clone=x=>JSON.parse(JSON.stringify(x)),stamp=()=>new Date().toISOString();
  const digest=async x=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(x))))).map(n=>n.toString(16).padStart(2,'0')).join('');
  function raw(){return Object.fromEntries(Object.entries(keys).map(([k,v])=>[k,localStorage.getItem(v)]))}
@@ -9,6 +9,15 @@
   const visit=x=>{if(x&&typeof x==='object'){for(const k of Object.keys(x)){if(['__proto__','prototype','constructor'].includes(k))throw Error('Neispravan sadržaj kopije.');visit(x[k])}}};visit(data);
   if(data.modules){window.TaskerModuleStatusModel.validate(data.modules);for(const m of data.modules.modules)if(m.photo&&!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(m.photo))throw Error('Kopija nema prenosivu fotografiju. Ponovo izvezite kopiju na izvornom uređaju.')}
   if(data.hours)window.TaskerHoursBooks.validate(data.hours,window.TaskerHoursModel);
+  for(const key of ['reports','vtr'])if(Object.hasOwn(data,key)){
+   const s=data[key],label=key==='vtr'?'VTR':'Izveštaji',seen=new Set();
+   if(!s||s.version!==1||!Array.isArray(s.entries))throw Error(label+': neispravna evidencija.');
+   for(const e of s.entries){
+    if(!e||typeof e.hallId!=='string'||!e.hallId||typeof e.hallName!=='string'||typeof e.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(e.date)||!Number.isFinite(Date.parse(e.date))||new Date(e.date).toISOString().slice(0,10)!==e.date||typeof e.note!=='string'||!e.note.trim()||e.note.length>(key==='vtr'?20000:50000))throw Error(label+': neispravan zapis.');
+    if(key==='vtr'&&(typeof e.hours!=='number'||!Number.isFinite(e.hours)||e.hours<0))throw Error('VTR: neispravan broj sati.');
+    const id=JSON.stringify([e.hallId,e.date]);if(seen.has(id))throw Error(label+': ponovljen zapis za isti dan.');seen.add(id);
+   }
+  }
   for(const k of Object.keys(data))if(!data[k])throw Error('Prazna evidencija u kopiji.');
   return data;
  }
@@ -32,7 +41,7 @@
   for(const k of Object.keys(prepared))localStorage.removeItem('tasker.sync.v105.base.'+k);
   return reserve.id;
  }
- const summary=data=>[data.modules?data.modules.modules.length+' modula (sa fazama, troškovnikom i fotografijama modula)':'Moduli nisu u ovoj kopiji — ostaju nepromenjeni.',data.hours?data.hours.employees.length+' zaposlenih u glavnoj evidenciji; uključena sva gradilišta i sačuvani dani':'Radni sati nisu u ovoj kopiji — ostaju nepromenjeni.'].join('\n');
+ const summary=data=>[data.reports?'Izveštaji: '+data.reports.entries.length+' dnevnih zapisa':'Izveštaji nisu u ovoj kopiji — ostaju nepromenjeni.',data.vtr?'VTR: '+data.vtr.entries.length+' dnevnih zapisa':'VTR nije u ovoj kopiji — ostaje nepromenjen.',data.modules?'Troškovnici: uključeni u podatke modula (cene, količine i sačuvani obračuni).':'Troškovnici nisu u ovoj kopiji — ostaju nepromenjeni.',data.hours?data.hours.employees.length+' zaposlenih u glavnoj evidenciji; uključena sva gradilišta i sačuvani dani':'Radni sati nisu u ovoj kopiji — ostaju nepromenjeni.',data.modules?data.modules.modules.length+' modula (sa halama, fazama i fotografijama modula)':'Moduli nisu u ovoj kopiji — ostaju nepromenjeni.'].join('\n');
  let d,busy=false,prepared=null,expected=null,urls=[];
  function status(text){d.querySelector('[data-transfer-message]').textContent=text}
  function offer(file,host,prefix='TASKER-PRENOS'){
@@ -44,7 +53,7 @@
  function open(){
   if(!d){d=document.createElement('dialog');d.id='tasker-transfer';document.body.append(d);d.addEventListener('cancel',e=>{if(busy)e.preventDefault()})}
   urls.forEach(x=>URL.revokeObjectURL(x));urls=[];prepared=null;expected=null;
-  d.innerHTML='<header><h2>Kopija · Moduli i radni sati</h2><button data-transfer-close>Zatvori</button></header><p>Izvezite na tabletu, pošaljite fajl kroz WhatsApp kao Dokument, pa ga ovde uvezite na računaru. Ovo nije PDF i nije automatska sinhronizacija.</p><p>Uključuje hale, module, faze, fotografije modula, troškovnike i evidenciju radnih sati. Ne uključuje zasebni Filter slika, PDF arhive, VTR, Izveštaje, privatne troškove ni pristupne kodove.</p><p><b>Kopija sadrži privatne podatke. Šaljite je samo sebi ili ovlašćenoj osobi.</b></p><button data-transfer-export>Izvezi kopiju</button><div data-transfer-download></div><hr><label>Uvezi kopiju <input data-transfer-file type="file" accept=".json,application/json"></label><pre data-transfer-preview></pre><p>Uvoz zamenjuje evidencije sadržane u fajlu; ne spaja izmene. Pre zamene čuvamo proverenu rezervu ovog uređaja.</p><button data-transfer-confirm disabled>Potvrdi uvoz i zameni podatke</button><hr><button data-transfer-backups>Rezerve pre uvoza</button><div data-transfer-backup-list></div><p role="status" data-transfer-message></p>';
+  d.innerHTML='<header><h2>Kopija / prenos · evidencije</h2><button data-transfer-close>Zatvori</button></header><p>Izvezite na tabletu, pošaljite fajl kroz WhatsApp kao Dokument, pa ga ovde uvezite na računaru. Ovo nije PDF i nije automatska sinhronizacija.</p><p>Uključuje Izveštaje, VTR, troškovnike (cene, količine i sačuvane obračune), radne sate i module sa halama, fazama i fotografijama modula. Ne uključuje zasebni Filter slika, PDF arhive, Odvoz modula, privatne troškove ni pristupne kodove. Prenose se samo sačuvani unosi — pre izvoza pritisnite Zapamti / Sačuvaj.</p><p><b>Kopija sadrži privatne podatke. Šaljite je samo sebi ili ovlašćenoj osobi.</b></p><button data-transfer-export>Izvezi kopiju</button><div data-transfer-download></div><hr><label>Uvezi kopiju <input data-transfer-file type="file" accept=".json,application/json"></label><pre data-transfer-preview></pre><p>Uvoz zamenjuje evidencije sadržane u fajlu; ne spaja izmene. Pre zamene čuvamo proverenu rezervu ovog uređaja.</p><button data-transfer-confirm disabled>Potvrdi uvoz i zameni podatke</button><hr><button data-transfer-backups>Rezerve pre uvoza</button><div data-transfer-backup-list></div><p role="status" data-transfer-message></p>';
   d.querySelector('[data-transfer-close]').onclick=()=>{if(!busy)d.close()};
   d.querySelector('[data-transfer-export]').onclick=()=>run(async()=>{status('Pripremam podatke i fotografije…');const file=await exportCopy(),host=d.querySelector('[data-transfer-download]');host.replaceChildren();offer(file,host);status('Kopija je spremna. Preuzmite je ili izaberite WhatsApp u prozoru za deljenje.')});
   d.querySelector('[data-transfer-file]').onchange=e=>{const file=e.target.files[0];prepared=null;d.querySelector('[data-transfer-preview]').textContent='';if(!file)return;run(async()=>{if(file.size>80*1048576)throw Error('Fajl je prevelik (najviše 80 MB).');const checked=await inspect(await file.text());expected=raw();prepared=checked;d.querySelector('[data-transfer-preview]').textContent='Kopija: '+checked.createdAt+'\n'+summary(checked.data)+'\n\nNa ovom uređaju pre uvoza:\n'+summary(await portable(expected));status('Proverite sadržaj, zatim potvrdite zamenu.')})};
