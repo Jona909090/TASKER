@@ -18,7 +18,8 @@
     const valid=matches.filter(([y,m,d])=>{const x=new Date(Date.UTC(y,m-1,d));return x.getUTCFullYear()===y&&x.getUTCMonth()===m-1&&x.getUTCDate()===d}).map(([y,m,d])=>y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'))
     return [...new Set(valid)].length===1?valid[0]:''
   }
-  const chronological=(a,b)=>(a.photoDate||'9999').localeCompare(b.photoDate||'9999')||a.created-b.created||a.order-b.order
+  const recordDay=r=>r.reportDate||r.photoDate||''
+  const chronological=(a,b)=>(recordDay(a)||'9999').localeCompare(recordDay(b)||'9999')||a.created-b.created||a.order-b.order
   async function fingerprint(file){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))).map(n=>n.toString(16).padStart(2,'0')).join('')}
 
   const safe=s=>String(s).replace(/[\\/:*?"<>|\x00-\x1f]/g,'_').replace(/^\.+/,'_').slice(0,160)||'slika'
@@ -31,7 +32,7 @@
     for(const r of rows){
       let running=0xffffffff
       for(let start=0;start<r.file.size;start+=2097152){const chunk=new Uint8Array(await r.file.slice(start,start+2097152).arrayBuffer());for(const b of chunk)running=table[(running^b)&255]^(running>>>8);progress(index,rows.length)}
-      const bytes={length:r.file.size},name=enc.encode(safe(r.group)+'/'+String(++index).padStart(3,'0')+'-'+safe(r.name)),checksum=(running^0xffffffff)>>>0
+      const bytes={length:r.file.size},name=enc.encode(safe(r.group)+'/'+safe(recordDay(r)||'Bez-datuma')+'/'+String(++index).padStart(3,'0')+'-'+safe(r.name)),checksum=(running^0xffffffff)>>>0
       const head=new Uint8Array(30+name.length+(large?20:0)),h=new DataView(head.buffer)
       h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x800,true);h.setUint16(12,33,true);h.setUint32(14,checksum,true);h.setUint32(18,bytes.length,true);h.setUint32(22,bytes.length,true);h.setUint16(26,name.length,true);head.set(name,30)
       const central=new Uint8Array(46+name.length+(large?28:0)),c=new DataView(central.buffer)
@@ -54,8 +55,25 @@
     }
     return new Blob([...body,...directory,...tail,end],{type:'application/zip'})
   }
-  if(typeof module==='object'&&module.exports){module.exports={detect,detectDate,chronological,fingerprint,zip,crc,safe};return}
+  if(typeof module==='object'&&module.exports){module.exports={detect,detectDate,recordDay,chronological,fingerprint,zip,crc,safe};return}
   let dbPromise,records=[],batch='',folder='',page=0,busy=false,cancel=false,prepared=null,worker=null,urls=[]
+  const localDay=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+  let selectedDay=localDay(new Date()),calendarMonth=selectedDay.slice(0,7),view='day'
+  const visibleRecords=()=>view==='all'?records:records.filter(r=>view==='undated'?!recordDay(r):recordDay(r)===selectedDay)
+  const dayLabel=d=>d.split('-').reverse().join('.')+'.'
+  function calendar(){
+    const first=new Date(calendarMonth+'-01T12:00:00'),offset=(first.getDay()+6)%7,count=new Date(first.getFullYear(),first.getMonth()+1,0).getDate(),counts=new Map()
+    for(const r of records){const day=recordDay(r);counts.set(day,(counts.get(day)||0)+1)}
+    return `<section class="mp-calendar"><div class="mp-tools"><button data-mp="month-prev" ${busy?'disabled':''} aria-label="Prethodni mesec">‹</button><strong>${esc(first.toLocaleDateString('sr-Latn-RS',{month:'long',year:'numeric'}))}</strong><button data-mp="month-next" ${busy?'disabled':''} aria-label="Sledeći mesec">›</button><button data-mp="today" ${busy?'disabled':''}>Danas</button></div><div class="mp-days">${['Pon','Uto','Sre','Čet','Pet','Sub','Ned'].map(x=>`<small>${x}</small>`).join('')}${'<span></span>'.repeat(offset)}${Array.from({length:count},(_,i)=>{const day=calendarMonth+'-'+String(i+1).padStart(2,'0'),n=counts.get(day)||0;return `<button data-mp-day="${day}" aria-pressed="${view==='day'&&day===selectedDay}" class="${n?'mp-has-photos':''}" ${busy?'disabled':''}>${i+1}<small>${n?n+' sl.':'—'}</small></button>`}).join('')}</div><div class="mp-tools"><button data-mp="day-view" aria-pressed="${view==='day'}" ${busy?'disabled':''}>Izabrani dan</button><button data-mp="all-view" aria-pressed="${view==='all'}" ${busy?'disabled':''}>Svi dani · zbirni folderi modula (${records.length})</button><button data-mp="undated-view" aria-pressed="${view==='undated'}" ${busy?'disabled':''}>Bez datuma (${counts.get('')||0})</button></div><h3>${view==='day'?'Fotografije za '+dayLabel(selectedDay):view==='all'?'Zbirna arhiva · svi dani':'Ranije fotografije bez datuma'}</h3></section>`
+  }
+  function decorateCalendar(d){
+    d.querySelector('header').insertAdjacentHTML('afterend',calendar())
+    const intro=d.querySelector('.mp-calendar').nextElementSibling
+    intro.textContent='1. Izaberi dan. 2. Ubaci slike. 3. Klikni „Filtriraj slike za ovaj dan“. Oznake MV / MVS određuju folder; nečitljive oznake ostaju u Neodređeno za ručnu proveru. U „Svi dani“ izaberi modul da preuzmeš sve njegove slike, složene po datumima.'
+    const input=d.querySelector('#mp-files');input.accept='image/*';input.disabled=busy||view!=='day';input.parentNode.firstChild.textContent='+ Ubaci slike za '+dayLabel(selectedDay)
+    d.querySelector('[data-mp="sort"]').textContent=view==='day'?'Filtriraj slike za ovaj dan':'Filtriraj nerazvrstane slike u ovom prikazu'
+    for(const article of d.querySelectorAll('.mp-grid article')){const id=article.querySelector('[data-id]').dataset.id,r=records.find(r=>r.id===id);article.querySelector('small').textContent=recordDay(r)?'Dan: '+dayLabel(recordDay(r)):'Dan nije dodeljen';article.querySelector('details').insertAdjacentHTML('beforeend',`<label>Dan u kalendaru<input type="date" data-report-day="${esc(id)}" value="${esc(recordDay(r))}" ${busy?'disabled':''}></label>`)}
+  }
   const $=id=>document.getElementById(id),msg=t=>{if($('mp-message'))$('mp-message').textContent=t}
   function db(){return dbPromise||(dbPromise=new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('photos',{keyPath:'id'});r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)}).catch(e=>{dbPromise=null;throw e}))}
   async function request(mode,action){const d=await db();return new Promise((resolve,reject)=>{const tx=d.transaction('photos',mode),r=action(tx.objectStore('photos'));tx.oncomplete=()=>resolve(r.result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('Čuvanje nije uspelo.'))})}
@@ -65,10 +83,11 @@
   function render(){
     const d=$('mp-dialog');if(!d)return
     clearURLs()
-    const items=records,groups=[...new Set(items.map(r=>r.group))].sort()
+    const items=visibleRecords(),groups=[...new Set(items.map(r=>r.group))].sort()
     if(folder&&!groups.includes(folder))folder=''
     const filtered=items.filter(r=>!folder||r.group===folder);page=Math.max(0,Math.min(page,Math.ceil(filtered.length/20)-1))
     d.innerHTML=`<header><div><h2>Filter slika</h2><small>Fotografije se čuvaju na ovom uređaju. Nisu deo sinhronizacije radnih sati i modula.</small></div><button data-mp="close" aria-label="Zatvori">×</button></header><p>Dodaj fotografije — automatski ih razvrstavamo u foldere prema natpisu MV / MVS i broju. Bez čitljive oznake → Neodređeno. Datumi se čitaju sa slike: najstarije gore, najnovije dole. Bez datuma ide na kraj. Ponovljene identične datoteke idu u Duplo. Dodaj slike koliko god puta želiš; folderi se dopunjuju.</p><div class="mp-tools"><label class="mp-button">+ Dodaj fotografije<input id="mp-files" type="file"  multiple ${busy?'disabled':''}></label><button data-mp="stop" ${busy?'':'hidden'}>Zaustavi</button><button data-mp="sort" ${busy||!items.length?'disabled':''}>Pročitaj nedostajuće oznake / datume</button></div><p id="mp-message" role="status">${busy?'Obrada je u toku…':'OCR prvi put preuzima alat za čitanje teksta sa interneta. Fotografije se ne šalju OCR serveru.'}</p><div class="mp-folders"><button data-folder="" ${!folder?'aria-pressed="true"':''}>Sve slike (${items.length})</button>${groups.map(g=>`<button data-folder="${esc(g)}" aria-pressed="${folder===g}">📁 ${esc(g)} (${items.filter(r=>r.group===g).length})</button>`).join('')}</div><div class="mp-tools">${folder?`<button data-mp="delete-folder" ${busy?'disabled':''}>Obriši folder ${esc(folder)}</button>`:''}<button data-mp="zip" ${busy||!filtered.length?'disabled':''}>Pripremi ZIP — ${esc(folder||'svi folderi')}</button>${prepared?'<button data-mp="download">Preuzmi ZIP</button><button class="mp-share" data-mp="share">WhatsApp / pošalji ZIP</button>':''}</div>${prepared?`<p>Spreman: ${esc(prepared.name)} · ${(prepared.size/1048576).toFixed(1)} MB. U prozoru za deljenje izaberi WhatsApp. Ako deljenje ZIP-a nije podržano, preuzmi ga i u WhatsAppu izaberi Spajalica → Dokument.</p>`:''}<div class="mp-grid">${filtered.slice(page*20,page*20+20).map(r=>{let src='';if(r.thumb){src=URL.createObjectURL(r.thumb);urls.push(src)}return `<article>${src?`<img loading="lazy" src="${src}" alt="${esc(r.name)}">`:'<div class="mp-no-preview">Pregled nije dostupan</div>'}<b>${esc(r.name)}</b><small>${r.photoDate?esc(r.photoDate.split('-').reverse().join('.')):'Datum nije pročitan'}</small><button data-mp="delete-photo" data-id="${esc(r.id)}" ${busy?'disabled':''}>Obriši sliku</button><details><summary>Ispravi folder / datum</summary><small>${esc(r.note||'Nije obrađeno')}</small><label>Folder<input data-photo="${esc(r.id)}" value="${esc(r.group)}" placeholder="MV-08 ili MVS-01" ${busy?'disabled':''}></label><label>Datum sa fotografije<input type="date" data-photo-date="${esc(r.id)}" value="${esc(r.photoDate||'')}" ${busy?'disabled':''}></label></details></article>`}).join('')}</div>${filtered.length>20?`<div class="mp-tools"><button data-mp="prev" ${page===0?'disabled':''}>←</button><span>Strana ${page+1} / ${Math.ceil(filtered.length/20)}</span><button data-mp="next" ${(page+1)*20>=filtered.length?'disabled':''}>→</button></div>`:''}<p class="mp-foot">Pre slanja proveri foldere. Automatsko prepoznavanje može pogrešiti. Sačuvaj ZIP izvan aplikacije kao rezervnu kopiju.</p>`
+    decorateCalendar(d)
   }
   async function bitmap(blob){const img=new Image(),u=URL.createObjectURL(blob);try{img.src=u;await img.decode();return img}finally{URL.revokeObjectURL(u)}}
   async function thumbnail(blob){try{const img=await bitmap(blob),c=document.createElement('canvas');c.width=280;c.height=Math.max(1,Math.round(img.height*280/img.width));c.getContext('2d').drawImage(img,0,0,c.width,c.height);return await new Promise(resolve=>c.toBlob(resolve,'image/jpeg',.72))}catch{return null}}
@@ -82,9 +101,10 @@
   async function recognize(blob){
     const img=await bitmap(blob),c=document.createElement('canvas')
     let group=UNKNOWN,photoDate=''
-    // Read both caption lines together; never OCR the large full-resolution photo.
-    for(const mode of ['raw','white','wide']){
-      const sx=img.width*(mode==='wide'?.48:.65),sw=img.width-sx,sh=img.height*.16,scale=Math.min(2,1400/sw)
+    // Prefer caption text, then try a bounded full-image pass for labels elsewhere.
+    for(const mode of ['raw','white','wide','full']){
+      if(mode==='full'&&group!==UNKNOWN)break
+      const sx=mode==='full'?0:img.width*(mode==='wide'?.48:.65),sw=img.width-sx,sh=img.height*(mode==='full'?1:.16),scale=Math.min(2,1400/Math.max(sw,sh))
       c.width=Math.max(1,Math.round(sw*scale));c.height=Math.max(1,Math.round(sh*scale))
       const ctx=c.getContext('2d');ctx.drawImage(img,sx,0,sw,sh,0,0,c.width,c.height)
       if(mode==='white'){const pixels=ctx.getImageData(0,0,c.width,c.height);for(let i=0;i<pixels.data.length;i+=4){const v=Math.min(...pixels.data.slice(i,i+3))>200?0:255;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=v}ctx.putImageData(pixels,0,0)}
@@ -100,6 +120,8 @@
   async function add(files){
     if(busy)return
     files=[...files];if(!files.length)return
+    if(view!=='day'){msg('Prvo izaberi dan u kalendaru.');return}
+    const uploadDay=selectedDay
     busy=true;prepared=null;cancel=false;batch=crypto.randomUUID();folder='';page=0;render()
     const now=Date.now(),label=new Date(now).toLocaleString('hr-HR');let failure='',saved=0
     try{
@@ -114,15 +136,16 @@
         msg('Dodajem sliku '+(i+1)+' / '+files.length+'…')
         const file=files[i],hash=await fingerprint(file),original=seen.get(hash)
         const r={id:crypto.randomUUID(),batch,label,created:now,order:i,name:file.name,file,hash,thumb:original?.thumb||await thumbnail(file),group:original?DUPLICATE:UNKNOWN,photoDate:original?.photoDate||'',note:original?'Duplikat: '+original.name:'Nije obrađeno',manual:false,duplicateOf:original?.id||''}
+        r.reportDate=uploadDay
         await put(r);records.push(r);if(!original)seen.set(hash,r);saved++
       }
     }catch(e){failure='Dodavanje nije završeno. Proveri prostor na uređaju. Sačuvano: '+saved+'. Originalne fotografije nisu obrisane.'}
     finally{busy=false;records.sort(chronological);render();msg(failure||(cancel?'Dodavanje zaustavljeno.':'Slike sačuvane.'))}
-    if(saved&&!cancel)await sort()
+    if(saved&&!cancel&&!failure)msg('Sačuvano '+saved+' slika za '+dayLabel(uploadDay)+'. Klikni „Filtriraj slike za ovaj dan“.')
   }
   async function sort(){
     if(busy)return
-    const list=records.filter(r=>r.group!==DUPLICATE&&(!r.photoDate||r.group===UNKNOWN));if(!list.length){msg('Sve slike su već razvrstane. Duplikati su u folderu Duplo.');return}
+    const list=visibleRecords().filter(r=>r.group!==DUPLICATE&&(!recordDay(r)||r.group===UNKNOWN));if(!list.length){msg('Sve slike su već razvrstane. Duplikati su u folderu Duplo.');return}
     busy=true;cancel=false;prepared=null;render();let failure='',done=0
     try{msg('Učitavam alat za čitanje oznaka…');worker=await makeWorker();await worker.setParameters({tessedit_pageseg_mode:'11'});
       for(const r of list){if(cancel)break;msg(`Čitam oznaku ${done+1} / ${list.length}: ${r.name}`);try{const result=await recognize(r.file);if(r.manual)delete result.group;if(r.photoDate)delete result.photoDate;Object.assign(r,result)}catch(e){r.note='Čitanje nije uspelo — proveri ručno.';if(e.message.includes('predugo'))throw e}await put(r);done++;if(done%10===0){records.sort(chronological);render()}}
@@ -131,7 +154,7 @@
   function download(){if(!prepared)return;const u=URL.createObjectURL(prepared),a=document.createElement('a');a.href=u;a.download=prepared.name;a.click();setTimeout(()=>URL.revokeObjectURL(u),60000)}
   async function prepare(){
     if(busy)return;busy=true;cancel=false;prepared=null;render()
-    try{const rows=records.filter(r=>!folder||r.group===folder).sort(chronological),blob=await zip(rows,(i,n)=>{if(cancel)throw Error('Priprema ZIP-a je zaustavljena.');msg(`Pakujem originalne slike ${i} / ${n}…`)});prepared=new File([blob],`${safe(folder||'Svi-moduli')}.zip`,{type:'application/zip'});busy=false;render();msg('ZIP je spreman. Klikni WhatsApp / pošalji ZIP ili Preuzmi ZIP.')}catch(e){busy=false;render();msg(e.message)}
+    try{const rows=visibleRecords().filter(r=>!folder||r.group===folder).sort(chronological),blob=await zip(rows,(i,n)=>{if(cancel)throw Error('Priprema ZIP-a je zaustavljena.');msg(`Pakujem originalne slike ${i} / ${n}…`)});prepared=new File([blob],`${safe(folder||'Svi-moduli')}-${view==='day'?selectedDay:view==='all'?'svi-dani':'bez-datuma'}.zip`,{type:'application/zip'});busy=false;render();msg('ZIP je spreman. Klikni WhatsApp / pošalji ZIP ili Preuzmi ZIP.')}catch(e){busy=false;render();msg(e.message)}
   }
   async function share(){
     if(!prepared)return
@@ -141,13 +164,31 @@
 
   async function removePhotos(id){
     if(busy)return
-    const targets=id?records.filter(r=>r.id===id):records.filter(r=>r.group===folder)
+    const targets=id?records.filter(r=>r.id===id):visibleRecords().filter(r=>r.group===folder)
     if(!targets.length||!confirm(id?'Obrisati ovu sliku iz aplikacije? Original na uređaju ostaje.':'Obrisati folder '+folder+' sa '+targets.length+' slika iz aplikacije? Ovo se ne može poništiti. Originali na uređaju ostaju.'))return
     busy=true;prepared=null
     try{const d=await db();await new Promise((resolve,reject)=>{const tx=d.transaction('photos','readwrite'),s=tx.objectStore('photos');targets.forEach(r=>s.delete(r.id));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});const ids=new Set(targets.map(r=>r.id));records=records.filter(r=>!ids.has(r.id));busy=false;render();msg('Obrisano iz aplikacije: '+targets.length+'. Originali na uređaju nisu obrisani.')}
     catch(e){busy=false;render();msg('Brisanje nije uspelo.')}
   }
 
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('#mp-dialog button');if(!b||busy)return
+    const action=b.dataset.mp
+    if(b.dataset.mpDay){selectedDay=b.dataset.mpDay;view='day'}
+    else if(action==='month-prev'||action==='month-next'){const d=new Date(calendarMonth+'-01T12:00:00');d.setMonth(d.getMonth()+(action==='month-next'?1:-1));calendarMonth=localDay(d).slice(0,7)}
+    else if(action==='today'){selectedDay=localDay(new Date());calendarMonth=selectedDay.slice(0,7);view='day'}
+    else if(action==='all-view')view='all'
+    else if(action==='day-view')view='day'
+    else if(action==='undated-view')view='undated'
+    else return
+    folder='';page=0;prepared=null;render()
+  })
+  document.addEventListener('change',async e=>{
+    if(!e.target.matches('#mp-dialog [data-report-day]')||busy)return
+    const r=records.find(r=>r.id===e.target.dataset.reportDay),day=e.target.value
+    if(!r||!/^\d{4}-\d{2}-\d{2}$/.test(day)){msg('Izaberi ispravan datum.');return}
+    try{await put({...r,reportDate:day});prepared=null;await load();render();msg('Dan fotografije je sačuvan.')}catch{msg('Datum nije sačuvan. Proveri prostor na uređaju.')}
+  })
   async function open(){
     let d=$('mp-dialog');if(!d){d=document.createElement('dialog');d.id='mp-dialog';d.setAttribute('aria-label','Filter slika');document.body.append(d);d.addEventListener('close',clearURLs);
       d.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const action=b.dataset.mp;if(action==='close')d.close();if(action==='stop'){cancel=true;msg('Zaustavljam nakon trenutne slike…')}if(action==='delete-photo')removePhotos(b.dataset.id);if(action==='delete-folder')removePhotos();if(action==='sort')sort();if(action==='zip')prepare();if(action==='download')download();if(action==='share')share();if(action==='prev'){page--;render()}if(action==='next'){page++;render()}if(b.hasAttribute('data-folder')&&!busy){folder=b.dataset.folder;page=0;prepared=null;render()}})
@@ -156,6 +197,7 @@
     if(!d.open)d.showModal();if(busy){render();return}try{await load();render()}catch{d.innerHTML='<h2>Filter slika</h2><p>Nije moguće otvoriti lokalno spremište fotografija. Proveri da preglednik dozvoljava čuvanje podataka.</p><button data-mp="close">Zatvori</button>'}
   }
   const style=document.createElement('style');style.textContent=`#mp-dialog{box-sizing:border-box;width:min(1100px,96vw);max-height:92vh;overflow:auto;background:#10273d;color:#eaf4ff;border:1px solid #477693;border-radius:16px;padding:22px;font:14px Arial}#mp-dialog::backdrop{background:#000b}#mp-dialog header{display:flex;justify-content:space-between;gap:20px}#mp-dialog h2{margin:0 0 8px}#mp-dialog p{line-height:1.5;color:#b5cfe2}#mp-dialog button,#mp-dialog .mp-button,#mp-dialog select{background:#193d57;color:#e8f6ff;border:1px solid #3e708d;border-radius:8px;padding:10px;cursor:pointer;font:inherit}#mp-dialog button:disabled{opacity:.45;cursor:default}#mp-dialog [hidden]{display:none!important}#mp-dialog .mp-tools,#mp-dialog .mp-folders{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:15px 0}#mp-dialog .mp-button input{position:absolute;width:1px;height:1px;opacity:0}#mp-dialog .mp-button:focus-within{outline:2px solid #58dfff}#mp-dialog summary{cursor:pointer;padding:6px 0}#mp-dialog [aria-pressed=true]{border-color:#58dfff;background:#205c76}#mp-dialog .mp-share{background:#146b43}#mp-dialog .mp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}#mp-dialog article{padding:10px;border:1px solid #31516b;border-radius:10px;display:grid;gap:8px;min-width:0}#mp-dialog article img{width:100%;height:135px;object-fit:contain;background:#081725}#mp-dialog article b{overflow-wrap:anywhere;font-size:12px}#mp-dialog small{color:#9ebbd0}#mp-dialog article label{display:grid;gap:5px}#mp-dialog article input{box-sizing:border-box;width:100%;background:#071b2d;border:1px solid #466b84;color:white;padding:9px;border-radius:6px}#mp-message{color:#7ae6c0!important}#mp-dialog .mp-no-preview{height:135px;display:grid;place-items:center}#mp-dialog .mp-foot{font-size:12px}`;document.head.append(style)
+  style.textContent+=`#mp-dialog .mp-calendar{margin:18px 0;padding:16px;border:1px solid #b79743;border-radius:14px;background:#102e40}#mp-dialog .mp-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;max-width:560px}#mp-dialog .mp-days>small{text-align:center}#mp-dialog .mp-days button{min-height:48px;padding:6px 2px;display:grid;gap:4px}#mp-dialog .mp-days button small{font-size:10px}#mp-dialog .mp-days .mp-has-photos{background:#145d45;border-color:#42cf8c}#mp-dialog .mp-days [aria-pressed=true]{outline:2px solid #ffd36a;outline-offset:1px}#mp-dialog .mp-calendar h3{color:#75ffc0}#mp-dialog button{min-height:44px}@media(max-width:600px){#mp-dialog{padding:12px;width:98vw;max-height:96dvh}#mp-dialog .mp-calendar{padding:10px}#mp-dialog .mp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#mp-dialog .mp-tools{gap:6px}#mp-dialog .mp-tools button{flex:1 1 auto}#mp-dialog article{padding:7px}#mp-dialog article img{height:115px}}`
   function install(){const host=document.querySelector('#module-status .ms-header .ms-actions');if(host&&!$('mp-open')){const b=document.createElement('button');b.id='mp-open';b.className='ms-button';b.textContent='📁 Filter slika';b.onclick=open;host.append(b)}}
   new MutationObserver(install).observe(document.body,{childList:true,subtree:true});install()
   window.addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}})

@@ -1,4 +1,4 @@
-const CACHE = 'tasker-v1121'
+const CACHE = 'tasker-v1122'
 const CORE = [
  './tasker-transfer-v1117.js',
  './module-photo-storage-v1114.js',
@@ -34,7 +34,7 @@ const CORE = [
   './module-status-glow-v1079.css',
   './module-status-polish-v1078.css',
   './employee-hours-header-v1073.js?build=1085',
-  './module-photo-filter-v1059.js?build=1075',
+  './module-photo-filter-v1059.js?build=1122',
   './tasker-sync-v105.js?build=1114',
   './module-status-snapshot-v104.js?build=1075',
   './vendor/html2canvas-1.4.1.min.js',
