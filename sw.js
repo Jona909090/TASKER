@@ -1,7 +1,7 @@
-const CACHE = 'tasker-v1126'
+const CACHE = 'tasker-v1127'
 const CORE = [
- './module-departure-order-v1126.js',
- './module-departure-order-v1126.css',
+ './module-departure-order-v1126.js?build=1127',
+ './module-departure-order-v1126.css?build=1127',
  './module-dispatch-v1123.js?build=1125',
  './tasker-transfer-v1117.js?build=1124',
  './module-photo-storage-v1114.js',
